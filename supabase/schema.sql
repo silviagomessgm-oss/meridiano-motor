@@ -658,6 +658,27 @@ create or replace view envios_pendientes with (security_invoker = true) as
   from propuestas p join contactos c on c.id_contacto = p.id_contacto join dim_comercial dc on dc.id_comercial = p.comercial_asignado
   where p.estado_envio = 'aprobada' and p.canal = 'email';
 
+-- ---------------------------------------------------------------- 5b. Permisos explícitos (proyectos sin permisos automáticos)
+grant usage on schema public to anon, authenticated, service_role;
+
+-- n8n y el motor (clave de servicio): todo
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+grant execute on all functions in schema public to service_role;
+
+-- Panel de Lovable (usuarios con sesión): solo LECTURA; lo que ve cada uno lo decide la RLS
+grant select on all tables in schema public to authenticated;
+revoke insert, update, delete on all tables in schema public from anon, authenticated;
+grant execute on function accion_panel(bigint, text, jsonb), alta_lead_panel(jsonb), registrar_consentimiento(text, text, text)
+  to authenticated;
+
+-- Formulario web (público): solo el alta de leads
+grant execute on function alta_lead_web(jsonb) to anon, authenticated;
+
+-- Funciones internas: nadie salvo la clave de servicio
+revoke execute on function registrar_accion(bigint, text, text, jsonb), trazar_propuesta(), completar_propuesta(), comercial_para_lead()
+  from public, anon, authenticated;
+
 -- ---------------------------------------------------------------- 6. Usuarios de la DEMO (datos ficticios)
 -- Para la demostración, cada usuario del panel es un alias de una misma cuenta de Gmail (TU-CUENTA+alias@gmail.com):
 -- todos los enlaces de acceso llegan a ese buzón. Crear antes los usuarios en Authentication → Users con estos correos.

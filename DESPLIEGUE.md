@@ -53,7 +53,7 @@ El código de los nodos *Code* está en `n8n/codigo/*.js` y se prueba con node (
 ### 1. Supabase
 1. Crear un proyecto en supabase.com (plan gratuito).
 2. *SQL Editor* → pegar y ejecutar `supabase/schema.sql` (se puede ejecutar varias veces). Si el proyecto tenía una versión anterior del esquema, ejecutar antes `supabase/reset.sql` (borra los objetos del caso y sus datos).
-   Comprobar con `supabase/comprobar.sql`: **no debe devolver ninguna fila**.
+   Comprobar con `supabase/comprobar.sql`: **no debe devolver ninguna fila**. Si lista «FALTAN permisos…» (proyectos creados sin permisos automáticos sobre tablas nuevas), ejecutar `supabase/permisos.sql`.
 3. *Authentication → Users*: crear los usuarios del panel. Para cada uno, una fila en `perfiles` (correo, rol `comercial` o `direccion`, `id_comercial`). **En la demo**, todos son alias de tu cuenta de Gmail (`tu-cuenta+martina@gmail.com`, `+comercial2`, `+comercial3`, `+direccion`): hay un ejemplo comentado al final del esquema.
 
 ### 2. Hoja de datos en Google Sheets

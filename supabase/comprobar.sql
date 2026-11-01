@@ -13,4 +13,9 @@ select 'FALTA la columna propuestas.estado_envio (esquema antiguo)' where not ex
   (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'propuestas' and column_name = 'estado_envio')
 union all
 select 'SOBRA (versión anterior): ' || table_name from information_schema.tables
-where table_schema = 'public' and table_name in ('plan_mes_actual', 'kpis_mensuales');
+where table_schema = 'public' and table_name in ('plan_mes_actual', 'kpis_mensuales')
+union all
+select 'FALTAN permisos de la clave de servicio sobre ' || t.table_name || ' (ejecuta permisos.sql)'
+from (select c.oid, c.relname as table_name from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r') t
+where not has_table_privilege('service_role', t.oid, 'INSERT');
