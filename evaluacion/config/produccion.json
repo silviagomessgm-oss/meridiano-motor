@@ -1,0 +1,18 @@
+{
+  "_nota": "Decisión del equipo (25-oct-2026, tras la iteración 4): MEDIR con la regla A (210 días sin nueva campaña) y ACTUAR con L2 × valor de la cuenta. Este archivo configura el modelo L2 de producción. No usa el archivo de validación en ningún paso.",
+  "modelo": "L2",
+  "fecha_puntuacion": "2026-09-30",
+  "cortes_entrenamiento": [
+    "2024-09-30",
+    "2024-12-31",
+    "2025-03-31",
+    "2025-06-30",
+    "2025-09-30",
+    "2025-12-31"
+  ],
+  "horizonte_objetivo_dias": 210,
+  "poblacion_max_dias_sin_actividad": 540,
+  "_poblacion": "Anunciantes con al menos una orden hasta el corte y como mucho 540 días sin actividad. Sustituye al filtro de la evaluación, que usaba el archivo de validación",
+  "etiqueta": "E2",
+  "_etiqueta": "Decisión del equipo (25-oct-2026): L2 se entrena con la etiqueta E2 (abandono = pérdida total o contracción). Si resultados/estado_etiqueta.json (validación automática) indica que E2 no se ha validado, se entrena con la regla A (V3) de forma automática. Con E2 se usan los cortes de config/etiqueta.json, que tienen un año previo comparable"
+}

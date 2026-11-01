@@ -1,0 +1,54 @@
+{
+  "_nota": "Parámetros del automatismo de propuestas de retención (SDD N01-N07, FORGEN v2.0). Los pesos del respaldo son PROVISIONALES: se sustituyen por las probabilidades del modelo de cálculo cuando esté validado (data/scores_modelo.csv). Con data/scores_modelo.csv (modelo L2 del repositorio de evaluación) se usa la regla de valor esperado.",
+  "fecha_corte": "2026-09-30",
+  "horizonte_actividad_dias": 540,
+  "capacidad_semanal_por_comercial": 4,
+  "semanas_del_plan": 1,
+  "porcentaje_control_banda_media": 0.2,
+  "percentil_cuentas_clave": 0.8,
+  "descuento_maximo_sin_direccion": 0.1,
+  "plazos_dias": {
+    "reunion_nuevo_interlocutor": 15,
+    "resolucion_reclamacion": 7,
+    "por_defecto": 30
+  },
+  "respaldo_senales": {
+    "tendencia_6m_menor_que": -0.3,
+    "peso_tendencia": 2,
+    "ctr_relativo_menor_que": 0.8,
+    "peso_ctr": 2,
+    "peso_cambio_interlocutor_12m": 3,
+    "peso_reclamacion_sin_resolver": 3,
+    "dias_sin_contacto_mayor_que": 90,
+    "peso_sin_contacto": 2,
+    "peso_factura_vencida": 1,
+    "factor_ciclo_inactividad": 1.5,
+    "peso_inactividad": 1,
+    "banda_alta_desde": 5,
+    "banda_media_desde": 3
+  },
+  "ventana_estacional": {
+    "dias_hasta_proxima_ventana_max": 60,
+    "min_campanas_propias": 3,
+    "meses_categoria": 4
+  },
+  "llm": {
+    "usar": false,
+    "modelo": "claude-sonnet-5-5",
+    "max_tokens": 700
+  },
+  "valor_esperado": {
+    "coste_accion_eur": 120,
+    "tasa_recuperacion": 0.2,
+    "_nota": "Decisión del equipo (25-oct-2026): ACTUAR con L2 × valor. Con puntuaciones del modelo, se propone acción si prob_abandono × valor_cuenta × tasa_recuperacion > coste_accion. Son los supuestos del escenario central de la evaluación; se sustituirán por la tasa real que mida el grupo de control",
+    "banda_alta_prob_desde": 0.6
+  },
+  "tipo_riesgo": {
+    "_nota": "Etiqueta E2 (decisión del equipo): dos tipos de abandono con acciones distintas. Contracción prevista si el anunciante sigue comprando (última campaña hace <= dias_compra_reciente) y su inversión cae; si no, pérdida total",
+    "dias_compra_reciente": 120,
+    "tendencia_contraccion_menor_que": -0.3
+  },
+  "_cadencia": "Decisión del equipo (25-oct-2026): ciclo SEMANAL, los martes por la mañana, para que las propuestas no lleguen todas a la vez. Capacidad por ciclo = capacidad_semanal_por_comercial × semanas_del_plan = 4 por comercial (12 por semana, ~52 al mes, equivalente a las 48 mensuales).",
+  "dias_enfriamiento": 90,
+  "_nota_enfriamiento": "Un anunciante propuesto o asignado al grupo de control en los últimos dias_enfriamiento días no vuelve a entrar en el plan: evita repetir cada semana las mismas cuentas y mantiene limpio el grupo de control."
+}

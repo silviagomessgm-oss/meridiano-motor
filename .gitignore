@@ -1,0 +1,11 @@
+salidas/
+__pycache__/
+.pytest_cache/
+*.pyc
+historico/*.csv
+.env
+salidas/
+__pycache__/
+despliegue/meridiano-motor-hf/
+despliegue/meridiano-motor-hf.zip
+despliegue/Meridiano_Datos_Operativos.xlsx

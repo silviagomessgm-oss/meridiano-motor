@@ -1,0 +1,197 @@
+{
+  "name": "Meridiano · W2 Alertas de cierre",
+  "nodes": [
+    {
+      "id": "d406e8ac-9289-5cc1-bcf9-f117bc35ab8c",
+      "name": "Evento registrado en Supabase",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meridiano-evento",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook",
+          "name": "Webhook Supabase"
+        }
+      },
+      "webhookId": "db56314e-8f6f-5d2a-a2bb-be8509447390"
+    },
+    {
+      "id": "3c89f6ed-bb0a-5548-b228-c66c6f9dd512",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, SMTP) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Con la cuenta de Gmail personal: remitente = esa cuenta; buzón de pruebas = la misma con un alias (+demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n  remitente: 'Meridiano · Plan comercial <TU-CUENTA@gmail.com>',\n} }];\n"
+      }
+    },
+    {
+      "id": "a6959c94-175c-59f2-b9fc-7ae52bbbc545",
+      "name": "Solo cierres",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Webhook de base de datos de Supabase: { type, table, record } por cada fila nueva de eventos_propuesta.\n// La traza ya está guardada en Supabase; aquí solo interesan los cierres, para avisar a dirección si procede.\nreturn $('Evento registrado en Supabase').all()\n  .map(i => i.json.body || i.json)\n  .filter(b => b.table === 'eventos_propuesta' && b.type === 'INSERT' && b.record && b.record.accion === 'cerrar')\n  .map(b => ({ json: { propuesta_id: b.record.propuesta_id, usuario: b.record.usuario, fecha: b.record.creado_en } }));\n"
+      }
+    },
+    {
+      "id": "710e1621-33c9-5c1b-b032-29cd041800b5",
+      "name": "Supabase: propuesta cerrada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        540,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/propuestas?id=eq.{{ $json.propuesta_id }}&select=id,id_cliente,razon_social,fecha_corte,cuenta_clave,requiere_direccion,estado_confirmado_comercial,motivo_confirmado,diagnostico_correcto,comentario_comercial,facturacion_en_riesgo",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth"
+      },
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "supabase",
+          "name": "Supabase Meridiano"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "eea10498-9545-5027-80ab-16f11e5e2c89",
+      "name": "Alertas de cierre",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Cierres que requieren a dirección: cuenta clave perdida, cuenta marcada para dirección no recuperada, pérdida por reclamación.\nconst cierres = $('Solo cierres').all().map(i => i.json);\nreturn $input.all().map((it, k) => {\n  const r = ((it.json || {}).body || [])[0];\n  if (!r) return null;\n  const quien = (cierres[k] || {}).usuario || 'Un comercial';\n  const motivos = [];\n  if (r.cuenta_clave && r.estado_confirmado_comercial === 'Perdido') motivos.push('cuenta clave perdida');\n  if (r.requiere_direccion && r.estado_confirmado_comercial !== 'Activo') motivos.push('cuenta marcada para dirección sin recuperar');\n  if (r.motivo_confirmado === 'servicio_reclamacion' && r.estado_confirmado_comercial === 'Perdido') motivos.push('pérdida por reclamación');\n  if (!motivos.length) return null;\n  return { json: {\n    asunto: `Meridiano · ${motivos.join(', ')}: ${r.razon_social}`,\n    texto: `${quien} ha cerrado la propuesta de ${r.razon_social} (${r.id_cliente}), semana del ${String(r.fecha_corte).slice(0, 10)}.\\n\\n` +\n      `Estado confirmado: ${r.estado_confirmado_comercial}\\nMotivo confirmado: ${r.motivo_confirmado}\\n` +\n      `Diagnóstico del sistema correcto: ${r.diagnostico_correcto}\\nFacturación en riesgo: ${r.facturacion_en_riesgo} €\\n` +\n      `Comentario: ${r.comentario_comercial || '—'}\\n\\nHistorial completo de la propuesta en el panel. Aviso generado por: ${motivos.join('; ')}.`,\n  } };\n}).filter(Boolean);\n"
+      }
+    },
+    {
+      "id": "a11cf7f6-bc9f-59f3-826b-185538f073f2",
+      "name": "Alerta a dirección",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        0
+      ],
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.remitente }}",
+        "toEmail": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($('Configuración').first().json.correo_direccion) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($('Configuración').first().json.correo_direccion) + '] ' : '') + ($json.asunto) }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "smtp",
+          "name": "SMTP Meridiano"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Evento registrado en Supabase": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Solo cierres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo cierres": {
+      "main": [
+        [
+          {
+            "node": "Supabase: propuesta cerrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: propuesta cerrada": {
+      "main": [
+        [
+          {
+            "node": "Alertas de cierre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alertas de cierre": {
+      "main": [
+        [
+          {
+            "node": "Alerta a dirección",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Madrid"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

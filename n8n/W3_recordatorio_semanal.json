@@ -1,0 +1,198 @@
+{
+  "name": "Meridiano · W3 Recordatorio semanal",
+  "nodes": [
+    {
+      "id": "94920782-3e9b-51ff-88db-08d999d15b64",
+      "name": "Lunes 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3c89f6ed-bb0a-5548-b228-c66c6f9dd512",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, SMTP) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Con la cuenta de Gmail personal: remitente = esa cuenta; buzón de pruebas = la misma con un alias (+demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n  remitente: 'Meridiano · Plan comercial <TU-CUENTA@gmail.com>',\n} }];\n"
+      }
+    },
+    {
+      "id": "4a8ceb65-ab68-5764-95ed-feee243b5997",
+      "name": "Supabase: comerciales",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/dim_comercial?select=id_comercial,nombre,correo",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth"
+      },
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "supabase",
+          "name": "Supabase Meridiano"
+        }
+      }
+    },
+    {
+      "id": "624d4a97-b297-5240-8cca-e3a98e3bcd98",
+      "name": "Supabase: tareas sin cerrar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/plan_vigente?estado_tarea=neq.cerrada&select=id_cliente,razon_social,comercial_asignado,accion_id,fecha_limite,estado_tarea&order=fecha_limite",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth"
+      },
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "supabase",
+          "name": "Supabase Meridiano"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "08fd7ad8-43cd-5e2a-9f2a-f60f76ffc779",
+      "name": "Agrupar por comercial",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Recordatorio de los lunes, antes del ciclo del martes: tareas sin cerrar de cualquier semana, por comercial. Marca las que vencen en 7 días o ya vencieron.\nconst comerciales = $('Supabase: comerciales').all().map(i => i.json);\nconst tareas = $input.all().map(i => i.json).filter(t => t.id_cliente);\nconst hoy = new Date(); const en7 = new Date(hoy.getTime() + 7 * 864e5);\nconst panel = $('Configuración').first().json.panel_url;\nreturn comerciales.map(c => {\n  const suyas = tareas.filter(t => t.comercial_asignado === c.id_comercial);\n  if (!suyas.length) return null;\n  const urgentes = suyas.filter(t => new Date(t.fecha_limite) <= en7);\n  const lineas = suyas.map(t => `- ${t.razon_social} · límite ${t.fecha_limite}${new Date(t.fecha_limite) < hoy ? ' (vencida)' : ''}`).join('\\n');\n  return { json: {\n    correo: c.correo, pendientes: suyas.length, urgentes: urgentes.length,\n    asunto: `Meridiano · ${suyas.length} propuestas sin cerrar (${urgentes.length} vencen esta semana)`,\n    texto: `Hola, ${c.nombre.split(' ')[0]}:\\n\\nTienes ${suyas.length} propuestas sin cerrar. Mañana llegan las de la nueva semana:\\n\\n${lineas}\\n\\n${panel}`,\n  } };\n}).filter(Boolean);\n"
+      }
+    },
+    {
+      "id": "fa0b25da-ead2-5dc1-bf7e-81270c69811e",
+      "name": "Recordatorio al comercial",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.remitente }}",
+        "toEmail": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($json.correo) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($json.correo) + '] ' : '') + ($json.asunto) }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "smtp",
+          "name": "SMTP Meridiano"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Lunes 8:00": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Supabase: comerciales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: comerciales": {
+      "main": [
+        [
+          {
+            "node": "Supabase: tareas sin cerrar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: tareas sin cerrar": {
+      "main": [
+        [
+          {
+            "node": "Agrupar por comercial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar por comercial": {
+      "main": [
+        [
+          {
+            "node": "Recordatorio al comercial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Madrid"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

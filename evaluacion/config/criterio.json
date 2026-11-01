@@ -1,0 +1,195 @@
+{
+  "_nota": "ITERACIÓN 2 (25-oct-2026). Cambio de criterio documentado ANTES de ejecutar, tras la iteración 1 (ninguna regla alcanzó la precisión mínima de 0,80; máximo de la rejilla: 0,47). Decisiones del equipo: (1) verdad principal observable; (2) se añaden reglas con señales; (3) se decide por valor neto esperado. No modificar después de ver resultados.",
+  "iteracion": 5,
+  "fecha_inicio_datos": "2023-10-01",
+  "fecha_fin_datos": "2026-09-30",
+  "cortes": [
+    "2024-09-30",
+    "2024-12-31",
+    "2025-03-31",
+    "2025-06-30",
+    "2025-09-30",
+    "2025-12-31"
+  ],
+  "_cortes": "Solo cortes con 210 días observables después (fin de datos − 210 = 04-mar-2026), necesarios para la verdad observable",
+  "ventana_exclusion_bajas_antiguas_dias": 365,
+  "horizonte_objetivo_dias": 210,
+  "senales": {
+    "tendencia_6m_menor_que": -0.3,
+    "ctr_relativo_menor_que": 0.8,
+    "cambio_interlocutor_ultimos_dias": 365,
+    "dias_sin_contacto_mayor_que": 90,
+    "reclamacion_sin_resolver": true,
+    "factura_vencida_impagada": true,
+    "excluir_del_recuento": [
+      "s_tendencia"
+    ],
+    "_excluir": "Corrección previa a la ejecución (detectada al revisar la lógica, sin mirar resultados): con 210 días sin actividad la facturación de los últimos 6 meses es 0, así que la caída de inversión es verdadera por construcción y no aporta información independiente. Se calcula y se informa, pero no cuenta para S1/S2.",
+    "productos_compromiso": [
+      "P04",
+      "P07",
+      "P08",
+      "P09"
+    ]
+  },
+  "reglas_candidatas": [
+    {
+      "nombre": "A · 210 días",
+      "tipo": "dias",
+      "parametro": 210
+    },
+    {
+      "nombre": "B · MAX(210; 1,5 × ciclo)",
+      "tipo": "factor",
+      "parametro": 1.5,
+      "minimo_dias": 210
+    },
+    {
+      "nombre": "S1 · 210 días y ≥ 1 señal",
+      "tipo": "senales",
+      "parametro": 210,
+      "min_senales": 1
+    },
+    {
+      "nombre": "S2 · 210 días y ≥ 2 señales",
+      "tipo": "senales",
+      "parametro": 210,
+      "min_senales": 2
+    },
+    {
+      "nombre": "C · BTYD P(vivo) < 0,5",
+      "tipo": "btyd",
+      "parametro": 0.5
+    },
+    {
+      "nombre": "P1 · P(Activo) ritmo propio < 0,2",
+      "tipo": "p1",
+      "parametro": 0.2
+    },
+    {
+      "nombre": "L1 · Logística R+F+T (valor esperado)",
+      "tipo": "logit",
+      "modelo": "L1"
+    },
+    {
+      "nombre": "L2 · Logística R+F+T+señales (valor esperado)",
+      "tipo": "logit",
+      "modelo": "L2"
+    },
+    {
+      "nombre": "L2·48 · Producción actual",
+      "tipo": "topk",
+      "modelo": "L2",
+      "decide": true
+    },
+    {
+      "nombre": "L3a·48 · A medida con contacto",
+      "tipo": "topk",
+      "modelo": "L3a",
+      "decide": true
+    },
+    {
+      "nombre": "L3b·48 · A medida sin contacto",
+      "tipo": "topk",
+      "modelo": "L3b",
+      "decide": true
+    },
+    {
+      "nombre": "VALOR·48 · Solo valor (referencia)",
+      "tipo": "topk",
+      "modelo": "VALOR",
+      "decide": true
+    },
+    {
+      "nombre": "A·48 · Inactivos 210 días por valor",
+      "tipo": "topk",
+      "modelo": "A",
+      "decide": true
+    }
+  ],
+  "sensibilidad": {
+    "dias": [
+      150,
+      180,
+      210,
+      240,
+      270,
+      300,
+      365
+    ],
+    "factor": [
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.5,
+      3.0
+    ],
+    "btyd": [
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7
+    ],
+    "p1": [
+      0.05,
+      0.1,
+      0.2,
+      0.3,
+      0.5
+    ]
+  },
+  "definiciones_de_verdad": {
+    "V3_sin_campana_210d": "PRINCIPAL. Observable: el anunciante no inicia ninguna campaña en los 210 días siguientes al corte",
+    "V2_ultima_compra_realizada": "Control: tiene baja real en el archivo de validación y no vuelve a comprar después del corte",
+    "V1_baja_registrada": "Control: fecha_baja_real <= corte"
+  },
+  "definicion_principal": "V3_sin_campana_210d",
+  "criterio_decision": {
+    "metrica_principal": "valor_neto_esperado_eur",
+    "_formula": "Por cada anunciante marcado: si es abandono real, valor_cuenta × tasa_recuperacion − coste_accion; si no lo es, − coste_accion. valor_cuenta = MAX(facturación 12 m; facturación 24 m / 2) a fecha de corte",
+    "escenario_principal": "central",
+    "escenarios": {
+      "pesimista": {
+        "coste_accion_eur": 200,
+        "tasa_recuperacion": 0.1
+      },
+      "central": {
+        "coste_accion_eur": 120,
+        "tasa_recuperacion": 0.2
+      },
+      "optimista": {
+        "coste_accion_eur": 80,
+        "tasa_recuperacion": 0.3
+      }
+    },
+    "_supuestos": "coste_accion = tiempo comercial (2-3 h) + preparación del material. tasa_recuperacion = parte de los abandonos reales que una acción a tiempo recupera. Ambos son SUPUESTOS del caso; los tres escenarios miden la sensibilidad de la decisión",
+    "robustez": "Si la regla ganadora del escenario central no es también la mejor en los otros dos, la decisión se declara SENSIBLE A LOS SUPUESTOS y se revisa con el equipo"
+  },
+  "_nota_iteracion_3": "ITERACIÓN 3 (25-oct-2026). Se añade una candidata BTYD (MBG/NBD) propuesta por el equipo: probabilidad de que el anunciante siga 'vivo' estimada con su propia frecuencia y recencia, ajustada en cada corte solo con datos <= corte. El criterio de decisión NO cambia respecto a la iteración 2. Registrado antes de ejecutar. La iteración 2 aún no se había ejecutado de forma independiente (la ejecución de las 12:37 fue de la versión 1).",
+  "btyd": {
+    "modelo": "MBG/NBD",
+    "unidad_tiempo": "semanas",
+    "compra": "inicio de campaña (id_campana)",
+    "ultima_actividad": "última emisión (una campaña en curso cuenta como actividad)",
+    "limitacion_conocida": "El modelo supone ritmo de compra estable: no recoge la estacionalidad. Además, la antigüedad empieza en oct-2023 para clientes anteriores (historial previo no disponible)",
+    "control_de_identificabilidad": "Ajuste con 5 puntos de partida y parámetros acotados a [e^-6, e^6]. Si en algún corte el óptimo queda en el borde, el modelo se declara no identificado y la candidata C se excluye de la decisión (se informa en decision.md). Añadido antes de ejecutar la iteración 3 tras comprobar, en la prueba de construcción, que el ajuste no convergía a valores finitos"
+  },
+  "_nota_iteracion_4": "ITERACIÓN 4 (25-oct-2026). El equipo decide no adoptar todavía la regla A (decisión sensible en la iteración 3) y evaluar antes modelos de P(Activo). Se añaden P1 (ritmo propio) y L1/L2 (regresión logística). Para que la comparación sea justa, TODAS las reglas se evalúan en los mismos cortes de prueba, y cada modelo se entrena solo con cortes cuyo resultado era conocido en la fecha del corte de prueba (corte de entrenamiento + 210 días <= corte de prueba). El criterio de decisión (valor neto esperado, 3 escenarios, robustez) no cambia. Registrado antes de ejecutar.",
+  "cortes_prueba": [
+    "2025-06-30",
+    "2025-09-30",
+    "2025-12-31"
+  ],
+  "p_activo": {
+    "P1_ritmo_propio": "Probabilidad de que un anunciante activo estuviera tanto tiempo sin comprar: (beta/(beta+R))^alpha, con alpha = compras repetidas + 1 y beta = semanas entre la primera y la última actividad + 1/ritmo del sector. El sector pesa como 1 compra. Ritmo del sector calculado con datos <= corte",
+    "L1": "Regresión logística de V3 sobre log(1+recencia), log(1+nº campañas) y log(1+antigüedad en semanas)",
+    "L2": "L1 + señales binarias (caída de inversión, CTR bajo, cambio de interlocutor, sin contacto > 90 días, reclamación sin resolver, factura vencida)",
+    "regularizacion_L2": 1.0,
+    "regla_modelos_logisticos": "Marcar al anunciante si P(sin campaña) × valor_cuenta × tasa_recuperacion > coste_accion, con el escenario CENTRAL. Se evalúa después en los tres escenarios"
+  },
+  "_nota_iteracion_5": "ITERACIÓN 5 (25-oct-2026). Propuesta del equipo: un modelo a medida que combine lo mejor de cada enfoque. L3a = recencia, frecuencia y antigüedad (L1) + silencio relativo al ritmo propio (P1) + señales (S1/L2) + tendencia y CTR continuos + familias y producto de compromiso + tamaño + temporada próxima + valor; L3b = L3a sin las variables de contacto, porque el contacto lo controla el propio proceso (si el automatismo hace llamar a todos, la señal desaparece). Como la capacidad comercial es la restricción real (48 acciones al mes: 3 comerciales × 16), la DECISIÓN se toma solo entre reglas que eligen las 48 acciones de mayor valor esperado en cada corte: L2·48 (producción actual), L3a·48, L3b·48, VALOR·48 (solo valor de la cuenta; referencia sin modelo, registrada ahora de antemano) y A·48 (inactivos > 210 días, por valor). Las reglas anteriores se informan como referencia, pero no deciden. Criterio de valor neto y robustez sin cambios. Registrado antes de ejecutar.",
+  "capacidad_acciones_por_corte": 48
+}

@@ -1,0 +1,59 @@
+{
+  "_nota": "ETIQUETA E2 (25-oct-2026), definida por el equipo y registrada ANTES de calcularla. Sustituirá a la regla A como etiqueta de abandono solo si supera la validación (muestra ciega de comerciales con acuerdo >= 70 %).",
+  "horizonte_dias": 210,
+  "definicion": {
+    "ventana": "W = los 210 días siguientes al corte T. W' = el mismo periodo un año antes (T − 365, T − 365 + 210].",
+    "perdida_total": "(a) Se salta su temporada: compró en W' y no inicia ninguna campaña en W; o (b) un año entero sin comprar: ninguna campaña en los 365 días que terminan al final de W.",
+    "contraccion": "Compra en W y en W', pero su facturación en W es inferior al 50 % de la de W'.",
+    "activo": "El resto. Si no compró en W' ni compra en W, pero sí en el último año, está fuera de su temporada y sigue activo hasta ella.",
+    "anunciantes_con_menos_de_1_anio": "Sin año anterior comparable: regla A (pérdida total si no inicia campaña en W; no se evalúa la contracción)."
+  },
+  "umbral_contraccion": 0.5,
+  "cortes": [
+    "2024-12-31",
+    "2025-03-31",
+    "2025-06-30",
+    "2025-09-30",
+    "2025-12-31"
+  ],
+  "_cortes": "Necesitan un año previo dentro de los datos (T − 365 >= 01-oct-2023) y 210 días observables después (T + 210 <= 30-sep-2026)",
+  "validacion": {
+    "muestra": {
+      "corte": "2025-12-31",
+      "tamano": 60,
+      "perdida_total": 20,
+      "contraccion": 15,
+      "activo": 25,
+      "de_los_activos_fuera_de_temporada_minimo": 10,
+      "compartidos_por_los_3_comerciales": 15,
+      "semilla": 2026
+    },
+    "pregunta_al_comercial": "Con lo que sabe hoy (30-sep-2026), entre el 01-ene y el 29-jul-2026 ¿este anunciante se perdió, redujo mucho su inversión o siguió activo?",
+    "criterio_aceptacion": "Acuerdo >= 70 % entre la etiqueta E2 y el comercial en 3 clases (pérdida total, contracción, activo), excluidas las respuestas 'No sé'. El kappa entre comerciales (casos compartidos) se informa; por debajo de 0,4 se considera que la propia definición es ambigua para el equipo",
+    "control_secundario": "Reactivación posterior de las pérdidas totales y comparación con el archivo de validación",
+    "respuestas": [
+      "Perdido",
+      "Redujo mucho",
+      "Activo",
+      "Pausa: volvió después (cuenta como activo)",
+      "No sé (se excluye)"
+    ]
+  },
+  "poblacion": "Anunciantes con al menos una campaña emitida en los 365 días anteriores al corte (vivos en T). Así no se etiquetan como pérdida clientes que ya se habían ido antes",
+  "_estado": "ADOPTADA por decisión del equipo (25-oct-2026) como etiqueta de abandono de producción. La validación empírica se delega en un automatismo (src/validacion_automatica.py): cuando se cierra la ventana de 210 días de cada propuesta, compara E2 con el estado confirmado por el comercial. Si con al menos 30 casos el acuerdo baja del 70 %, el sistema vuelve automáticamente a la regla A y avisa para revisar la definición.",
+  "validacion_automatica": {
+    "min_casos": 30,
+    "umbral_acuerdo": 0.7,
+    "etiqueta_respaldo": "A",
+    "mapa_respuestas": {
+      "Perdido": "perdida_total",
+      "Redujo mucho": "contraccion",
+      "Activo": "activo",
+      "Pausa: volvió después": "activo"
+    },
+    "excluidas": [
+      "No sé"
+    ],
+    "salida": "resultados/estado_etiqueta.json (lo lee generar_scores.py para decidir con qué etiqueta entrena)"
+  }
+}

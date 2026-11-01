@@ -1,0 +1,297 @@
+id_contacto,id_cliente,nombre,cargo,email,telefono,principal,ficticio
+CT-C0001-1,C0001,Ignacio López,Responsable de marketing,ignacio.lopez@horizonte-ergo.example,+34 660 161 811,True,True
+CT-C0002-1,C0002,Javier Martín,Responsable de comunicación,javier.martin@tejo-audio.example,+34 638 381 437,True,True
+CT-C0003-1,C0003,Lucía Romero,Responsable de medios,lucia.romero@yedra-ocio.example,+34 681 952 960,True,True
+CT-C0003-2,C0003,Diego López,Directora de marketing,diego.lopez@yedra-ocio.example,+34 689 101 462,False,True
+CT-C0004-1,C0004,Laura Castro,Gerente,laura.castro@sierra-domocare.example,+34 623 607 106,True,True
+CT-C0005-1,C0005,Miguel Medina,Responsable de marketing,miguel.medina@jara-termal.example,+34 690 437 977,True,True
+CT-C0007-1,C0007,Pablo Navarro,Gerente,pablo.navarro@zarza-termal.example,+34 651 885 129,True,True
+CT-C0008-1,C0008,Miguel Domínguez,Propietario,miguel.dominguez@zarza-ayudas.example,+34 648 449 354,True,True
+CT-C0009-1,C0009,Pilar Ortega,Responsable comercial,pilar.ortega@olivo-vision.example,+34 616 715 162,True,True
+CT-C0010-1,C0010,Pilar Delgado,Responsable de marketing,pilar.delgado@duero-viajes.example,+34 652 765 598,True,True
+CT-C0012-1,C0012,Miguel Castro,Responsable de comunicación,miguel.castro@zenit-juridico.example,+34 668 210 485,True,True
+CT-C0013-1,C0013,Lucía Medina,Responsable comercial,lucia.medina@sierra-alerta.example,+34 672 603 699,True,True
+CT-C0014-1,C0014,Nuria García,Responsable de comunicación,nuria.garcia@imperial-servicios.example,+34 624 802 253,True,True
+CT-C0015-1,C0015,Fernando Romero,Responsable comercial,fernando.romero@robledo-laboratorios.example,+34 670 314 595,True,True
+CT-C0016-1,C0016,Pilar Navarro,Gerente,pilar.navarro@umbria-tanatorio.example,+34 677 137 270,True,True
+CT-C0017-1,C0017,Nuria Ramos,Gerente,nuria.ramos@robledo-tanatorio.example,+34 677 830 527,True,True
+CT-C0018-1,C0018,Silvia Iglesias,Gerente,silvia.iglesias@yedra-seguros.example,+34 617 225 287,True,True
+CT-C0019-1,C0019,Marta Ramos,Responsable comercial,marta.ramos@poniente-instituto.example,+34 651 114 677,True,True
+CT-C0020-1,C0020,Sergio Serrano,Gerente,sergio.serrano@jaral-abogados.example,+34 670 993 544,True,True
+CT-C0021-1,C0021,Miguel Martín,Propietario,miguel.martin@alba-conecta.example,+34 697 467 301,True,True
+CT-C0022-1,C0022,Fernando Rubio,Gerente,fernando.rubio@olivo-previsora.example,+34 626 553 765,True,True
+CT-C0023-1,C0023,Andrés Ortiz,Responsable comercial,andres.ortiz@prisma-salud.example,+34 675 859 631,True,True
+CT-C0024-1,C0024,Javier Navarro,Responsable de comunicación,javier.navarro@delta-abogados.example,+34 696 182 745,True,True
+CT-C0025-1,C0025,Nuria Castro,Responsable comercial,nuria.castro@almendro-biotec.example,+34 675 270 754,True,True
+CT-C0026-1,C0026,Carmen Sanz,Propietario,carmen.sanz@imperial-viajes.example,+34 644 444 225,True,True
+CT-C0027-1,C0027,Diego Marín,Responsable comercial,diego.marin@sendero-mayores.example,+34 633 703 288,True,True
+CT-C0028-1,C0028,Óscar García,Gerente,oscar.garcia@berilo-funeraria.example,+34 650 269 147,True,True
+CT-C0029-1,C0029,Beatriz Ortiz,Responsable comercial,beatriz.ortiz@bienestar-salud.example,+34 681 918 571,True,True
+CT-C0030-1,C0030,Óscar Castro,Responsable comercial,oscar.castro@faro-movilidad.example,+34 643 533 980,True,True
+CT-C0031-1,C0031,Pilar Delgado,Gerente,pilar.delgado@yedra-domocare.example,+34 675 258 245,True,True
+CT-C0032-1,C0032,Carmen Iglesias,Gerente,carmen.iglesias@marisma-legal.example,+34 613 987 487,True,True
+CT-C0033-1,C0033,Elena Martín,Propietario,elena.martin@duna-centros.example,+34 614 105 639,True,True
+CT-C0034-1,C0034,Silvia Delgado,Responsable de marketing,silvia.delgado@fontana-abogados.example,+34 628 765 937,True,True
+CT-C0035-1,C0035,Diego Rubio,Gerente,diego.rubio@robledo-termal.example,+34 690 765 646,True,True
+CT-C0036-1,C0036,Nuria Vázquez,Gerente,nuria.vazquez@iberia-herencias.example,+34 679 214 864,True,True
+CT-C0037-1,C0037,Teresa Domínguez,Responsable de marketing,teresa.dominguez@lares-termal.example,+34 639 418 939,True,True
+CT-C0038-1,C0038,Óscar Castro,Brand manager,oscar.castro@poniente-biotec.example,+34 611 285 318,True,True
+CT-C0038-2,C0038,Javier Romero,Brand manager,javier.romero@poniente-biotec.example,+34 616 599 981,False,True
+CT-C0039-1,C0039,Teresa Serrano,Gerente,teresa.serrano@quercus-audio.example,+34 614 584 386,True,True
+CT-C0040-1,C0040,Teresa Ortega,Gerente,teresa.ortega@iberia-capital.example,+34 645 924 619,True,True
+CT-C0041-1,C0041,Javier Ortiz,Gerente,javier.ortiz@genil-instituto.example,+34 649 748 863,True,True
+CT-C0042-1,C0042,Javier Navarro,Responsable de marketing,javier.navarro@norte-amparo.example,+34 656 686 680,True,True
+CT-C0043-1,C0043,Nuria Ortiz,Responsable de comunicación,nuria.ortiz@caliza-centros.example,+34 622 990 577,True,True
+CT-C0044-1,C0044,Diego Rubio,Responsable de marketing,diego.rubio@delta-ergo.example,+34 686 158 263,True,True
+CT-C0045-1,C0045,Rosa López,Responsable comercial,rosa.lopez@norte-teleasistencia.example,+34 646 252 595,True,True
+CT-C0046-1,C0046,Pilar Iglesias,Propietario,pilar.iglesias@islares-hogar.example,+34 659 792 664,True,True
+CT-C0047-1,C0047,Marta Marín,Propietario,marta.marin@kalea-sonido.example,+34 689 524 922,True,True
+CT-C0048-1,C0048,Teresa Delgado,Gerente,teresa.delgado@cuidar-mutua.example,+34 674 985 853,True,True
+CT-C0049-1,C0049,Alberto Romero,Responsable de comunicación,alberto.romero@levante-financiera.example,+34 612 316 910,True,True
+CT-C0050-1,C0050,Isabel Gil,Propietario,isabel.gil@almendro-financiera.example,+34 699 516 974,True,True
+CT-C0051-1,C0051,Isabel Gil,Responsable de marketing,isabel.gil@imperial-mayores.example,+34 631 160 635,True,True
+CT-C0052-1,C0052,Ignacio Medina,Responsable comercial,ignacio.medina@miralbueno-memorial.example,+34 680 940 133,True,True
+CT-C0053-1,C0053,Nuria Navarro,Gerente,nuria.navarro@delta-alerta.example,+34 631 157 501,True,True
+CT-C0054-1,C0054,Isabel Marín,Responsable de medios,isabel.marin@xara-ortopedia.example,+34 651 417 173,True,True
+CT-C0054-2,C0054,Beatriz Gil,Directora de marketing,beatriz.gil@xara-ortopedia.example,+34 641 904 896,False,True
+CT-C0055-1,C0055,Lucía Medina,Responsable comercial,lucia.medina@ribera-seguros.example,+34 691 681 401,True,True
+CT-C0056-1,C0056,Elena Martín,Responsable de comunicación,elena.martin@hiedra-laboratorios.example,+34 690 687 444,True,True
+CT-C0057-1,C0057,Miguel Gil,Propietario,miguel.gil@ulmo-viajes.example,+34 649 932 541,True,True
+CT-C0058-1,C0058,Alberto Marín,Responsable comercial,alberto.marin@jara-funeraria.example,+34 616 933 480,True,True
+CT-C0059-1,C0059,Teresa López,Gerente,teresa.lopez@guadiana-salud.example,+34 667 245 410,True,True
+CT-C0061-1,C0061,Raúl Delgado,Responsable de marketing,raul.delgado@encina-amparo.example,+34 685 556 254,True,True
+CT-C0062-1,C0062,Fernando Medina,Responsable comercial,fernando.medina@prisma-hogar.example,+34 614 530 999,True,True
+CT-C0063-1,C0063,Sergio Serrano,Gerente,sergio.serrano@hiedra-termal.example,+34 692 151 332,True,True
+CT-C0064-1,C0064,Javier Romero,Responsable de medios,javier.romero@cierzo-memorial.example,+34 681 715 908,True,True
+CT-C0064-2,C0064,Raúl Sánchez,Responsable de medios,raul.sanchez@cierzo-memorial.example,+34 665 516 344,False,True
+CT-C0065-1,C0065,Isabel Rubio,Responsable de marketing,isabel.rubio@aurora-vision.example,+34 678 426 981,True,True
+CT-C0066-1,C0066,Fernando Delgado,Responsable comercial,fernando.delgado@iberia-herencias.example,+34 626 793 807,True,True
+CT-C0067-1,C0067,Óscar Molina,Directora de marketing,oscar.molina@almendro-ocio.example,+34 673 483 159,True,True
+CT-C0067-2,C0067,Pablo Ramos,Brand manager,pablo.ramos@almendro-ocio.example,+34 694 209 799,False,True
+CT-C0068-1,C0068,Rosa Vázquez,Propietario,rosa.vazquez@levante-alerta.example,+34 633 101 824,True,True
+CT-C0069-1,C0069,Laura Serrano,Responsable de marketing,laura.serrano@ulmo-tanatorio.example,+34 650 702 274,True,True
+CT-C0070-1,C0070,Silvia Ortega,Gerente,silvia.ortega@levante-alerta.example,+34 670 375 768,True,True
+CT-C0071-1,C0071,Diego Ortega,Propietario,diego.ortega@cierzo-salud.example,+34 672 497 720,True,True
+CT-C0072-1,C0072,Elena García,Gerente,elena.garcia@duna-optica.example,+34 668 577 276,True,True
+CT-C0073-1,C0073,Lucía Ortega,Responsable de comunicación,lucia.ortega@islares-vision.example,+34 669 348 296,True,True
+CT-C0074-1,C0074,Raúl Vázquez,Responsable de marketing,raul.vazquez@nogal-juridico.example,+34 672 608 340,True,True
+CT-C0075-1,C0075,Teresa Molina,Responsable comercial,teresa.molina@zarza-hogar.example,+34 659 618 723,True,True
+CT-C0076-1,C0076,Pilar Vázquez,Responsable de comunicación,pilar.vazquez@delta-servicios.example,+34 640 734 250,True,True
+CT-C0078-1,C0078,Ignacio Medina,Propietario,ignacio.medina@ventisca-juridico.example,+34 629 204 911,True,True
+CT-C0079-1,C0079,Carmen Ortega,Brand manager,carmen.ortega@jalon-instituto.example,+34 681 301 691,True,True
+CT-C0079-2,C0079,Carmen Ramos,Directora de marketing,carmen.ramos@jalon-instituto.example,+34 646 613 138,False,True
+CT-C0080-1,C0080,Beatriz Delgado,Responsable de marketing,beatriz.delgado@levante-farma.example,+34 668 151 167,True,True
+CT-C0081-1,C0081,Lucía López,Responsable de comunicación,lucia.lopez@jara-ayudas.example,+34 679 652 905,True,True
+CT-C0082-1,C0082,Ignacio Ortiz,Responsable de marketing,ignacio.ortiz@gaviota-legal.example,+34 661 932 371,True,True
+CT-C0083-1,C0083,Miguel Iglesias,Propietario,miguel.iglesias@zenit-farma.example,+34 625 815 640,True,True
+CT-C0084-1,C0084,Pilar Torres,Directora de marketing,pilar.torres@marisma-ahorro.example,+34 652 687 288,True,True
+CT-C0084-2,C0084,Alberto García,Directora de marketing,alberto.garcia@marisma-ahorro.example,+34 682 143 557,False,True
+CT-C0085-1,C0085,Nuria Medina,Directora de marketing,nuria.medina@duero-domocare.example,+34 688 304 966,True,True
+CT-C0085-2,C0085,Rosa Marín,Directora de marketing,rosa.marin@duero-domocare.example,+34 699 624 792,False,True
+CT-C0086-1,C0086,Silvia García,Propietario,silvia.garcia@lumen-residencial.example,+34 671 176 566,True,True
+CT-C0087-1,C0087,Laura Medina,Gerente,laura.medina@almendro-farma.example,+34 630 185 514,True,True
+CT-C0088-1,C0088,Teresa Rubio,Gerente,teresa.rubio@prisma-ocio.example,+34 690 804 383,True,True
+CT-C0089-1,C0089,Alberto Ortega,Gerente,alberto.ortega@duero-seguros.example,+34 651 664 908,True,True
+CT-C0090-1,C0090,Fernando Delgado,Propietario,fernando.delgado@berilo-funeraria.example,+34 684 419 104,True,True
+CT-C0091-1,C0091,Raúl Sánchez,Gerente,raul.sanchez@cuidar-movilidad.example,+34 655 508 530,True,True
+CT-C0093-1,C0093,Ignacio Vázquez,Responsable de marketing,ignacio.vazquez@olivo-salud.example,+34 654 267 510,True,True
+CT-C0095-1,C0095,Nuria Vázquez,Responsable de marketing,nuria.vazquez@fontana-ayudas.example,+34 676 434 809,True,True
+CT-C0096-1,C0096,Lucía Castro,Responsable de marketing,lucia.castro@iberia-viajes.example,+34 666 883 432,True,True
+CT-C0097-1,C0097,Héctor Romero,Gerente,hector.romero@nogal-viajes.example,+34 692 234 816,True,True
+CT-C0098-1,C0098,Teresa Romero,Propietario,teresa.romero@robledo-optica.example,+34 677 509 783,True,True
+CT-C0099-1,C0099,Lucía López,Responsable comercial,lucia.lopez@xara-movilidad.example,+34 654 945 178,True,True
+CT-C0100-1,C0100,Pablo Rubio,Gerente,pablo.rubio@ulmo-funeraria.example,+34 626 188 385,True,True
+CT-C0102-1,C0102,Laura Navarro,Directora de marketing,laura.navarro@iberia-rutas.example,+34 691 459 313,True,True
+CT-C0102-2,C0102,Miguel Ortiz,Brand manager,miguel.ortiz@iberia-rutas.example,+34 629 589 843,False,True
+CT-C0103-1,C0103,Sergio Ortiz,Responsable de comunicación,sergio.ortiz@hontanar-mutua.example,+34 649 769 665,True,True
+CT-C0104-1,C0104,Andrés Delgado,Directora de marketing,andres.delgado@lumen-centros.example,+34 684 447 264,True,True
+CT-C0104-2,C0104,Fernando Ortega,Directora de marketing,fernando.ortega@lumen-centros.example,+34 610 462 826,False,True
+CT-C0105-1,C0105,Sergio Romero,Gerente,sergio.romero@espliego-ayudas.example,+34 687 143 543,True,True
+CT-C0106-1,C0106,Beatriz Iglesias,Gerente,beatriz.iglesias@sendero-centros.example,+34 690 886 498,True,True
+CT-C0107-1,C0107,Diego Iglesias,Gerente,diego.iglesias@espliego-optica.example,+34 645 351 113,True,True
+CT-C0108-1,C0108,Isabel Romero,Responsable de marketing,isabel.romero@duero-domocare.example,+34 612 334 282,True,True
+CT-C0109-1,C0109,Marta Ortiz,Responsable comercial,marta.ortiz@berilo-funeraria.example,+34 623 551 245,True,True
+CT-C0111-1,C0111,Alberto Gil,Gerente,alberto.gil@faro-vision.example,+34 615 692 714,True,True
+CT-C0112-1,C0112,Óscar Gil,Brand manager,oscar.gil@iberia-biotec.example,+34 635 775 315,True,True
+CT-C0112-2,C0112,Sergio Ortega,Directora de marketing,sergio.ortega@iberia-biotec.example,+34 632 402 847,False,True
+CT-C0113-1,C0113,Sergio Torres,Responsable de comunicación,sergio.torres@aurora-legal.example,+34 616 730 655,True,True
+CT-C0114-1,C0114,Silvia Serrano,Responsable de medios,silvia.serrano@jalon-residencial.example,+34 641 763 381,True,True
+CT-C0114-2,C0114,Isabel Sanz,Brand manager,isabel.sanz@jalon-residencial.example,+34 620 481 414,False,True
+CT-C0115-1,C0115,Teresa Medina,Gerente,teresa.medina@jara-centros.example,+34 649 416 259,True,True
+CT-C0116-1,C0116,Pablo Torres,Responsable comercial,pablo.torres@robledo-centros.example,+34 613 671 389,True,True
+CT-C0117-1,C0117,Miguel Torres,Responsable de medios,miguel.torres@faro-instituto.example,+34 632 782 868,True,True
+CT-C0117-2,C0117,Pilar Sánchez,Brand manager,pilar.sanchez@faro-instituto.example,+34 687 500 283,False,True
+CT-C0119-1,C0119,Teresa Sánchez,Brand manager,teresa.sanchez@iberia-conecta.example,+34 629 257 398,True,True
+CT-C0119-2,C0119,Lucía Navarro,Brand manager,lucia.navarro@iberia-conecta.example,+34 622 292 338,False,True
+CT-C0120-1,C0120,Marta Sánchez,Propietario,marta.sanchez@lumen-termal.example,+34 612 716 514,True,True
+CT-C0121-1,C0121,Rosa López,Gerente,rosa.lopez@hontanar-legal.example,+34 673 588 513,True,True
+CT-C0123-1,C0123,Isabel Romero,Propietario,isabel.romero@delta-seguros.example,+34 663 540 830,True,True
+CT-C0124-1,C0124,Pablo García,Gerente,pablo.garcia@guadiana-laboratorios.example,+34 638 712 926,True,True
+CT-C0126-1,C0126,Óscar Romero,Responsable de comunicación,oscar.romero@miralbueno-financiera.example,+34 681 232 787,True,True
+CT-C0127-1,C0127,Alberto Martín,Propietario,alberto.martin@levante-herencias.example,+34 611 699 839,True,True
+CT-C0128-1,C0128,Nuria Delgado,Gerente,nuria.delgado@sierra-sonido.example,+34 642 930 157,True,True
+CT-C0129-1,C0129,Elena Iglesias,Responsable de comunicación,elena.iglesias@espliego-ayudas.example,+34 670 330 816,True,True
+CT-C0130-1,C0130,Lucía Torres,Propietario,lucia.torres@marisma-ocio.example,+34 684 176 706,True,True
+CT-C0132-1,C0132,Elena García,Gerente,elena.garcia@xara-vision.example,+34 690 142 752,True,True
+CT-C0133-1,C0133,Ignacio Rubio,Responsable de marketing,ignacio.rubio@vega-termal.example,+34 619 596 943,True,True
+CT-C0134-1,C0134,Lucía Ortega,Gerente,lucia.ortega@encina-conecta.example,+34 640 423 796,True,True
+CT-C0136-1,C0136,Marta Medina,Propietario,marta.medina@poniente-mutua.example,+34 684 857 396,True,True
+CT-C0137-1,C0137,Héctor Ortega,Responsable de marketing,hector.ortega@tejo-patrimonio.example,+34 651 746 501,True,True
+CT-C0138-1,C0138,Pilar Serrano,Responsable de marketing,pilar.serrano@hiedra-rutas.example,+34 619 418 756,True,True
+CT-C0139-1,C0139,Alberto Martín,Propietario,alberto.martin@kalea-rutas.example,+34 676 769 666,True,True
+CT-C0140-1,C0140,Óscar Serrano,Responsable comercial,oscar.serrano@duero-tanatorio.example,+34 662 346 122,True,True
+CT-C0141-1,C0141,Lucía Domínguez,Gerente,lucia.dominguez@quercus-alerta.example,+34 685 239 388,True,True
+CT-C0142-1,C0142,Carmen Marín,Responsable de marketing,carmen.marin@horizonte-memorial.example,+34 662 763 148,True,True
+CT-C0143-1,C0143,Marta Delgado,Brand manager,marta.delgado@almendro-amparo.example,+34 643 221 484,True,True
+CT-C0143-2,C0143,Isabel Marín,Responsable de medios,isabel.marin@almendro-amparo.example,+34 631 268 275,False,True
+CT-C0144-1,C0144,Alberto Ortega,Propietario,alberto.ortega@jalon-salud.example,+34 694 558 962,True,True
+CT-C0145-1,C0145,Pilar Rubio,Responsable de marketing,pilar.rubio@guadiana-salud.example,+34 612 803 508,True,True
+CT-C0146-1,C0146,Javier Vázquez,Gerente,javier.vazquez@hiedra-domocare.example,+34 692 138 383,True,True
+CT-C0147-1,C0147,Óscar López,Brand manager,oscar.lopez@olivo-optica.example,+34 644 151 530,True,True
+CT-C0147-2,C0147,Rosa Ramos,Brand manager,rosa.ramos@olivo-optica.example,+34 684 533 721,False,True
+CT-C0148-1,C0148,Miguel Romero,Gerente,miguel.romero@aurora-mutua.example,+34 655 748 242,True,True
+CT-C0149-1,C0149,Sergio García,Brand manager,sergio.garcia@quercus-previsora.example,+34 617 133 474,True,True
+CT-C0149-2,C0149,Pablo Ortiz,Brand manager,pablo.ortiz@quercus-previsora.example,+34 610 347 741,False,True
+CT-C0150-1,C0150,Rosa Marín,Directora de marketing,rosa.marin@umbria-residencial.example,+34 621 199 192,True,True
+CT-C0150-2,C0150,Pablo Sánchez,Responsable de medios,pablo.sanchez@umbria-residencial.example,+34 634 358 668,False,True
+CT-C0151-1,C0151,Pablo Sánchez,Responsable de comunicación,pablo.sanchez@berilo-ahorro.example,+34 697 314 658,True,True
+CT-C0152-1,C0152,Miguel Marín,Directora de marketing,miguel.marin@yedra-audio.example,+34 684 154 446,True,True
+CT-C0152-2,C0152,Sergio Marín,Responsable de medios,sergio.marin@yedra-audio.example,+34 655 478 732,False,True
+CT-C0153-1,C0153,Lucía López,Gerente,lucia.lopez@ebro-ayudas.example,+34 686 858 381,True,True
+CT-C0155-1,C0155,Isabel Delgado,Responsable comercial,isabel.delgado@tramontana-viajes.example,+34 659 817 612,True,True
+CT-C0156-1,C0156,Miguel Rubio,Gerente,miguel.rubio@marisma-residencial.example,+34 688 343 203,True,True
+CT-C0161-1,C0161,Andrés Romero,Responsable comercial,andres.romero@gaviota-memorial.example,+34 648 488 374,True,True
+CT-C0162-1,C0162,Óscar Domínguez,Responsable de marketing,oscar.dominguez@ribera-salud.example,+34 669 483 473,True,True
+CT-C0163-1,C0163,Héctor Martín,Propietario,hector.martin@frontera-audio.example,+34 694 851 143,True,True
+CT-C0165-1,C0165,Laura Torres,Gerente,laura.torres@duna-seguros.example,+34 632 970 228,True,True
+CT-C0166-1,C0166,Miguel Molina,Directora de marketing,miguel.molina@delta-hogar.example,+34 610 610 129,True,True
+CT-C0166-2,C0166,Silvia Ramos,Responsable de medios,silvia.ramos@delta-hogar.example,+34 660 720 830,False,True
+CT-C0167-1,C0167,Elena Ramos,Responsable comercial,elena.ramos@zenit-ergo.example,+34 650 545 404,True,True
+CT-C0168-1,C0168,Isabel Domínguez,Responsable de comunicación,isabel.dominguez@berilo-conecta.example,+34 648 881 290,True,True
+CT-C0169-1,C0169,Marta Castro,Directora de marketing,marta.castro@lares-ocio.example,+34 690 134 193,True,True
+CT-C0169-2,C0169,Ignacio Ortega,Brand manager,ignacio.ortega@lares-ocio.example,+34 682 785 636,False,True
+CT-C0170-1,C0170,Nuria Vázquez,Responsable de comunicación,nuria.vazquez@mirador-optica.example,+34 690 966 847,True,True
+CT-C0171-1,C0171,Sergio Sánchez,Responsable de comunicación,sergio.sanchez@bienestar-obra-social.example,+34 613 926 405,True,True
+CT-C0172-1,C0172,Sergio Gil,Responsable de comunicación,sergio.gil@olivo-centros.example,+34 616 200 794,True,True
+CT-C0173-1,C0173,Andrés Castro,Responsable de marketing,andres.castro@gaviota-audio.example,+34 639 976 240,True,True
+CT-C0174-1,C0174,Javier Torres,Responsable de comunicación,javier.torres@prisma-movilidad.example,+34 678 408 673,True,True
+CT-C0175-1,C0175,Teresa Marín,Responsable comercial,teresa.marin@sierra-vision.example,+34 686 325 790,True,True
+CT-C0176-1,C0176,Pablo Molina,Responsable de medios,pablo.molina@aurora-residencial.example,+34 644 535 647,True,True
+CT-C0176-2,C0176,Fernando López,Responsable de medios,fernando.lopez@aurora-residencial.example,+34 635 636 579,False,True
+CT-C0177-1,C0177,Sergio Navarro,Gerente,sergio.navarro@nogal-tanatorio.example,+34 627 297 686,True,True
+CT-C0178-1,C0178,Pilar Domínguez,Responsable de marketing,pilar.dominguez@tejo-amparo.example,+34 660 905 157,True,True
+CT-C0179-1,C0179,Isabel Martín,Propietario,isabel.martin@miralbueno-obra-social.example,+34 684 924 482,True,True
+CT-C0180-1,C0180,Diego Gil,Responsable de comunicación,diego.gil@berilo-laboratorios.example,+34 669 543 807,True,True
+CT-C0181-1,C0181,Diego García,Responsable comercial,diego.garcia@bienestar-domocare.example,+34 646 985 329,True,True
+CT-C0182-1,C0182,Pablo Romero,Gerente,pablo.romero@frontera-alerta.example,+34 672 688 651,True,True
+CT-C0183-1,C0183,Miguel Gil,Propietario,miguel.gil@lares-movilidad.example,+34 665 250 954,True,True
+CT-C0184-1,C0184,Pablo Molina,Gerente,pablo.molina@nogal-sonido.example,+34 640 963 724,True,True
+CT-C0185-1,C0185,Héctor Delgado,Responsable de comunicación,hector.delgado@robledo-centros.example,+34 654 473 204,True,True
+CT-C0186-1,C0186,Ignacio Ortega,Responsable de comunicación,ignacio.ortega@hiedra-memorial.example,+34 666 507 376,True,True
+CT-C0188-1,C0188,Laura Castro,Responsable de marketing,laura.castro@vega-patrimonio.example,+34 690 187 436,True,True
+CT-C0189-1,C0189,Pilar Martín,Responsable comercial,pilar.martin@duero-ergo.example,+34 695 449 550,True,True
+CT-C0190-1,C0190,Teresa Iglesias,Gerente,teresa.iglesias@jaral-ocio.example,+34 621 406 629,True,True
+CT-C0192-1,C0192,Teresa López,Brand manager,teresa.lopez@fontana-previsora.example,+34 630 771 269,True,True
+CT-C0192-2,C0192,Pilar Navarro,Directora de marketing,pilar.navarro@fontana-previsora.example,+34 638 881 379,False,True
+CT-C0194-1,C0194,Silvia Gil,Propietario,silvia.gil@espliego-mayores.example,+34 687 527 641,True,True
+CT-C0195-1,C0195,Diego Gil,Responsable de marketing,diego.gil@genil-sonido.example,+34 633 194 697,True,True
+CT-C0196-1,C0196,Elena López,Responsable comercial,elena.lopez@marisma-laboratorios.example,+34 645 230 480,True,True
+CT-C0197-1,C0197,Pilar Sanz,Responsable de marketing,pilar.sanz@vega-tanatorio.example,+34 670 655 353,True,True
+CT-C0198-1,C0198,Andrés Marín,Responsable de comunicación,andres.marin@berilo-mutua.example,+34 692 781 261,True,True
+CT-C0200-1,C0200,Elena Castro,Propietario,elena.castro@duero-salud.example,+34 682 855 596,True,True
+CT-C0202-1,C0202,Rosa Ortiz,Responsable comercial,rosa.ortiz@poniente-ortopedia.example,+34 685 270 321,True,True
+CT-C0203-1,C0203,Javier Torres,Responsable comercial,javier.torres@robledo-movilidad.example,+34 628 507 243,True,True
+CT-C0204-1,C0204,Óscar López,Responsable de comunicación,oscar.lopez@tramontana-viajes.example,+34 629 298 566,True,True
+CT-C0205-1,C0205,Sergio Navarro,Gerente,sergio.navarro@robledo-servicios.example,+34 698 460 698,True,True
+CT-C0209-1,C0209,Marta Molina,Propietario,marta.molina@miralbueno-rutas.example,+34 644 872 613,True,True
+CT-C0210-1,C0210,Lucía Marín,Responsable de marketing,lucia.marin@ulmo-previsora.example,+34 689 888 318,True,True
+CT-C0212-1,C0212,Javier Ortiz,Propietario,javier.ortiz@marisma-farma.example,+34 679 416 764,True,True
+CT-C0213-1,C0213,Sergio Marín,Gerente,sergio.marin@marisma-ortopedia.example,+34 630 584 865,True,True
+CT-C0214-1,C0214,Fernando Vázquez,Gerente,fernando.vazquez@delta-fundacion.example,+34 614 659 578,True,True
+CT-C0215-1,C0215,Marta Molina,Responsable comercial,marta.molina@cierzo-amparo.example,+34 694 388 707,True,True
+CT-C0217-1,C0217,Isabel Gil,Gerente,isabel.gil@miralbueno-sonido.example,+34 630 639 466,True,True
+CT-C0218-1,C0218,Teresa Vázquez,Responsable de marketing,teresa.vazquez@mirador-tanatorio.example,+34 618 584 252,True,True
+CT-C0219-1,C0219,Laura Romero,Gerente,laura.romero@duna-movilidad.example,+34 699 994 554,True,True
+CT-C0220-1,C0220,Silvia Ortiz,Responsable comercial,silvia.ortiz@prisma-patrimonio.example,+34 667 659 799,True,True
+CT-C0221-1,C0221,Sergio Ortiz,Responsable de comunicación,sergio.ortiz@berilo-laboratorios.example,+34 645 116 680,True,True
+CT-C0222-1,C0222,Pablo Ortega,Gerente,pablo.ortega@ebro-seguros.example,+34 646 125 221,True,True
+CT-C0223-1,C0223,Javier Medina,Responsable de marketing,javier.medina@xara-salud.example,+34 654 377 462,True,True
+CT-C0224-1,C0224,Óscar Domínguez,Propietario,oscar.dominguez@almendro-salud.example,+34 635 247 513,True,True
+CT-C0225-1,C0225,Sergio Molina,Gerente,sergio.molina@ebro-ocio.example,+34 646 265 919,True,True
+CT-C0226-1,C0226,Miguel Sanz,Gerente,miguel.sanz@prisma-optica.example,+34 685 800 546,True,True
+CT-C0227-1,C0227,Alberto Ortiz,Responsable de medios,alberto.ortiz@vega-biotec.example,+34 656 813 320,True,True
+CT-C0227-2,C0227,Raúl Medina,Responsable de medios,raul.medina@vega-biotec.example,+34 618 373 203,False,True
+CT-C0228-1,C0228,Nuria Romero,Gerente,nuria.romero@berilo-audio.example,+34 663 169 131,True,True
+CT-C0229-1,C0229,Óscar Rubio,Propietario,oscar.rubio@prisma-termal.example,+34 675 210 230,True,True
+CT-C0230-1,C0230,Lucía Iglesias,Gerente,lucia.iglesias@norte-sonido.example,+34 692 999 480,True,True
+CT-C0231-1,C0231,Miguel López,Directora de marketing,miguel.lopez@fontana-amparo.example,+34 668 820 611,True,True
+CT-C0231-2,C0231,Beatriz Castro,Directora de marketing,beatriz.castro@fontana-amparo.example,+34 634 291 798,False,True
+CT-C0234-1,C0234,Beatriz Torres,Responsable de comunicación,beatriz.torres@cuidar-mayores.example,+34 687 181 614,True,True
+CT-C0235-1,C0235,Nuria Ramos,Gerente,nuria.ramos@berilo-viajes.example,+34 631 808 683,True,True
+CT-C0236-1,C0236,Pablo Sanz,Responsable de marketing,pablo.sanz@jara-ergo.example,+34 616 853 429,True,True
+CT-C0237-1,C0237,Teresa Torres,Responsable comercial,teresa.torres@bienestar-funeraria.example,+34 623 366 575,True,True
+CT-C0239-1,C0239,Marta Sánchez,Responsable comercial,marta.sanchez@sierra-mayores.example,+34 611 232 390,True,True
+CT-C0240-1,C0240,Ignacio Serrano,Responsable de marketing,ignacio.serrano@ocaso-capital.example,+34 684 294 637,True,True
+CT-C0241-1,C0241,Sergio Ortiz,Responsable de comunicación,sergio.ortiz@jara-ayudas.example,+34 692 969 818,True,True
+CT-C0243-1,C0243,Marta Ortiz,Responsable de marketing,marta.ortiz@cierzo-hogar.example,+34 695 313 760,True,True
+CT-C0244-1,C0244,Ignacio Delgado,Responsable de comunicación,ignacio.delgado@sendero-amparo.example,+34 671 764 312,True,True
+CT-C0245-1,C0245,Javier López,Responsable de medios,javier.lopez@jara-alerta.example,+34 686 142 347,True,True
+CT-C0245-2,C0245,Héctor Romero,Directora de marketing,hector.romero@jara-alerta.example,+34 631 321 116,False,True
+CT-C0246-1,C0246,Lucía Molina,Responsable de marketing,lucia.molina@olivo-rutas.example,+34 658 272 438,True,True
+CT-C0247-1,C0247,Diego Torres,Responsable de medios,diego.torres@duna-ocio.example,+34 660 259 149,True,True
+CT-C0247-2,C0247,Teresa Molina,Directora de marketing,teresa.molina@duna-ocio.example,+34 632 983 269,False,True
+CT-C0248-1,C0248,Andrés Molina,Responsable de medios,andres.molina@duero-capital.example,+34 610 577 842,True,True
+CT-C0248-2,C0248,Alberto Ortiz,Directora de marketing,alberto.ortiz@duero-capital.example,+34 613 473 229,False,True
+CT-C0249-1,C0249,Raúl Rubio,Brand manager,raul.rubio@hiedra-laboratorios.example,+34 644 869 610,True,True
+CT-C0249-2,C0249,Pablo Medina,Brand manager,pablo.medina@hiedra-laboratorios.example,+34 626 940 718,False,True
+CT-C0250-1,C0250,Javier Torres,Responsable comercial,javier.torres@poniente-tanatorio.example,+34 653 603 696,True,True
+CT-C0253-1,C0253,Ignacio Martín,Gerente,ignacio.martin@quercus-fundacion.example,+34 616 632 636,True,True
+CT-C0256-1,C0256,Carmen Sanz,Gerente,carmen.sanz@miralbueno-legal.example,+34 670 109 581,True,True
+CT-C0257-1,C0257,Teresa García,Gerente,teresa.garcia@hiedra-vision.example,+34 675 918 861,True,True
+CT-C0260-1,C0260,Ignacio Martín,Responsable comercial,ignacio.martin@ribera-domocare.example,+34 663 295 938,True,True
+CT-C0261-1,C0261,Beatriz López,Responsable de marketing,beatriz.lopez@jalon-funeraria.example,+34 680 377 229,True,True
+CT-C0262-1,C0262,Andrés Vázquez,Responsable de comunicación,andres.vazquez@tejo-farma.example,+34 614 324 549,True,True
+CT-C0263-1,C0263,Andrés Rubio,Responsable de comunicación,andres.rubio@faro-amparo.example,+34 628 402 851,True,True
+CT-C0264-1,C0264,Héctor Molina,Gerente,hector.molina@umbria-abogados.example,+34 697 642 583,True,True
+CT-C0265-1,C0265,Óscar García,Gerente,oscar.garcia@sendero-audio.example,+34 685 754 166,True,True
+CT-C0266-1,C0266,Fernando Ortega,Propietario,fernando.ortega@jaral-domocare.example,+34 626 828 917,True,True
+CT-C0267-1,C0267,Lucía Romero,Gerente,lucia.romero@marisma-viajes.example,+34 692 702 194,True,True
+CT-C0270-1,C0270,Diego Castro,Propietario,diego.castro@xara-seguros.example,+34 616 299 421,True,True
+CT-C0271-1,C0271,Silvia Sanz,Gerente,silvia.sanz@ribera-mayores.example,+34 653 216 688,True,True
+CT-C0274-1,C0274,Héctor Iglesias,Gerente,hector.iglesias@cuidar-ortopedia.example,+34 660 894 840,True,True
+CT-C0275-1,C0275,Carmen Gil,Responsable de comunicación,carmen.gil@sierra-salud.example,+34 619 194 406,True,True
+CT-C0277-1,C0277,Pilar Vázquez,Propietario,pilar.vazquez@miralbueno-ergo.example,+34 645 530 908,True,True
+CT-C0278-1,C0278,Alberto Serrano,Responsable de marketing,alberto.serrano@alba-ahorro.example,+34 694 955 296,True,True
+CT-C0279-1,C0279,Carmen Martín,Propietario,carmen.martin@caliza-termal.example,+34 627 647 243,True,True
+CT-C0281-1,C0281,Pilar Iglesias,Responsable comercial,pilar.iglesias@xara-tanatorio.example,+34 697 121 981,True,True
+CT-C0282-1,C0282,Sergio Ortiz,Responsable de comunicación,sergio.ortiz@ulmo-amparo.example,+34 676 819 860,True,True
+CT-C0283-1,C0283,Andrés Rubio,Propietario,andres.rubio@sendero-ortopedia.example,+34 653 414 907,True,True
+CT-C0284-1,C0284,Andrés Delgado,Responsable de comunicación,andres.delgado@lumen-movilidad.example,+34 670 836 755,True,True
+CT-C0285-1,C0285,Laura Serrano,Responsable de marketing,laura.serrano@ventisca-conecta.example,+34 640 619 360,True,True
+CT-C0286-1,C0286,Óscar Sanz,Gerente,oscar.sanz@nogal-consorcio.example,+34 645 651 360,True,True
+CT-C0287-1,C0287,Beatriz Delgado,Propietario,beatriz.delgado@prisma-mayores.example,+34 630 319 361,True,True
+CT-C0288-1,C0288,Raúl Castro,Responsable de marketing,raul.castro@cierzo-ortopedia.example,+34 619 292 434,True,True
+CT-C0289-1,C0289,Andrés Vázquez,Gerente,andres.vazquez@aurora-farma.example,+34 696 604 104,True,True
+CT-C0290-1,C0290,Andrés Medina,Gerente,andres.medina@ocaso-legal.example,+34 683 183 923,True,True
+CT-C0291-1,C0291,Beatriz Domínguez,Responsable comercial,beatriz.dominguez@ebro-rutas.example,+34 619 700 666,True,True
+CT-C0292-1,C0292,Pablo Vázquez,Propietario,pablo.vazquez@aurora-termal.example,+34 643 203 798,True,True
+CT-C0293-1,C0293,Pilar Iglesias,Responsable de marketing,pilar.iglesias@cuidar-termal.example,+34 673 355 431,True,True
+CT-C0295-1,C0295,Raúl Castro,Propietario,raul.castro@gaviota-conecta.example,+34 683 733 778,True,True
+CT-C0297-1,C0297,Javier Serrano,Gerente,javier.serrano@islares-alerta.example,+34 692 394 974,True,True
+CT-C0298-1,C0298,Héctor Rubio,Responsable de comunicación,hector.rubio@sendero-salud.example,+34 639 162 111,True,True
+CT-C0300-1,C0300,Nuria Ortega,Responsable comercial,nuria.ortega@lumen-termal.example,+34 679 628 521,True,True
+CT-C0302-1,C0302,Alberto Iglesias,Gerente,alberto.iglesias@nogal-domocare.example,+34 661 420 354,True,True
+CT-C0303-1,C0303,Nuria Sánchez,Gerente,nuria.sanchez@prisma-teleasistencia.example,+34 630 931 156,True,True
+CT-C0304-1,C0304,Ignacio Delgado,Responsable de comunicación,ignacio.delgado@cierzo-viajes.example,+34 683 958 744,True,True
+CT-C0305-1,C0305,Lucía Romero,Responsable de comunicación,lucia.romero@sierra-domocare.example,+34 640 144 221,True,True
+CT-C0307-1,C0307,Rosa Delgado,Responsable de marketing,rosa.delgado@frontera-ocio.example,+34 633 265 721,True,True
+CT-C0308-1,C0308,Ignacio Ortiz,Propietario,ignacio.ortiz@islares-amparo.example,+34 625 961 132,True,True
+CT-C0309-1,C0309,Fernando Vázquez,Responsable comercial,fernando.vazquez@jalon-memorial.example,+34 656 942 240,True,True
+CT-C0311-1,C0311,Laura García,Responsable de comunicación,laura.garcia@kalea-biotec.example,+34 651 595 265,True,True
+CT-C0312-1,C0312,Nuria Medina,Responsable comercial,nuria.medina@bienestar-optica.example,+34 669 256 841,True,True
+CT-C0313-1,C0313,Rosa Vázquez,Responsable de marketing,rosa.vazquez@jara-mayores.example,+34 670 407 743,True,True
+CT-C0314-1,C0314,Javier Sánchez,Propietario,javier.sanchez@norte-fundacion.example,+34 614 604 184,True,True
+CT-C0317-1,C0317,Silvia Sánchez,Gerente,silvia.sanchez@caliza-farma.example,+34 617 150 187,True,True
+CT-C0318-1,C0318,Javier Martín,Gerente,javier.martin@poniente-farma.example,+34 638 482 297,True,True
+CT-C0319-1,C0319,Elena Delgado,Responsable de comunicación,elena.delgado@gaviota-obra-social.example,+34 633 198 307,True,True
+CT-C0320-1,C0320,Javier Delgado,Gerente,javier.delgado@horizonte-centros.example,+34 633 475 525,True,True

@@ -1,0 +1,72 @@
+# Meridiano · Motor de churn. Lo lanza n8n (W1) cada martes con la fecha de corte y la URL donde espera el resultado.
+# También se puede lanzar a mano: Actions → «Motor de churn» → Run workflow (sin URL de n8n: solo calcula y guarda en Supabase).
+name: Motor de churn
+
+on:
+  workflow_dispatch:
+    inputs:
+      fecha_corte:
+        description: "Fecha de corte AAAA-MM-DD (vacío = lunes anterior)"
+        required: false
+        default: ""
+      resume_url:
+        description: "URL de n8n que espera el resultado (la pone n8n)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: motor-churn
+  cancel-in-progress: false
+
+jobs:
+  ciclo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ciclo semanal (Supabase → motor → Supabase)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          FECHA_CORTE: ${{ inputs.fecha_corte }}
+        run: python motor/ejecutar_ciclo.py --fecha_corte "$FECHA_CORTE" --salida resultado.json
+
+      - name: Guardar resultados (cuadro de mando y plan)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-${{ github.run_id }}
+          path: |
+            salidas/
+            resultado.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Avisar a n8n
+        if: always() && inputs.resume_url != ''
+        env:
+          RESUME_URL: ${{ inputs.resume_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json, os
+          try:
+              r = json.load(open("resultado.json", encoding="utf-8"))
+          except Exception:
+              r = {"ok": False, "error": "El motor no llegó a ejecutarse (fallo al preparar el entorno)"}
+          r["ejecucion_github"] = os.environ["RUN_URL"]
+          json.dump(r, open("resultado.json", "w", encoding="utf-8"), ensure_ascii=False)
+          PY
+          curl -sS --fail --retry 3 -X POST -H "Content-Type: application/json" --data-binary @resultado.json "$RESUME_URL"

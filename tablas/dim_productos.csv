@@ -1,0 +1,13 @@
+id_producto,nombre,familia,unidad_venta,tarifa_base_eur,margen,capacidad_mensual,meses_disponible,es_producto_entrada,es_producto_compromiso,capacidad_anual_eur
+P01,Display web ROS,Digital,mes de campaña,900,0.8,19,"1,2,3,4,5,6,7,8,9,10,11,12",True,False,205200
+P02,Newsletter patrocinada,Digital,envío,1400,0.84,11,"1,2,3,4,5,6,7,8,9,10,11,12",True,False,184800
+P03,Publirreportaje,Contenido,pieza,2100,0.72,11,"1,2,3,4,5,6,7,8,9,10,11,12",True,False,277200
+P04,Sección patrocinada,Contenido,mes de patrocinio,2600,0.68,4,"1,2,3,4,5,6,7,8,9,10,11,12",False,True,124800
+P05,Emailing a base de datos,Digital,envío,1700,0.82,7,"1,2,3,4,5,6,7,8,9,10,11,12",False,False,142800
+P06,Webinar,Eventos,webinar,4100,0.55,6,"1,2,3,4,5,6,7,8,9,10,11,12",False,False,295200
+P07,Patrocinio de jornada,Eventos,patrocinio,7200,0.42,9,"3,5,6,10,11,12",False,True,388800
+P08,Stand en feria,Eventos,stand,4300,0.45,12,"3,11",False,True,103200
+P09,Contenido de marca en serie,Contenido,serie de 4 piezas,8400,0.6,4,"1,2,3,4,5,6,7,8,9,10,11,12",False,True,403200
+P10,Podcast patrocinado,Digital,temporada,3900,0.62,4,"1,2,3,4,5,6,7,8,9,10,11,12",False,False,187200
+P11,Encarte en revista impresa,Impreso,encarte,5600,0.34,11,"2,5,9,12",False,False,246400
+P12,Pack de redes sociales,Digital,pack mensual,1100,0.76,14,"1,2,3,4,5,6,7,8,9,10,11,12",True,False,184800

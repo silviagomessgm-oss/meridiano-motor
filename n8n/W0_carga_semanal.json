@@ -1,0 +1,503 @@
+{
+  "name": "Meridiano · W0 Carga semanal de datos (Google Sheets → Supabase)",
+  "nodes": [
+    {
+      "id": "ac6e36ce-ba8a-584b-9837-9cd02b3a356a",
+      "name": "Lunes 21:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 21
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5085a9a7-7b6f-5497-aae3-ddc3214814cc",
+      "name": "Cargar ahora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "3c89f6ed-bb0a-5548-b228-c66c6f9dd512",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, SMTP) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Con la cuenta de Gmail personal: remitente = esa cuenta; buzón de pruebas = la misma con un alias (+demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n  remitente: 'Meridiano · Plan comercial <TU-CUENTA@gmail.com>',\n} }];\n"
+      }
+    },
+    {
+      "id": "3e8760e5-a26e-5f81-9dd0-f9cdb7bac249",
+      "name": "Google Sheets: leer pestañas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Configuración').first().json.hoja_datos_id }}/values:batchGet?ranges=dim_comercial&ranges=dim_productos&ranges=dim_clientes&ranges=fact_campanas&ranges=fact_facturacion&ranges=fact_interacciones&ranges=oportunidades&ranges=contactos&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gsheets",
+          "name": "Google Sheets Meridiano"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "f6dc3f55-b01c-5cc3-b9f2-c758beba445e",
+      "name": "Preparar tablas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Carga semanal: valida las pestañas de la hoja de datos y las prepara para Supabase, en orden de dependencias.\n// Cada pestaña es la tabla COMPLETA (fila 1 = cabeceras con los mismos nombres de columna). Las filas se actualizan por su\n// identificador: corregir una fila en la hoja la corrige en Supabase. Las filas no válidas no se cargan y se informan.\n// Si falta una pestaña o una columna, o una tabla tiene demasiados errores, NO se carga nada.\nconst MAX_RECHAZO = 0.05;            // más de un 5 % de filas rechazadas en una tabla → no se carga nada\nconst LOTE = 1000;\nconst T = {   // tipos: t texto · d fecha · i entero · n número · b sí/no\n  dim_comercial:      { pk: 'id_comercial', c: { id_comercial: 't', nombre: 't', correo: 't' } },\n  dim_productos:      { pk: 'id_producto', c: { id_producto: 't', nombre: 't', familia: 't', unidad_venta: 't', tarifa_base_eur: 'n', margen: 'n',\n                         capacidad_mensual: 'i', meses_disponible: 't', es_producto_entrada: 'b', es_producto_compromiso: 'b', capacidad_anual_eur: 'n' } },\n  dim_clientes:       { pk: 'id_cliente', c: { id_cliente: 't', razon_social: 't', categoria: 't', provincia: 't', tamano: 't', fecha_alta: 'd',\n                         antiguedad_meses: 'i', canal_captacion: 't', comercial_asignado: 't', cp_sede: 'i', tiene_web_propia: 'b', anio_fundacion: 'i' },\n                        fk: { comercial_asignado: 'dim_comercial' } },\n  fact_campanas:      { pk: 'id_orden', c: { id_orden: 't', id_cliente: 't', id_producto: 't', familia: 't', fecha_orden: 'd', fecha_emision: 'd',\n                         mes_emision: 't', tarifa_base_eur: 'n', descuento_pct: 'n', importe_eur: 'n', impresiones: 'i', clics: 'i',\n                         leads_entregados: 'i', comercial: 't', id_campana: 't' },\n                        fk: { id_cliente: 'dim_clientes', id_producto: 'dim_productos' }, obligatorias: ['id_cliente', 'fecha_emision', 'importe_eur'] },\n  fact_facturacion:   { pk: 'id_factura', c: { id_factura: 't', id_cliente: 't', id_orden: 't', importe_eur: 'n', fecha_emision: 'd',\n                         condiciones_pago_dias: 'i', fecha_vencimiento: 'd', fecha_cobro: 'd', dias_retraso: 'n', estado: 't' },\n                        fk: { id_cliente: 'dim_clientes', id_orden: 'fact_campanas' }, obligatorias: ['id_cliente', 'fecha_emision', 'importe_eur'] },\n  fact_interacciones: { pk: 'id_interaccion', c: { id_interaccion: 't', id_cliente: 't', fecha: 'd', tipo: 't', canal: 't', resultado: 't',\n                         comercial: 't', previa_al_alta: 't' }, fk: { id_cliente: 'dim_clientes' }, obligatorias: ['id_cliente', 'fecha'] },\n  oportunidades:      { pk: 'id_oportunidad', c: { id_oportunidad: 't', id_cliente: 't', id_lead: 't', origen: 't', id_producto_propuesto: 't',\n                         importe_propuesto_eur: 'n', fecha_envio: 'd', fecha_cierre: 'd', desenlace: 't', id_orden: 't',\n                         n_toques_seguimiento: 'i', dias_hasta_cierre: 'i', comercial: 't', correccion: 't' } },\n  contactos:          { pk: 'id_contacto', c: { id_contacto: 't', id_cliente: 't', nombre: 't', cargo: 't', email: 't', telefono: 't',\n                         principal: 'b', ficticio: 'b' }, fk: { id_cliente: 'dim_clientes' }, obligatorias: ['id_cliente', 'nombre'] },\n};\n\nconst vacio = v => v === null || v === undefined || String(v).trim() === '';\nfunction convertir(v, tipo) {\n  if (vacio(v)) return [null, null];\n  const s = String(v).trim();\n  if (tipo === 't') return [s, null];\n  if (tipo === 'b') {\n    const m = { true: true, verdadero: true, 'sí': true, si: true, '1': true, false: false, falso: false, no: false, '0': false };\n    return s.toLowerCase() in m ? [m[s.toLowerCase()], null] : [null, `\"${s}\" no es sí/no`];\n  }\n  if (tipo === 'n' || tipo === 'i') {\n    let t = s.replace(/\\s/g, '').replace(/€/g, '');\n    if (t.includes(',') && t.includes('.')) t = t.replace(/\\./g, '').replace(',', '.');   // 1.234,56\n    else if (t.includes(',')) t = t.replace(',', '.');                                        // 0,15\n    const x = typeof v === 'number' ? v : Number(t);\n    if (!Number.isFinite(x)) return [null, `\"${s}\" no es un número`];\n    if (tipo === 'i' && !Number.isInteger(x)) return [null, `\"${s}\" no es un número entero`];\n    return [x, null];\n  }\n  if (tipo === 'd') {\n    let m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/), a, me, d;\n    if (m) [a, me, d] = [m[1], m[2], m[3]];\n    else if ((m = s.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/))) [a, me, d] = [m[3], m[2].padStart(2, '0'), m[1].padStart(2, '0')];\n    else return [null, `\"${s}\" no es una fecha (AAAA-MM-DD o DD/MM/AAAA)`];\n    const f = new Date(`${a}-${me}-${d}T00:00:00Z`);\n    if (isNaN(f) || f.toISOString().slice(0, 10) !== `${a}-${me}-${d}`) return [null, `\"${s}\" no es una fecha válida`];\n    return [`${a}-${me}-${d}`, null];\n  }\n}\n\n// Pestañas leídas con una sola llamada de SOLO LECTURA a la API de Google Sheets (values:batchGet):\n// cada pestaña llega como una matriz; la fila 1 son las cabeceras.\nconst pestanas = {};\nfor (const vr of ($('Google Sheets: leer pestañas').first().json.valueRanges || [])) {\n  const nombre = String(vr.range || '').split('!')[0].replace(/^'|'$/g, '');\n  const [cab = [], ...resto] = vr.values || [];\n  pestanas[nombre] = resto.map(fila => Object.fromEntries(cab.map((c, k) => [String(c).trim(), fila[k] === undefined ? '' : fila[k]])));\n}\n\nconst salida = [], resumen = [], fatales = [], ids = {};\nfor (const [tabla, def] of Object.entries(T)) {\n  let filas = pestanas[tabla];\n  if (!filas) { fatales.push(`${tabla}: no está la pestaña en la hoja`); continue; }\n  filas = filas.filter(f => Object.values(f).some(v => !vacio(v)));\n  if (!filas.length) { fatales.push(`${tabla}: la pestaña está vacía`); continue; }\n  const faltan = Object.keys(def.c).filter(c => !(c in filas[0]));\n  if (faltan.length) { fatales.push(`${tabla}: faltan las columnas ${faltan.join(', ')}`); continue; }\n  const buenas = [], rechazadas = [], vistos = new Set();\n  filas.forEach((f, k) => {\n    const fila = {}, errores = [];\n    for (const [col, tipo] of Object.entries(def.c)) {\n      const [v, err] = convertir(f[col], tipo);\n      if (err) errores.push(`${col}: ${err}`); fila[col] = v;\n    }\n    for (const col of [def.pk, ...(def.obligatorias || [])]) if (fila[col] === null && !errores.some(e => e.startsWith(col))) errores.push(`${col}: vacío`);\n    if (fila[def.pk] !== null && vistos.has(fila[def.pk])) errores.push(`${def.pk} ${fila[def.pk]} repetido`);\n    if (fila.email && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(fila.email)) errores.push(`email: \"${fila.email}\" no es un correo válido`);\n    for (const [col, ref] of Object.entries(def.fk || {}))\n      if (fila[col] !== null && ids[ref] && !ids[ref].has(fila[col])) errores.push(`${col} ${fila[col]} no existe en ${ref}`);\n    if (errores.length) rechazadas.push({ fila: k + 2, id: fila[def.pk], motivo: errores.join('; ') });\n    else { vistos.add(fila[def.pk]); buenas.push(fila); }\n  });\n  ids[tabla] = vistos;\n  const tasa = rechazadas.length / filas.length;\n  if (tasa > MAX_RECHAZO) fatales.push(`${tabla}: ${rechazadas.length} de ${filas.length} filas con errores (${(tasa * 100).toFixed(1)} %)`);\n  resumen.push({ tabla, leidas: filas.length, validas: buenas.length, rechazadas: rechazadas.length, ejemplos_rechazo: rechazadas.slice(0, 20) });\n  for (let i = 0; i < buenas.length; i += LOTE)\n    salida.push({ json: { tabla, pk: def.pk, lote: i / LOTE + 1, filas: buenas.slice(i, i + LOTE) } });\n}\nif (fatales.length) return [{ json: { abortar: true, fatales, resumen } }];\nreturn salida.map((s, k) => ({ json: { ...s.json, abortar: false, ...(k === 0 ? { resumen } : {}) } }));\n"
+      }
+    },
+    {
+      "id": "27375f3b-4303-572e-bf4c-3f989802e6e4",
+      "name": "Solo cargables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return $input.all().filter(i => !i.json.abortar);\n"
+      }
+    },
+    {
+      "id": "dd737e14-bff4-544c-afc3-5ca2fb7e4185",
+      "name": "Supabase: cargar lote",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/{{ $json.tabla }}?on_conflict={{ $json.pk }}",
+        "options": {
+          "timeout": 120000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 200
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.filas) }}"
+      },
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "supabase",
+          "name": "Supabase Meridiano"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "46352bc2-3f94-5242-8006-8a3e9ed297e9",
+      "name": "Resumen de la carga",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Resultado de la carga: lo que se ha cargado por tabla, lo rechazado y cualquier error de Supabase.\nconst lotes = $('Solo cargables').all().map(i => i.json);\nconst resp = $input.all().map(i => i.json || {});\nconst resumen = lotes[0].resumen || [];\nconst errores = [];\nlotes.forEach((l, k) => {\n  const r = resp[k] || {};\n  if (!(r.statusCode >= 200 && r.statusCode < 300))\n    errores.push(`${l.tabla} (lote ${l.lote}): ${(r.body && r.body.message) || r.error?.message || 'sin respuesta de Supabase'}`);\n});\nconst cargadas = {};\nlotes.forEach((l, k) => { const r = resp[k] || {}; if (r.statusCode >= 200 && r.statusCode < 300) cargadas[l.tabla] = (cargadas[l.tabla] || 0) + l.filas.length; });\nconst tablas = resumen.map(r => ({ ...r, cargadas: cargadas[r.tabla] || 0 }));\nconst rechazadas = tablas.reduce((a, r) => a + r.rechazadas, 0);\nconst estado = errores.length ? 'carga_con_errores' : (rechazadas ? 'carga_con_avisos' : 'carga_ok');\nconst lineas = tablas.map(r => `${r.tabla}: ${r.cargadas} cargadas de ${r.leidas}` + (r.rechazadas ? ` · ${r.rechazadas} rechazadas` : '') +\n  (r.ejemplos_rechazo.length ? '\\n   ' + r.ejemplos_rechazo.slice(0, 5).map(e => `fila ${e.fila}: ${e.motivo}`).join('\\n   ') : ''));\nreturn [{ json: {\n  avisar: estado !== 'carga_ok',\n  registro: { origen: 'n8n', estado, detalle: { flujo: 'W0', tablas, errores } },\n  asunto: estado === 'carga_con_errores' ? 'Meridiano · carga semanal de datos con ERRORES' : 'Meridiano · carga semanal de datos con filas rechazadas',\n  texto: `Resultado de la carga de la hoja de datos a Supabase:\\n\\n${lineas.join('\\n')}` +\n    (errores.length ? `\\n\\nErrores de Supabase:\\n- ${errores.join('\\n- ')}` : '') +\n    `\\n\\nLas filas rechazadas no se han cargado: corrígelas en la hoja (la próxima carga las recogerá).`,\n} }];\n"
+      }
+    },
+    {
+      "id": "609523f2-1f18-5e26-8f14-509085956360",
+      "name": "Supabase: registrar carga",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/ejecuciones",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.registro) }}"
+      },
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "supabase",
+          "name": "Supabase Meridiano"
+        }
+      }
+    },
+    {
+      "id": "115a0ab3-b983-5d67-9de3-c0a941ce9883",
+      "name": "Solo avisos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return $input.all().filter(i => i.json.avisar);\n"
+      }
+    },
+    {
+      "id": "ff08a309-d0bd-532d-807b-6b21388c27e6",
+      "name": "Aviso al responsable de datos",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1500,
+        100
+      ],
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.remitente }}",
+        "toEmail": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($('Configuración').first().json.correo_datos) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($('Configuración').first().json.correo_datos) + '] ' : '') + ($json.asunto) }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "smtp",
+          "name": "SMTP Meridiano"
+        }
+      }
+    },
+    {
+      "id": "513e69db-ff3c-5fe5-992e-ebb6e8c9457a",
+      "name": "Solo carga detenida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        250
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Carga detenida antes de escribir nada: aviso y registro.\nreturn $input.all().filter(i => i.json.abortar).map(i => ({ json: {\n  registro: { origen: 'n8n', estado: 'carga_detenida', detalle: { flujo: 'W0', fatales: i.json.fatales, tablas: i.json.resumen } },\n  asunto: 'Meridiano · carga semanal de datos DETENIDA (no se ha cargado nada)',\n  texto: `La carga de la hoja de datos a Supabase se ha detenido sin escribir nada:\\n\\n- ${i.json.fatales.join('\\n- ')}\\n\\n` +\n    `Corrige la hoja y vuelve a lanzar \"W0 · Carga semanal\" a mano antes del martes a las 7:00; si no, el cálculo del martes usará los datos de la semana anterior.\\n\\n` +\n    (i.json.resumen || []).map(r => `${r.tabla}: ${r.leidas} leídas, ${r.rechazadas} con errores` +\n      (r.ejemplos_rechazo.length ? '\\n   ' + r.ejemplos_rechazo.slice(0, 5).map(e => `fila ${e.fila}: ${e.motivo}`).join('\\n   ') : '')).join('\\n'),\n} }));\n"
+      }
+    },
+    {
+      "id": "00f314b7-ee87-5900-a9b9-da7200bcae10",
+      "name": "Lectura fallida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Una pestaña no se ha podido leer (nombre cambiado, permiso, identificador de la hoja…): la carga se detiene sin escribir nada.\nconst it = $input.first().json || {};\nconst err = it.error || {};\nconst detalle = typeof err === 'string' ? err : (err.message || err.description || JSON.stringify(err).slice(0, 500));\nreturn [{ json: {\n  registro: { origen: 'n8n', estado: 'carga_detenida', detalle: { flujo: 'W0', fatales: [`lectura de la hoja: ${detalle}`] } },\n  asunto: 'Meridiano · carga semanal de datos DETENIDA (no se ha podido leer la hoja)',\n  texto: `No se ha podido leer la hoja de datos, así que no se ha cargado nada.\\n\\n` +\n    `Error: ${detalle}\\n\\nComprueba el identificador de la hoja en el nodo Configuración, que las 8 pestañas existen con su nombre exacto ` +\n    `y que la credencial de Google tiene acceso. Después vuelve a lanzar «W0 · Carga semanal».`,\n} }];\n"
+      }
+    },
+    {
+      "id": "3fc2083d-f9e7-54ff-b212-8088d80d53c4",
+      "name": "Supabase: registrar carga detenida",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        250
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/ejecuciones",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.registro) }}"
+      },
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "supabase",
+          "name": "Supabase Meridiano"
+        }
+      }
+    },
+    {
+      "id": "e49fdc61-7009-5e39-9138-a8a81ebb590a",
+      "name": "Aviso: carga detenida",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        960,
+        400
+      ],
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.remitente }}",
+        "toEmail": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($('Configuración').first().json.correo_datos) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($('Configuración').first().json.correo_datos) + '] ' : '') + ($json.asunto) }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "smtp",
+          "name": "SMTP Meridiano"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Lunes 21:00": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar ahora": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: leer pestañas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: leer pestañas": {
+      "main": [
+        [
+          {
+            "node": "Preparar tablas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lectura fallida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar tablas": {
+      "main": [
+        [
+          {
+            "node": "Solo cargables",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Solo carga detenida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo cargables": {
+      "main": [
+        [
+          {
+            "node": "Supabase: cargar lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: cargar lote": {
+      "main": [
+        [
+          {
+            "node": "Resumen de la carga",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen de la carga": {
+      "main": [
+        [
+          {
+            "node": "Supabase: registrar carga",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Solo avisos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo avisos": {
+      "main": [
+        [
+          {
+            "node": "Aviso al responsable de datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo carga detenida": {
+      "main": [
+        [
+          {
+            "node": "Supabase: registrar carga detenida",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aviso: carga detenida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lectura fallida": {
+      "main": [
+        [
+          {
+            "node": "Supabase: registrar carga detenida",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aviso: carga detenida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Madrid"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
