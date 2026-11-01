@@ -1,5 +1,5 @@
 // EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.
-// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, SMTP) van en credenciales de n8n, nunca aquí.
+// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.
 return [{ json: {
   github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)
   github_rama: 'main',
@@ -10,8 +10,7 @@ return [{ json: {
   correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)
   modelo_ia: 'claude-sonnet-5-5',
   // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.
-  // Con la cuenta de Gmail personal: remitente = esa cuenta; buzón de pruebas = la misma con un alias (+demo).
+  // Los correos salen de la cuenta de Gmail conectada en n8n; el buzón de pruebas puede ser esa misma cuenta (con alias +demo).
   modo_demo: true,
   buzon_demo: 'TU-CUENTA+demo@gmail.com',
-  remitente: 'Meridiano · Plan comercial <TU-CUENTA@gmail.com>',
 } }];

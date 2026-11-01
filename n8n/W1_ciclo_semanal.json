@@ -48,7 +48,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, SMTP) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Con la cuenta de Gmail personal: remitente = esa cuenta; buzón de pruebas = la misma con un alias (+demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n  remitente: 'Meridiano · Plan comercial <TU-CUENTA@gmail.com>',\n} }];\n"
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Los correos salen de la cuenta de Gmail conectada en n8n; el buzón de pruebas puede ser esa misma cuenta (con alias +demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n} }];\n"
       }
     },
     {
@@ -292,24 +292,28 @@
     {
       "id": "62ef5a0a-00bf-53d9-8ec6-ec739210ea2a",
       "name": "Aviso al comercial",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
         1760,
         -100
       ],
       "parameters": {
-        "fromEmail": "={{ $('Configuración').first().json.remitente }}",
-        "toEmail": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($json.correo) }}",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($json.correo) }}",
         "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($json.correo) + '] ' : '') + ($json.asunto) }}",
-        "emailFormat": "text",
-        "text": "={{ $json.texto }}",
-        "options": {}
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
       },
       "credentials": {
-        "smtp": {
-          "id": "smtp",
-          "name": "SMTP Meridiano"
+        "gmailOAuth2": {
+          "id": "gmail",
+          "name": "Gmail account"
         }
       }
     },
@@ -366,24 +370,28 @@
     {
       "id": "7e4e3e7b-c934-5575-a825-5232a2ebc154",
       "name": "Aviso a dirección: fallo del motor",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
         1260,
         250
       ],
       "parameters": {
-        "fromEmail": "={{ $('Configuración').first().json.remitente }}",
-        "toEmail": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($('Configuración').first().json.correo_direccion) }}",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($('Configuración').first().json.correo_direccion) }}",
         "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($('Configuración').first().json.correo_direccion) + '] ' : '') + (\"Meridiano · el ciclo semanal de retención ha fallado\") }}",
-        "emailFormat": "text",
-        "text": "=El motor no ha completado el ciclo con fecha de corte {{ $('Fecha de corte').first().json.fecha_corte }}.\n\nDetalle: {{ String($json.error || '').slice(0, 1500) }}\n{{ $json.ejecucion_github ? 'Ejecución en GitHub: ' + $json.ejecucion_github : '' }}\n\nNo se ha publicado ningún plan nuevo en el panel.",
-        "options": {}
+        "emailType": "text",
+        "message": "=El motor no ha completado el ciclo con fecha de corte {{ $('Fecha de corte').first().json.fecha_corte }}.\n\nDetalle: {{ String($json.error || '').slice(0, 1500) }}\n{{ $json.ejecucion_github ? 'Ejecución en GitHub: ' + $json.ejecucion_github : '' }}\n\nNo se ha publicado ningún plan nuevo en el panel.",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
       },
       "credentials": {
-        "smtp": {
-          "id": "smtp",
-          "name": "SMTP Meridiano"
+        "gmailOAuth2": {
+          "id": "gmail",
+          "name": "Gmail account"
         }
       }
     }

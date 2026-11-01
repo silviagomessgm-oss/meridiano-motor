@@ -12,7 +12,7 @@ Credenciales (se crean en n8n y se seleccionan en los nodos tras importar):
   · "Anthropic API"             Header Auth  · x-api-key: <clave de la API de Claude>
   · "Supabase account"          Supabase API · Host https://<proyecto>.supabase.co + Secret Key (service_role o secret)
   · "Webhook Supabase"          Header Auth  · x-webhook-token: <token compartido con el webhook de base de datos>
-  · "SMTP Meridiano"            SMTP
+  · "Gmail account"             Gmail OAuth2 (Sign in with Google; los correos salen de esa cuenta)
   · "Google Sheets Meridiano"   Google Sheets OAuth2 (cuenta con acceso a la hoja; W0 solo LEE: una llamada GET a la API)
 Los valores no secretos (URL del motor, de Supabase y del panel, correo de dirección, modelo) se editan en el nodo
 "Configuración" de cada flujo: n8n 2.x bloquea $env en los nodos por defecto y n8n Cloud no admite variables propias.
@@ -27,7 +27,7 @@ CRED = {"gh": {"httpHeaderAuth": {"id": "github", "name": "GitHub Meridiano"}},
         "ia": {"httpHeaderAuth": {"id": "anthropic", "name": "Anthropic API"}},
         "sb": {"supabaseApi": {"id": "supabase", "name": "Supabase account"}},
         "wh": {"httpHeaderAuth": {"id": "webhook", "name": "Webhook Supabase"}},
-        "smtp": {"smtp": {"id": "smtp", "name": "SMTP Meridiano"}},
+        "gmail": {"gmailOAuth2": {"id": "gmail", "name": "Gmail account"}},
         "gs": {"googleSheetsOAuth2Api": {"id": "gsheets", "name": "Google Sheets Meridiano"}}}
 SISTEMA_IA = ("Preparas materiales para un comercial de Meridiano, medio para el público senior que vive de anunciantes. "
               "Reglas: usa solo cifras del contexto, tal cual; nunca menciones que el cliente está en riesgo; "
@@ -94,11 +94,12 @@ def correo(nombre, pos, para, asunto, texto):
     """Todo correo pasa por el MODO DEMO: con modo_demo activo (por defecto) va al buzón de pruebas y el asunto indica
     a quién habría ido. Así ningún correo del caso ficticio sale a direcciones de terceros."""
     destino, tema = _interior(para), _interior(asunto)
-    return nodo(nombre, "n8n-nodes-base.emailSend", 2.1, pos,
-                {"fromEmail": "={{ " + CFG + ".remitente }}",
-                 "toEmail": "={{ " + CFG + ".modo_demo ? " + CFG + ".buzon_demo : (" + destino + ") }}",
+    return nodo(nombre, "n8n-nodes-base.gmail", 2.1, pos,
+                {"resource": "message", "operation": "send",
+                 "sendTo": "={{ " + CFG + ".modo_demo ? " + CFG + ".buzon_demo : (" + destino + ") }}",
                  "subject": "={{ (" + CFG + ".modo_demo ? '[DEMO → ' + (" + destino + ") + '] ' : '') + (" + tema + ") }}",
-                 "emailFormat": "text", "text": texto, "options": {}}, "smtp")
+                 "emailType": "text", "message": texto,
+                 "options": {"appendAttribution": False, "senderName": "Meridiano · Plan comercial"}}, "gmail")
 
 
 def flujo(nombre, nodos, conexiones):

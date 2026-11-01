@@ -80,11 +80,11 @@ El código de los nodos *Code* está en `n8n/codigo/*.js` y se prueba con node (
    | Anthropic API | Header Auth | `x-api-key` = clave de la API de Claude |
    | Supabase account | **Supabase API** | *Host* = `https://<proyecto>.supabase.co` (con https, sin barra final) · *Secret Key* = clave service_role/secret. Debe dar «Connection tested successfully» |
    | Webhook Supabase | Header Auth | `x-webhook-token` = otra cadena larga inventada |
-   | SMTP Meridiano | SMTP | **Tu cuenta de Gmail**: host `smtp.gmail.com`, puerto 465, SSL, usuario = tu correo, contraseña = una *contraseña de aplicación* de Google (requiere verificación en dos pasos) |
+   | Gmail account | **Gmail OAuth2 API** | *Sign in with Google* con tu cuenta. Todos los correos salen de esa cuenta |
    | Google Sheets Meridiano | Google Sheets OAuth2 API | *Sign in with Google* con la cuenta que tiene la hoja |
 
 2. *Workflows → Import from file*: `W0_carga_semanal.json`, `W1_ciclo_semanal.json`, `W2_alertas_cierre.json`, `W3_recordatorio_semanal.json`. Abrir cada nodo con credencial y seleccionarla. **Ningún nodo debe quedar con datos fijados (morado con chincheta): no aceptar datos de prueba del n8n Assistant.**
-3. En el nodo **Configuración** de cada flujo: repositorio del motor (`usuario/meridiano-motor`) y rama (`main`), URL de Supabase, identificador de la hoja de datos, URL del panel, correos de dirección y del responsable de datos, modelo y **modo demo** (`modo_demo: true`, `buzon_demo` = tu cuenta con alias `+demo`, `remitente` = tu cuenta). Con el modo demo, **todos** los correos de los flujos llegan a tu buzón y el asunto indica a quién habrían ido. No se usan variables de entorno: n8n Cloud no las admite.
+3. En el nodo **Configuración** de cada flujo: repositorio del motor (`usuario/meridiano-motor`) y rama (`main`), URL de Supabase, identificador de la hoja de datos, URL del panel, correos de dirección y del responsable de datos, modelo y **modo demo** (`modo_demo: true`, `buzon_demo` = tu cuenta con alias `+demo`). Con el modo demo, **todos** los correos de los flujos llegan a tu buzón y el asunto indica a quién habrían ido. No se usan variables de entorno: n8n Cloud no las admite.
 4. Ejecutar **W0 a mano** («Cargar ahora»): es la carga inicial. En Supabase, la tabla `ejecuciones` debe mostrar `carga_ok` con las 8 tablas completas (solo llega correo si hay filas rechazadas o errores).
 5. Activar los cuatro flujos. Copiar la *Production URL* del webhook de W2.
 
