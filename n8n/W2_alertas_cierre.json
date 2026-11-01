@@ -75,13 +75,13 @@
             }
           }
         },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth"
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpCustomAuth": {
+        "supabaseApi": {
           "id": "supabase",
-          "name": "Supabase Meridiano"
+          "name": "Supabase account"
         }
       },
       "onError": "continueRegularOutput",

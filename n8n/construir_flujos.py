@@ -10,7 +10,7 @@ El código JavaScript de los nodos Code está en n8n/codigo/*.js (probado con no
 Credenciales (se crean en n8n y se seleccionan en los nodos tras importar):
   · "GitHub Meridiano"          Header Auth  · Authorization: Bearer <token de GitHub con permiso Actions: lectura y escritura>
   · "Anthropic API"             Header Auth  · x-api-key: <clave de la API de Claude>
-  · "Supabase Meridiano"        Custom Auth  · {"headers": {"apikey": "<service_role>", "Authorization": "Bearer <service_role>"}}
+  · "Supabase account"          Supabase API · Host https://<proyecto>.supabase.co + Secret Key (service_role o secret)
   · "Webhook Supabase"          Header Auth  · x-webhook-token: <token compartido con el webhook de base de datos>
   · "SMTP Meridiano"            SMTP
   · "Google Sheets Meridiano"   Google Sheets OAuth2 (cuenta con acceso a la hoja; W0 solo LEE: una llamada GET a la API)
@@ -25,7 +25,7 @@ CFG = "$('Configuración').first().json"
 SB = "={{ " + CFG + ".supabase_url }}/rest/v1"
 CRED = {"gh": {"httpHeaderAuth": {"id": "github", "name": "GitHub Meridiano"}},
         "ia": {"httpHeaderAuth": {"id": "anthropic", "name": "Anthropic API"}},
-        "sb": {"httpCustomAuth": {"id": "supabase", "name": "Supabase Meridiano"}},
+        "sb": {"supabaseApi": {"id": "supabase", "name": "Supabase account"}},
         "wh": {"httpHeaderAuth": {"id": "webhook", "name": "Webhook Supabase"}},
         "smtp": {"smtp": {"id": "smtp", "name": "SMTP Meridiano"}},
         "gs": {"googleSheetsOAuth2Api": {"id": "gsheets", "name": "Google Sheets Meridiano"}}}
@@ -49,7 +49,9 @@ def code(nombre, pos, archivo, modo="runOnceForAllItems"):
 def http(nombre, pos, metodo, url, cred, cuerpo=None, cabeceras=None, opciones=None, completa=False, **extra):
     """completa=True: devuelve {statusCode, body} sin fallar con 4xx/5xx (el nodo Code siguiente decide)."""
     p = {"method": metodo, "url": url, "options": opciones or {}}
-    if cred:
+    if cred == "sb":                     # credencial nativa «Supabase API» de n8n (Host + Secret Key): probada en n8n Cloud
+        p.update({"authentication": "predefinedCredentialType", "nodeCredentialType": "supabaseApi"})
+    elif cred:
         p.update({"authentication": "genericCredentialType", "genericAuthType": list(CRED[cred])[0]})
     else:
         p["authentication"] = "none"

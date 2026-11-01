@@ -53,13 +53,13 @@
         "method": "GET",
         "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/dim_comercial?select=id_comercial,nombre,correo",
         "options": {},
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth"
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpCustomAuth": {
+        "supabaseApi": {
           "id": "supabase",
-          "name": "Supabase Meridiano"
+          "name": "Supabase account"
         }
       }
     },
@@ -76,13 +76,13 @@
         "method": "GET",
         "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/plan_vigente?estado_tarea=neq.cerrada&select=id_cliente,razon_social,comercial_asignado,accion_id,fecha_limite,estado_tarea&order=fecha_limite",
         "options": {},
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth"
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpCustomAuth": {
+        "supabaseApi": {
           "id": "supabase",
-          "name": "Supabase Meridiano"
+          "name": "Supabase account"
         }
       },
       "executeOnce": true,

@@ -137,8 +137,8 @@
             }
           }
         },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -153,9 +153,9 @@
         "jsonBody": "={{ JSON.stringify($json.filas) }}"
       },
       "credentials": {
-        "httpCustomAuth": {
+        "supabaseApi": {
           "id": "supabase",
-          "name": "Supabase Meridiano"
+          "name": "Supabase account"
         }
       },
       "onError": "continueRegularOutput",
@@ -189,8 +189,8 @@
         "method": "POST",
         "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/ejecuciones",
         "options": {},
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -205,9 +205,9 @@
         "jsonBody": "={{ JSON.stringify($json.registro) }}"
       },
       "credentials": {
-        "httpCustomAuth": {
+        "supabaseApi": {
           "id": "supabase",
-          "name": "Supabase Meridiano"
+          "name": "Supabase account"
         }
       }
     },
@@ -293,8 +293,8 @@
         "method": "POST",
         "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/ejecuciones",
         "options": {},
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -309,9 +309,9 @@
         "jsonBody": "={{ JSON.stringify($json.registro) }}"
       },
       "credentials": {
-        "httpCustomAuth": {
+        "supabaseApi": {
           "id": "supabase",
-          "name": "Supabase Meridiano"
+          "name": "Supabase account"
         }
       }
     },
