@@ -20,6 +20,8 @@ try:
 except Exception as e:
     traceback.print_exc()
     res = {"ok": False, "fecha_corte": a.fecha_corte or None, "error": f"{type(e).__name__}: {e}"[:1500]}; codigo = 1
+    # Aparece como anotación en el resumen de la ejecución de GitHub
+    print("::error title=Motor de churn::" + res["error"].replace("\n", " ")[:900])
 json.dump(res, open(a.salida, "w", encoding="utf-8"), ensure_ascii=False)
 print(json.dumps({k: v for k, v in res.items() if k != "detalle_propuestas"}, ensure_ascii=False))
 sys.exit(codigo)

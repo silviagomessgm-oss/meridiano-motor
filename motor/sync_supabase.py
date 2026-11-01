@@ -81,7 +81,10 @@ def bajar():
     if modo_local():
         print("Modo local: se usan las tablas de tablas/"); return
     for t in ORDEN_CARGA:
-        df = leer_tabla(t); df.to_csv(os.path.join(TABLAS, t + ".csv"), index=False); print(f"{t}: {len(df)} filas")
+        df = leer_tabla(t)
+        if t in ("dim_clientes", "fact_campanas", "fact_facturacion") and df.empty:
+            raise RuntimeError(f"Supabase no tiene datos en {t}: ejecuta antes en n8n la carga semanal (W0) y comprueba que termina en carga_ok")
+        df.to_csv(os.path.join(TABLAS, t + ".csv"), index=False); print(f"{t}: {len(df)} filas")
     # El motor no guarda nada entre ejecuciones: el histórico se reconstruye cada vez desde Supabase
     asig = leer_tabla("asignaciones_ciclo")
     os.makedirs(HIST, exist_ok=True)
