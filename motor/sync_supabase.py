@@ -96,6 +96,14 @@ def bajar():
     if len(asig):
         asig[["id_cliente", "estado_plan", "fecha_corte"]].to_csv(os.path.join(HIST, "propuestas_historico.csv"), index=False)
     print(f"asignaciones de ciclos anteriores: {len(asig)}")
+    # Etiqueta única por empresa: los clientes con propuesta de ampliación o seguimiento no entran en el plan de churn
+    otras = leer_tabla("propuestas", "&etiqueta=neq.riesgo&id_cliente=not.is.null")
+    ruta_otras = os.path.join(HIST, "otras_etiquetas.csv")
+    if len(otras):
+        otras.assign(abierta=otras.estado_tarea != "cerrada")[["id_cliente", "fecha_corte", "abierta"]].to_csv(ruta_otras, index=False)
+    elif os.path.exists(ruta_otras):
+        os.remove(ruta_otras)
+    print(f"propuestas de otras etiquetas: {len(otras)}")
     conf = leer_tabla("propuestas", "&estado_tarea=eq.cerrada&etiqueta=eq.riesgo&estado_confirmado_comercial=not.is.null")
     os.makedirs(HIST, exist_ok=True)
     if len(conf):

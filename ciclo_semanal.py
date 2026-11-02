@@ -137,11 +137,21 @@ def main():
     cfg = config_temporal(os.path.join(PR, "config", "parametros.json"), os.path.join(sal, "parametros_usados.json"), {"fecha_corte": str(T.date())})
     ph = os.path.join(HIST, "propuestas_historico.csv")
     dias = json.load(open(cfg, encoding="utf-8")).get("dias_enfriamiento", 90)
+    po = os.path.join(HIST, "otras_etiquetas.csv")     # ampliación y seguimiento del panel (etiqueta única por empresa)
+    partes = []
     if os.path.exists(ph):
         h = pd.read_csv(ph, parse_dates=["fecha_corte"], dtype={"id_cliente": str})
-        rec = h[(h.fecha_corte < T) & (h.fecha_corte >= T - pd.Timedelta(days=dias))]
-        rec[["id_cliente"]].drop_duplicates().to_csv(os.path.join(datos_pr, "propuestas_recientes.csv"), index=False)
-        print(f"En enfriamiento ({dias} días): {rec.id_cliente.nunique()} anunciantes propuestos o en control en ciclos anteriores")
+        partes.append(h[(h.fecha_corte < T) & (h.fecha_corte >= T - pd.Timedelta(days=dias))][["id_cliente"]])
+    if os.path.exists(po):
+        # incluye la misma semana: lo que el lunes ya propuso como ampliación no entra el martes en el plan de churn
+        o = pd.read_csv(po, parse_dates=["fecha_corte"], dtype={"id_cliente": str})
+        o = o[(o.fecha_corte <= T) & ((o.fecha_corte >= T - pd.Timedelta(days=dias)) | o.abierta.astype(bool))][["id_cliente"]]
+        print(f"Con otra propuesta del panel (ampliación o seguimiento): {o.id_cliente.nunique()} anunciantes")
+        partes.append(o)
+    if partes:
+        rec = pd.concat(partes).drop_duplicates()
+        rec.to_csv(os.path.join(datos_pr, "propuestas_recientes.csv"), index=False)
+        print(f"En enfriamiento ({dias} días): {rec.id_cliente.nunique()} anunciantes propuestos o en control")
     ejecutar(["src/propuestas.py", "--datos", datos_pr, "--config", cfg, "--salida", sal], PR)
     shutil.rmtree(datos_pr, ignore_errors=True)
     registrar_propuestas(T, sal, ph)
