@@ -5,7 +5,8 @@
   "capacidad_semanal_por_comercial": 4,
   "semanas_del_plan": 1,
   "porcentaje_control_banda_media": 0.2,
-  "percentil_cuentas_clave": 0.8,
+  "percentil_cuentas_clave": 0.95,
+  "motivos_escalar_direccion": ["relacion_interlocutor", "servicio_reclamacion", "cobro_financiero"],
   "descuento_maximo_sin_direccion": 0.1,
   "plazos_dias": {
     "reunion_nuevo_interlocutor": 15,

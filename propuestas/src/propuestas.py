@@ -194,9 +194,11 @@ ACCION = {"relacion_interlocutor": "reunion_nuevo_interlocutor", "servicio_recla
 
 
 def plan(g, cfg, p, f_hasta_T, T):
+    # Cuenta clave: el 5 % de más valor de TODA la cartera activa (no solo de las cuentas en riesgo: el plan elige
+    # por valor, así que con un umbral relativo al riesgo casi todas las propuestas salían marcadas)
+    umbral_clave = g.valor_cuenta.quantile(cfg["percentil_cuentas_clave"]) if len(g) else float("inf")
     g = g[g.banda_riesgo.isin(["alta", "media"])].copy()
-    clave = g.valor_cuenta >= g.valor_cuenta.quantile(cfg["percentil_cuentas_clave"]) if len(g) else pd.Series(dtype=bool)
-    g["cuenta_clave"] = clave
+    g["cuenta_clave"] = g.valor_cuenta >= umbral_clave
     g["accion_id"] = g.motivo_principal.map(ACCION)
     # E2: contracción (sigue comprando pero invierte mucho menos) frente a pérdida total
     tr = cfg.get("tipo_riesgo", {"dias_compra_reciente": 120, "tendencia_contraccion_menor_que": -0.3})
@@ -228,7 +230,9 @@ def plan(g, cfg, p, f_hasta_T, T):
     h = g.id_cliente.astype(str).map(lambda s: int(hashlib.sha256(f"{s}|{trimestre}".encode()).hexdigest(), 16) % 100)
     g["grupo_experimental"] = np.where((g.banda_riesgo == "media") & ~g.cuenta_clave &
                                        (h < cfg["porcentaje_control_banda_media"] * 100), "control", "tratamiento")
-    g["requiere_direccion"] = g.cuenta_clave
+    # Escalar a dirección comercial: cuenta clave con un motivo que el comercial no resuelve solo
+    g["requiere_direccion"] = g.cuenta_clave & g.motivo_principal.isin(cfg.get("motivos_escalar_direccion",
+                              ["relacion_interlocutor", "servicio_reclamacion", "cobro_financiero"]))
     g["prioridad_valor"] = g.facturacion_en_riesgo
     g = g.sort_values(["grupo_experimental", "prioridad_valor"], ascending=[False, False])
     cap = cfg["capacidad_semanal_por_comercial"] * cfg["semanas_del_plan"]
