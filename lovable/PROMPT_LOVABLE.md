@@ -12,7 +12,7 @@
 
 ## Prompt
 
-Construye una aplicación web interna en **español** llamada **«Meridiano · Panel comercial»** para el equipo comercial de un medio digital que vive de anunciantes. La base de datos es **Supabase, ya creada**: no crees tablas, columnas, funciones, políticas ni migraciones, y usa exactamente lo que se describe aquí. Lo que ve cada usuario lo decide la seguridad a nivel de fila (RLS) de Supabase. Filtrar en el cliente es solo comodidad, no seguridad.
+Construye una aplicación web interna en **español** llamada **«Meridiano · Panel comercial»**, con la identidad visual del medio (ver «Estilo»), para el equipo comercial de un medio digital que vive de anunciantes. La base de datos es **Supabase, ya creada**: no crees tablas, columnas, funciones, políticas ni migraciones, y usa exactamente lo que se describe aquí. Lo que ve cada usuario lo decide la seguridad a nivel de fila (RLS) de Supabase. Filtrar en el cliente es solo comodidad, no seguridad.
 
 ### Qué hace
 
@@ -170,15 +170,61 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
    - Últimas 10 `ejecuciones` (fecha, origen y estado, con el detalle desplegable).
    - Dirección puede abrir y gestionar cualquier propuesta.
 
-### Estilo
+### Estilo: identidad visual de Meridiano (obligatoria)
 
-Herramienta de trabajo sobria:
-- fondo claro, tipografía legible, acento azul oscuro;
-- colores solo para etiquetas y estados;
-- sin animaciones decorativas ni emojis;
-- en móvil, las tarjetas pasan a una columna.
+El panel debe parecer una herramienta interna **del mismo medio** que la web de Meridiano: sobria, editorial y cálida, con la misma paleta, la misma tipografía y los mismos detalles. Nada de estética genérica de panel SaaS: ni azules corporativos, ni gradientes, ni sombras marcadas, ni esquinas muy redondeadas.
 
-Formato español: `12.500 €` y fechas `dd/mm/aaaa`.
+**Tipografías** (Google Fonts: `Fraunces` 400/500/600 e itálica 500 · `Libre Franklin` 300–700 · `IBM Plex Mono` 400/500):
+- **Fraunces** (serif): logotipo, títulos de página y de bloque, nombre de la empresa en tarjetas y detalle, cifras destacadas de los contadores. Peso 500, interlineado 1.08, `letter-spacing: -0.01em`.
+- **Libre Franklin** (sans): todo el texto de lectura, formularios y tablas. Cuerpo de 15–16 px, interlineado 1.55.
+- **IBM Plex Mono**: etiquetas pequeñas en mayúsculas («eyebrows»), botones, distintivos de estado y etiqueta, fechas e importes en tablas. 12–12.5 px, `letter-spacing: 0.08–0.14em`, mayúsculas.
+
+**Paleta** (definir como variables CSS y no usar otros colores salvo el rojo de error indicado):
+
+| Variable | Valor | Uso |
+|---|---|---|
+| `--ink` | `#1B1712` | Barra superior, menú lateral, fondos oscuros |
+| `--ink-soft` | `#252019` | Superficies sobre fondo oscuro |
+| `--paper` | `#ECE5D3` | Fondo general de la aplicación |
+| `--paper-2` | `#E1D8BF` | Tarjetas, paneles y cabeceras de tabla |
+| `--brass` | `#C0902F` | Acento: botón principal, logotipo (la «I»), elementos activos sobre fondo oscuro |
+| `--brass-dark` | `#8F6A22` | Acento **para texto o bordes sobre fondo claro** (el latón claro no tiene contraste suficiente sobre papel) y hover del botón principal |
+| `--teal` | `#3E5C52` | Color secundario: estados positivos, enlaces y eyebrows sobre fondo claro |
+| `--on-ink` | `#ECE5D3` | Texto sobre fondo oscuro |
+| `--on-paper` | `#211D17` | Texto sobre fondo claro |
+| `--line-ink` | `rgba(236,229,211,0.16)` | Líneas sobre fondo oscuro |
+| `--line-paper` | `rgba(33,29,23,0.14)` | Líneas y bordes sobre fondo claro |
+| `--alerta` | `#A3412E` | Único color añadido: errores, «Riesgo de abandono» y fechas vencidas |
+
+**Estructura y detalles:**
+- **Barra superior** fija en `--ink`, con el logotipo a la izquierda: «MERID**I**ANO» en Fraunces 600, mayúsculas, `letter-spacing: 0.03em`, color `--on-ink`, y la **I en itálica (peso 500) y color `--brass`**. Al lado, en IBM Plex Mono mayúsculas y `--brass`, el texto «PANEL COMERCIAL». A la derecha, el nombre del usuario y «Salir».
+- Navegación (Mi panel · Leads · Dirección) en Libre Franklin 14.5 px, color `--on-ink` al 82 % de opacidad y al 100 % en la sección activa, con un filete de 1 px en `--brass` bajo la sección activa.
+- Fondo de la aplicación en `--paper`. Contenido centrado, con un ancho máximo de 1180 px y márgenes laterales de 32 px (16 px en móvil).
+- **Eyebrow** sobre cada título de bloque: IBM Plex Mono en mayúsculas, precedido de una rayita de 20 × 1 px del mismo color (`--teal` sobre papel, `--brass` sobre tinta). Ejemplo: «— SEMANA DEL 28/09/2026» encima del título «Mi panel».
+- **Tarjetas** en `--paper-2` con borde de 1 px `--line-paper`, **radio de 2 px** y **sin sombras**. Las rejillas de tarjetas se separan con líneas de 1 px, como las secciones de la web.
+- **Botones** en IBM Plex Mono mayúsculas, 12.5 px, `letter-spacing: 0.08em`, padding de 11 × 20 px y radio de 2 px:
+  - **principal** («Aceptar y enviar», «Cerrar»): fondo `--brass`, texto `--ink` y hover `--brass-dark`;
+  - **secundario** («Guardar corrección», «Registrar respuesta»): borde de 1 px `--brass-dark`, texto `--brass-dark` y fondo transparente;
+  - **destructivo** («Rechazar»): borde y texto `--alerta`.
+- **Distintivos** de etiqueta y estado en IBM Plex Mono mayúsculas de 11.5 px, con borde de 1 px del color y fondo del mismo color al 10 %:
+
+  | Etiqueta | Color | Estado | Color |
+  |---|---|---|---|
+  | Riesgo de abandono | `--alerta` | Pendiente de aprobar | `--brass-dark` |
+  | Ampliación | `--teal` | Enviando… | `--brass-dark` con borde discontinuo |
+  | Lead nuevo | `--brass-dark` | Error de envío | `--alerta` |
+  | Seguimiento | `--on-paper` al 60 % | En seguimiento | `--teal` |
+  | | | Rechazada · Cerrada | `--on-paper` al 45 % |
+
+- **Contadores** de la cabecera: cifra grande en Fraunces 500 (32–36 px) y rótulo en IBM Plex Mono mayúsculas debajo, separados por filetes verticales de 1 px.
+- **Tablas**: cabecera en `--paper-2` con rótulos en IBM Plex Mono mayúsculas, filas separadas por 1 px `--line-paper`, e importes y fechas alineados a la derecha en IBM Plex Mono.
+- **Formularios**: campos con fondo `--paper`, borde de 1 px `--line-paper`, radio de 2 px y foco con contorno de 2 px `--brass`. Los desplegables siguen el mismo estilo.
+- **Detalle de propuesta**: el nombre de la empresa como título en Fraunces (28–32 px). El bloque «Por qué está aquí» puede ir en un recuadro `--ink` con texto `--on-ink`, como las secciones oscuras de la web, y el resto sobre papel.
+- **Pie** discreto en IBM Plex Mono de 11.5 px y `--on-paper` al 50 %: «Meridiano es un medio ficticio: caso de estudio con fines formativos. Datos y contactos ficticios.».
+- **Movimiento** mínimo: solo una aparición suave (*fade-up* de 0,3 s) al cargar los bloques, desactivada con `prefers-reduced-motion`. Sin otras animaciones ni emojis.
+- **Accesibilidad**: contraste AA. Nunca texto `--brass` sobre `--paper`: usar `--brass-dark`. El texto sobre tinta va en `--on-ink`.
+- **Móvil**: las tarjetas y rejillas pasan a una columna, la navegación pasa a un menú desplegable y los botones de acción ocupan todo el ancho.
+- **Formato español**: `12.500 €` y fechas `dd/mm/aaaa`.
 
 ### Reglas
 
