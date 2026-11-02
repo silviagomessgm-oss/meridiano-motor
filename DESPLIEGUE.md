@@ -102,6 +102,23 @@ Seguir `lovable/PROMPT_LOVABLE.md`. Poner la URL publicada del panel en el nodo 
 4. Como dirección: reabrir una propuesta con su motivo y revisar los KPI.
 5. Repetir W1 con `2026-10-05`: otras 12 cuentas, ninguna repetida.
 
+## Problemas frecuentes al montar (vistos en la puesta en marcha)
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| Nodos en morado con chincheta 📌 y aviso «data was made up by the n8n Assistant» | Datos de prueba fijados: el nodo no se ejecuta de verdad | Seleccionar el nodo y pulsar **P** (o clic derecho → *Unpin*). No aceptar datos de prueba del asistente |
+| «Credentials not found» o el error nombra una credencial que no existe | Tras importar, el nodo guarda una referencia a otra credencial | En el nodo: *Authentication → None* y volver a elegir el tipo y la credencial; guardar |
+| «Domain not allowed … Only the following domains are allowed: …» | En la credencial, el campo *Allowed HTTP Request Domains* tiene un valor erróneo, o la URL de Configuración no lleva `https://` | Credencial con *Allowed domains = All*; `supabase_url` con `https://` y sin barra final |
+| «Invalid URL … must start with http» | `supabase_url` sin `https://` | Corregir el nodo Configuración |
+| «Invalid API key» en Supabase | Clave mal copiada en una credencial Custom Auth | Usar la credencial nativa **Supabase API** (*Host* + *Secret Key*), la que da «Connection tested successfully» |
+| «permission denied» / «Authorization failed» con la clave correcta | Proyecto creado sin permisos automáticos sobre tablas nuevas | Ejecutar `supabase/permisos.sql`; `comprobar.sql` sin filas |
+| «The resource you are requesting could not be found» al leer la hoja | `hoja_datos_id` incompleto o de otra cuenta de Google | Copiar entero el identificador entre `/d/` y `/edit` |
+| «Invalid or unexpected token» | Sintaxis rota al editar el nodo Configuración (comillas tipográficas, coma) | Pegar el bloque completo de Configuración de nuevo |
+| Se crean hojas «Hoja de cálculo sin título» en Drive | Versión anterior de W0 con nodos de Google Sheets | Usar la versión con una sola llamada de lectura (`Google Sheets: leer pestañas`) |
+| El correo no sale («refused the connection») | SMTP mal configurado | Los flujos usan **Gmail** (Sign in with Google), no SMTP |
+
+**Nunca** pegar tokens o claves en el nodo Configuración: solo en credenciales.
+
 ## Seguridad y datos
 
 - Las claves privadas solo están en los secretos del repositorio de GitHub y en las credenciales cifradas de n8n; ningún JSON de flujo ni el panel contienen secretos (lo comprueba un test).
