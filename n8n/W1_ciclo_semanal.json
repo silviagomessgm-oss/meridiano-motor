@@ -81,8 +81,8 @@
         "options": {
           "timeout": 60000
         },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -101,9 +101,9 @@
         "jsonBody": "={{ JSON.stringify({ ref: $('Configuración').first().json.github_rama, inputs: { fecha_corte: $json.fecha_corte, resume_url: $execution.resumeUrl } }) }}"
       },
       "credentials": {
-        "httpHeaderAuth": {
+        "githubApi": {
           "id": "github",
-          "name": "GitHub Meridiano"
+          "name": "GitHub account"
         }
       },
       "onError": "continueErrorOutput",

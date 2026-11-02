@@ -76,7 +76,7 @@ El código de los nodos *Code* está en `n8n/codigo/*.js` y se prueba con node (
 
    | Nombre (exacto) | Tipo | Contenido |
    |---|---|---|
-   | GitHub Meridiano | Header Auth | Name `Authorization`, Value `Bearer github_pat_…` (el token del paso 3.4) |
+   | GitHub account | **GitHub API** | *Github Server* `https://api.github.com` · *User* tu usuario · *Access Token* = el token `github_pat_…` (sin «Bearer»). Debe dar «Connection tested successfully» |
    | Anthropic API | Header Auth | `x-api-key` = clave de la API de Claude |
    | Supabase account | **Supabase API** | *Host* = `https://<proyecto>.supabase.co` (con https, sin barra final) · *Secret Key* = clave service_role/secret. Debe dar «Connection tested successfully» |
    | Webhook Supabase | Header Auth | `x-webhook-token` = otra cadena larga inventada |

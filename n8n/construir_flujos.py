@@ -8,7 +8,7 @@ Genera los flujos de n8n de Meridiano (JSON importables: Workflows → Import fr
   W3_recordatorio_semanal.json · lunes: tareas sin cerrar del plan vigente → recordatorio a cada comercial
 El código JavaScript de los nodos Code está en n8n/codigo/*.js (probado con node en tests/test_n8n.py).
 Credenciales (se crean en n8n y se seleccionan en los nodos tras importar):
-  · "GitHub Meridiano"          Header Auth  · Authorization: Bearer <token de GitHub con permiso Actions: lectura y escritura>
+  · "GitHub account"            GitHub API   · Access Token = token de GitHub (solo meridiano-motor, Actions: lectura y escritura)
   · "Anthropic API"             Header Auth  · x-api-key: <clave de la API de Claude>
   · "Supabase account"          Supabase API · Host https://<proyecto>.supabase.co + Secret Key (service_role o secret)
   · "Webhook Supabase"          Header Auth  · x-webhook-token: <token compartido con el webhook de base de datos>
@@ -23,7 +23,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 COD = lambda n: open(os.path.join(AQUI, "codigo", n), encoding="utf-8").read()
 CFG = "$('Configuración').first().json"
 SB = "={{ " + CFG + ".supabase_url }}/rest/v1"
-CRED = {"gh": {"httpHeaderAuth": {"id": "github", "name": "GitHub Meridiano"}},
+CRED = {"gh": {"githubApi": {"id": "github", "name": "GitHub account"}},
         "ia": {"httpHeaderAuth": {"id": "anthropic", "name": "Anthropic API"}},
         "sb": {"supabaseApi": {"id": "supabase", "name": "Supabase account"}},
         "wh": {"httpHeaderAuth": {"id": "webhook", "name": "Webhook Supabase"}},
@@ -51,6 +51,8 @@ def http(nombre, pos, metodo, url, cred, cuerpo=None, cabeceras=None, opciones=N
     p = {"method": metodo, "url": url, "options": opciones or {}}
     if cred == "sb":                     # credencial nativa «Supabase API» de n8n (Host + Secret Key): probada en n8n Cloud
         p.update({"authentication": "predefinedCredentialType", "nodeCredentialType": "supabaseApi"})
+    elif cred == "gh":                   # credencial nativa «GitHub API» (Access Token): n8n pone la cabecera y la prueba
+        p.update({"authentication": "predefinedCredentialType", "nodeCredentialType": "githubApi"})
     elif cred:
         p.update({"authentication": "genericCredentialType", "genericAuthType": list(CRED[cred])[0]})
     else:
