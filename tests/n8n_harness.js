@@ -4,6 +4,7 @@ const [, , archivo, datos] = process.argv;
 const d = JSON.parse(fs.readFileSync(datos, 'utf8'));
 const items = arr => (arr || []).map(json => ({ json }));
 const $input = { all: () => items(d.input), first: () => items(d.input)[0] };
-const $ = nombre => ({ all: () => items((d.nodos || {})[nombre]), first: () => items((d.nodos || {})[nombre])[0] });
+const $ = nombre => ({ all: () => items((d.nodos || {})[nombre]), first: () => items((d.nodos || {})[nombre])[0],
+                     isExecuted: nombre in (d.nodos || {}) });
 const fn = new Function('$input', '$', '$env', fs.readFileSync(archivo, 'utf8'));
 process.stdout.write(JSON.stringify(fn($input, $, d.env || {}).map(i => i.json)));

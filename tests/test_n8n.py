@@ -2,7 +2,7 @@
 import json, os, subprocess, tempfile, shutil
 import pytest
 RAIZ = os.path.join(os.path.dirname(__file__), ".."); N8N = os.path.join(RAIZ, "n8n")
-FLUJOS = ["W0_carga_semanal", "W1_ciclo_semanal", "W2_alertas_cierre", "W3_recordatorio_semanal"]
+FLUJOS = ["W0_carga_semanal", "W1_ciclo_semanal", "W2_alertas_cierre", "W3_recordatorio_semanal", "W5_envio_al_aceptar"]
 pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="requiere node")
 
 
@@ -30,9 +30,10 @@ def test_flujo_importable(nombre):
     assert "sk-ant" not in texto and "service_role" not in texto.replace("Supabase Meridiano", "")
     # Todo correo pasa por el modo demo
     for n in w["nodes"]:
-        if n["type"] == "n8n-nodes-base.emailSend":
-            assert ".modo_demo ?" in n["parameters"]["toEmail"] and ".buzon_demo" in n["parameters"]["toEmail"]
-            assert "[DEMO → " in n["parameters"]["subject"] and ".remitente" in n["parameters"]["fromEmail"]
+        assert n["type"] != "n8n-nodes-base.emailSend"                 # los correos salen por Gmail, no por SMTP
+        if n["type"] == "n8n-nodes-base.gmail":
+            assert ".modo_demo ?" in n["parameters"]["sendTo"] and ".buzon_demo" in n["parameters"]["sendTo"]
+            assert "[DEMO → " in n["parameters"]["subject"] and n["parameters"]["operation"] == "send"
     # Sin $env: n8n 2.x lo bloquea por defecto y n8n Cloud no lo admite
     assert "$env" not in texto and "Configuración" in nombres
     # Los nombres usados con $('...') existen en el flujo
@@ -115,3 +116,34 @@ def test_resultado_del_motor_de_github():
     assert f["error"] == "RuntimeError: x" and f["ejecucion_github"].endswith("/runs/1")
     nada = correr("w1_resultado_motor.js", {"input": [{}]})[0]                       # tiempo de espera agotado
     assert not nada["ok"] and "30 minutos" in nada["error"]
+
+
+def test_w5_que_enviar_solo_la_aceptacion_del_evento():
+    ev = lambda acc, pid: {"body": {"type": "INSERT", "table": "eventos_propuesta", "record": {"propuesta_id": pid, "accion": acc}}}
+    r = correr("w5_que_enviar.js", {"nodos": {"Propuesta aceptada en el panel": [ev("aprobar", 7)]}})
+    assert r == [{"filtro": "&id=eq.7"}]
+    assert correr("w5_que_enviar.js", {"nodos": {"Propuesta aceptada en el panel": [ev("guardar_material", 7)]}}) == []
+    assert correr("w5_que_enviar.js", {"nodos": {}}) == [{"filtro": ""}]                     # lanzamiento a mano: todas
+
+
+PEND = {"id": 7, "razon_social": "Ortopedia Sol", "asunto_email": None, "material_titulo": "Informe de resultados",
+        "texto_aprobado": "Estimada Laura: …", "contacto_nombre": "Laura Martín", "contacto_email": "laura@ortopedia-sol.example",
+        "contacto_ficticio": True, "comercial_nombre": "Martina Rodriguez"}
+
+
+def test_w5_correo_con_texto_aprobado_y_bloqueo_fuera_de_demo():
+    r = correr("w5_preparar_correo.js", {"input": [PEND], "nodos": {"Configuración": [{"modo_demo": True}]}})[0]
+    assert r["bloqueo"] is None and r["asunto"] == "Informe de resultados" and "Estimada Laura" in r["texto"]
+    assert "Correo de demostración" in r["texto"] and "laura@ortopedia-sol.example" in r["texto"] and "Martina Rodriguez" in r["texto"]
+    r = correr("w5_preparar_correo.js", {"input": [PEND], "nodos": {"Configuración": [{"modo_demo": False}]}})[0]
+    assert r["bloqueo"] and "ficticio" in r["bloqueo"]
+
+
+def test_w5_registra_envio_correcto_error_y_bloqueo():
+    env = [dict(id=7), dict(id=8)]
+    prep = [dict(id=7, bloqueo=None), dict(id=8, bloqueo=None), dict(id=9, bloqueo="Contacto ficticio: no se envía fuera del modo demo")]
+    r = correr("w5_resultado_envio.js", {"input": [{"id": "msg-1", "threadId": "t1"}, {"error": {"message": "Quota exceeded"}}],
+                                         "nodos": {"Solo enviables": env, "Preparar correo": prep}})
+    assert r[0]["p_datos"] == {"ok": True, "id_mensaje": "msg-1"} and r[0]["p_accion"] == "registrar_envio" and r[0]["p_usuario"] == "n8n"
+    assert r[1]["p_datos"]["ok"] is False and "Quota" in r[1]["p_datos"]["error"]
+    assert r[2]["p_propuesta_id"] == 9 and "ficticio" in r[2]["p_datos"]["error"]

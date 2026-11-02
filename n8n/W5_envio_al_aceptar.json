@@ -1,0 +1,313 @@
+{
+  "name": "Meridiano · W5 Envío al aceptar",
+  "nodes": [
+    {
+      "id": "6f64bf7d-7f7b-5d91-9985-51af86325185",
+      "name": "Propuesta aceptada en el panel",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meridiano-envio",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook",
+          "name": "Webhook Supabase"
+        }
+      },
+      "webhookId": "4d79836c-e8e7-5d4c-937f-178e6a8e7ad1"
+    },
+    {
+      "id": "d5e566de-fe60-5af2-b860-041372fef934",
+      "name": "Reintentar envíos pendientes",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "3c89f6ed-bb0a-5548-b228-c66c6f9dd512",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        110
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Los correos salen de la cuenta de Gmail conectada en n8n; el buzón de pruebas puede ser esa misma cuenta (con alias +demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n} }];\n"
+      }
+    },
+    {
+      "id": "ce0f77ce-41c2-5cc3-9ac3-d4f9d7a92dd6",
+      "name": "Qué enviar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        110
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// ¿Qué hay que enviar?\n//  · Webhook de Supabase (evento nuevo): solo la propuesta de ese evento, y solo si el evento es una aceptación.\n//    Así dos aceptaciones seguidas no se envían dos veces.\n//  · Lanzamiento a mano («Reintentar envíos pendientes»): todas las aceptadas que sigan sin enviar.\nconst wh = $('Propuesta aceptada en el panel');\nif (wh.isExecuted) {\n  return wh.all()\n    .map(i => i.json.body || i.json)\n    .filter(b => b.table === 'eventos_propuesta' && b.type === 'INSERT' && b.record && b.record.accion === 'aprobar')\n    .map(b => ({ json: { filtro: `&id=eq.${Number(b.record.propuesta_id)}` } }));\n}\nreturn [{ json: { filtro: '' } }];\n"
+      }
+    },
+    {
+      "id": "7ca5a9d1-1ace-5d57-bc44-573b75013b73",
+      "name": "Supabase: envíos pendientes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        110
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/envios_pendientes?select=*{{ $json.filtro }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "193227a1-4c6d-5c14-b4cf-3d975146a406",
+      "name": "Preparar correo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        110
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Un correo por propuesta aceptada, con el TEXTO APROBADO (el que quedó congelado al pulsar «Aceptar»).\n// Seguridad: un contacto ficticio nunca recibe correo fuera del modo demo.\nconst cfg = $('Configuración').first().json;\nconst filas = $input.all().map(i => i.json).filter(p => p && p.id);\nreturn filas.map(p => {\n  const bloqueo = (!cfg.modo_demo && p.contacto_ficticio) ? 'Contacto ficticio: no se envía fuera del modo demo' : null;\n  const aviso = cfg.modo_demo ? `[Correo de demostración. En real iría a ${p.contacto_nombre} <${p.contacto_email}>]\\n\\n` : '';\n  return { json: {\n    id: p.id, razon_social: p.razon_social, bloqueo,\n    para: p.contacto_email,\n    asunto: p.asunto_email || p.material_titulo || `Meridiano · ${p.razon_social}`,\n    texto: aviso + p.texto_aprobado + `\\n\\n${p.comercial_nombre}\\nMeridiano · Departamento comercial`,\n  } };\n});\n"
+      }
+    },
+    {
+      "id": "d4be99fe-2406-5c0d-b3e8-de0865005bc7",
+      "name": "Solo enviables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        110
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return $input.all().filter(i => !i.json.bloqueo);\n"
+      }
+    },
+    {
+      "id": "6b29d0d8-a20f-55b5-afb9-5b5d490a743f",
+      "name": "Enviar al contacto",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        110
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($json.para) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($json.para) + '] ' : '') + ($json.asunto) }}",
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "e2b7ce7e-aaf9-516d-bb8e-750c52b0682b",
+      "name": "Resultado del envío",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        110
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Resultado de cada envío de Gmail → registrar_envio en Supabase (enviada con su id de mensaje, o error_envio con el motivo).\nconst enviados = $('Solo enviables').all().map(i => i.json);\nconst bloqueados = $('Preparar correo').all().map(i => i.json).filter(p => p.bloqueo);\nconst res = $input.all().map(i => i.json || {});\nconst out = enviados.map((p, k) => {\n  const r = res[k] || {};\n  const ok = !!(r.id || r.threadId) && !r.error;\n  const error = ok ? null : String((r.error && (r.error.message || r.error.description)) || r.error || 'Gmail no ha confirmado el envío').slice(0, 400);\n  return { json: { p_propuesta_id: p.id, p_accion: 'registrar_envio', p_usuario: 'n8n',\n                   p_datos: ok ? { ok: true, id_mensaje: r.id } : { ok: false, error } } };\n});\nfor (const p of bloqueados)\n  out.push({ json: { p_propuesta_id: p.id, p_accion: 'registrar_envio', p_usuario: 'n8n', p_datos: { ok: false, error: p.bloqueo } } });\nreturn out;\n"
+      }
+    },
+    {
+      "id": "7df54141-2d68-5d7a-ad13-0994732b3f0b",
+      "name": "Supabase: registrar envío",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        110
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/rpc/registrar_accion",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "Propuesta aceptada en el panel": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reintentar envíos pendientes": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Qué enviar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qué enviar": {
+      "main": [
+        [
+          {
+            "node": "Supabase: envíos pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: envíos pendientes": {
+      "main": [
+        [
+          {
+            "node": "Preparar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar correo": {
+      "main": [
+        [
+          {
+            "node": "Solo enviables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo enviables": {
+      "main": [
+        [
+          {
+            "node": "Enviar al contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar al contacto": {
+      "main": [
+        [
+          {
+            "node": "Resultado del envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado del envío": {
+      "main": [
+        [
+          {
+            "node": "Supabase: registrar envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Madrid"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

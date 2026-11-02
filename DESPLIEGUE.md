@@ -44,6 +44,7 @@ Si cualquier paso falla, no se guarda nada. El panel no puede insertar, modifica
 | **W0 · Carga semanal** | **Lunes, 21:00** (y manual) | Lee las 8 pestañas de la hoja (incluidos los contactos ficticios) con una sola llamada de solo lectura a la API de Google Sheets → valida columnas, tipos, fechas, identificadores repetidos y referencias (anunciante, producto, orden) → carga en Supabase por lotes de 1.000, actualizando por identificador → registro en `ejecuciones` → correo al responsable de datos si hay filas rechazadas o errores. Si falta una pestaña o columna, o más del 5 % de una tabla tiene errores, **no carga nada** y avisa |
 | **W1 · Ciclo semanal** | **Martes, 7:00** (y manual) | Fecha de corte (lunes anterior) → motor `/ciclo` → una propuesta por item → **Claude** redacta el material (1 llamada cada 1,5 s, 3 reintentos) → **Validador** → `PATCH` en Supabase → un correo interno por comercial → registro en `ejecuciones`. Si el motor falla: correo a dirección y no se publica nada |
 | **W2 · Alertas de cierre** | Webhook de base de datos de Supabase (cada fila nueva de `eventos_propuesta`) | Solo cierres → lee la propuesta → alerta a dirección si se pierde una cuenta clave, una cuenta marcada para dirección no se recupera o se pierde por reclamación |
+| **W5 · Envío al aceptar** | Webhook de base de datos de Supabase (eventos nuevos) y lanzamiento a mano para reintentar | Solo aceptaciones → lee la propuesta en `envios_pendientes` → envía por Gmail el **texto aprobado** al contacto (modo demo: al buzón de pruebas, indicando el destinatario real) → `registrar_envio` en Supabase (enviada con su id de mensaje, o error de envío con el motivo, que el panel muestra para corregir y reintentar). Un contacto ficticio nunca recibe correo fuera del modo demo |
 | **W3 · Recordatorio** | Lunes, 8:00 (la víspera del nuevo lote) | Tareas sin cerrar de cualquier semana → un correo por comercial con las que vencen en 7 días o ya vencieron |
 
 El código de los nodos *Code* está en `n8n/codigo/*.js` y se prueba con node (`tests/test_n8n.py`). Para regenerar los JSON tras cambiarlo: `python n8n/construir_flujos.py`.
@@ -90,6 +91,11 @@ El código de los nodos *Code* está en `n8n/codigo/*.js` y se prueba con node (
 
 ### 5. Webhook de base de datos (Supabase → n8n W2)
 Supabase → *Database → Webhooks → Create*: tabla **`eventos_propuesta`**, evento **Insert**, tipo HTTP Request, método `POST`, URL = la *Production URL* de W2, cabecera `x-webhook-token` = el valor de la credencial "Webhook Supabase".
+
+### 5b. Webhook de base de datos para el envío (Supabase → n8n W5)
+Igual que el anterior, pero con la *Production URL* del webhook de W5: tabla **`eventos_propuesta`**, evento **Insert**, `POST`, cabecera `x-webhook-token`. Supabase admite varios webhooks sobre la misma tabla: uno avisa a W2 (alertas) y otro a W5 (envíos).
+
+**Prueba sin el panel:** en el SQL Editor, `select registrar_accion(<id de una propuesta>, 'aprobar', 'prueba', '{}');`. En unos segundos llega el correo al buzón demo y la propuesta pasa a `en_seguimiento`.
 
 ### 6. Lovable
 Seguir `lovable/PROMPT_LOVABLE.md`. Poner la URL publicada del panel en el nodo *Configuración* (`panel_url`) de W1 y W3.

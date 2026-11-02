@@ -3,6 +3,8 @@ Genera los flujos de n8n de Meridiano (JSON importables: Workflows → Import fr
   W0_carga_semanal.json        · lunes a las 21:00: lee las tablas de la hoja de Google Sheets → valida → carga en Supabase
                                  (actualiza por identificador) → registro en ejecuciones → aviso si hay filas rechazadas o errores
   W1_ciclo_semanal.json        · martes a las 7:00: lanza el motor en GitHub Actions y espera su resultado → IA (Claude) → validador → Supabase → aviso a cada comercial
+  W5_envio_al_aceptar.json     · webhook de base de datos al aceptar una propuesta en el panel → envía por Gmail el texto
+                                 aprobado al contacto (modo demo: al buzón de pruebas) → registrar_envio en Supabase
   W2_alertas_cierre.json       · webhook de base de datos de Supabase al registrarse un evento → si es un cierre que lo requiere,
                                  alerta a dirección. (El panel escribe directamente en Supabase con accion_panel(), que deja la traza.)
   W3_recordatorio_semanal.json · lunes: tareas sin cerrar del plan vigente → recordatorio a cada comercial
@@ -218,6 +220,28 @@ w2 = flujo("Meridiano · W2 Alertas de cierre", [
 ], [("Evento registrado en Supabase", "Configuración"), ("Configuración", "Solo cierres"), ("Solo cierres", "Supabase: propuesta cerrada"),
     ("Supabase: propuesta cerrada", "Alertas de cierre"), ("Alertas de cierre", "Alerta a dirección")])
 
+# ------------------------------------------------------------------ W5 · envío al aceptar (Lovable → Supabase → n8n → Gmail → Supabase)
+w5 = flujo("Meridiano · W5 Envío al aceptar", [
+    nodo("Propuesta aceptada en el panel", "n8n-nodes-base.webhook", 2, [0, 0],
+         {"httpMethod": "POST", "path": "meridiano-envio", "authentication": "headerAuth", "responseMode": "onReceived",
+          "options": {}}, "wh", webhookId=str(uuid.uuid5(uuid.NAMESPACE_DNS, "w5-envio"))),
+    nodo("Reintentar envíos pendientes", "n8n-nodes-base.manualTrigger", 1, [0, 220], {}),
+    code("Configuración", [200, 110], "configuracion.js"),
+    code("Qué enviar", [400, 110], "w5_que_enviar.js"),
+    http("Supabase: envíos pendientes", [600, 110], "GET", SB + "/envios_pendientes?select=*{{ $json.filtro }}", "sb"),
+    code("Preparar correo", [800, 110], "w5_preparar_correo.js"),
+    code("Solo enviables", [1000, 110], "w5_solo_enviables.js"),
+    dict(correo("Enviar al contacto", [1200, 110], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.texto }}"),
+         onError="continueRegularOutput"),
+    code("Resultado del envío", [1400, 110], "w5_resultado_envio.js"),
+    http("Supabase: registrar envío", [1600, 110], "POST", SB + "/rpc/registrar_accion", "sb",
+         cuerpo="={{ JSON.stringify($json) }}", completa=True),
+], [("Propuesta aceptada en el panel", "Configuración"), ("Reintentar envíos pendientes", "Configuración"),
+    ("Configuración", "Qué enviar"), ("Qué enviar", "Supabase: envíos pendientes"),
+    ("Supabase: envíos pendientes", "Preparar correo"), ("Preparar correo", "Solo enviables"),
+    ("Solo enviables", "Enviar al contacto"), ("Enviar al contacto", "Resultado del envío"),
+    ("Resultado del envío", "Supabase: registrar envío")])
+
 # ------------------------------------------------------------------ W3 · recordatorio semanal
 w3 = flujo("Meridiano · W3 Recordatorio semanal", [
     nodo("Lunes 8:00", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 0],
@@ -233,6 +257,6 @@ w3 = flujo("Meridiano · W3 Recordatorio semanal", [
     ("Supabase: tareas sin cerrar", "Agrupar por comercial"), ("Agrupar por comercial", "Recordatorio al comercial")])
 
 if __name__ == "__main__":
-    for nombre, w in [("W0_carga_semanal", w0), ("W1_ciclo_semanal", w1), ("W2_alertas_cierre", w2), ("W3_recordatorio_semanal", w3)]:
+    for nombre, w in [("W0_carga_semanal", w0), ("W1_ciclo_semanal", w1), ("W2_alertas_cierre", w2), ("W5_envio_al_aceptar", w5), ("W3_recordatorio_semanal", w3)]:
         json.dump(w, open(os.path.join(AQUI, nombre + ".json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print(nombre, len(w["nodes"]), "nodos")
