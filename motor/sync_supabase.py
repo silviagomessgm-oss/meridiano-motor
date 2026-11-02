@@ -28,13 +28,18 @@ def modo_local():
     return not (os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_KEY"))
 
 
+def _clave():
+    # Los secretos pegados a mano suelen traer espacios o saltos de línea al final: se limpian
+    return "".join(os.environ["SUPABASE_SERVICE_KEY"].split())
+
+
 def _cab(extra=None):
-    k = os.environ["SUPABASE_SERVICE_KEY"]
+    k = _clave()
     h = {"apikey": k, "Authorization": f"Bearer {k}", "Content-Type": "application/json"}
     h.update(extra or {}); return h
 
 
-def _url(tabla): return f"{os.environ['SUPABASE_URL'].rstrip('/')}/rest/v1/{tabla}"
+def _url(tabla): return f"{os.environ['SUPABASE_URL'].strip().rstrip('/')}/rest/v1/{tabla}"
 
 
 def limpiar(registros):
