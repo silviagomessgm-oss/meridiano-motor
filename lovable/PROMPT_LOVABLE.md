@@ -1,104 +1,203 @@
-# Panel del equipo comercial de Meridiano · prompt para Lovable
+# Panel comercial de Meridiano · prompt para Lovable
 
-> **Pendiente de actualizar (fase 3 del panel comercial unificado).** El esquema ya incluye leads, contactos, etiquetas y el ciclo aprobar → enviar → seguimiento → cierre (`accion_panel` con `aprobar`, `rechazar`, `registrar_respuesta`; `alta_lead_panel`; `registrar_consentimiento`). La acción `marcar_en_curso` de este prompt ya no existe: la sustituye «Aceptar» (`aprobar`). Este prompt se reescribe en la fase 3.
-
-> **Cómo usarlo.** En Lovable: crear proyecto → conectar **Supabase** (integración nativa) con el proyecto donde se ejecutó `supabase/schema.sql` → pegar el bloque "Prompt" de abajo como primer mensaje. Si Lovable propone crear tablas, funciones o migraciones, **rechazarlo**: el esquema ya existe y lo gobierna el repositorio. El panel usa solo la clave pública (*anon*) y el inicio de sesión de cada persona; la clave de servicio nunca va en el panel.
+> **Cómo usarlo.**
+> 1. En Lovable, crea un proyecto y **conecta tu proyecto de Supabase existente**: integración *Supabase → Connect*, y elige el proyecto `vxvmgwlrtrhqjuacmdss`. **No** uses el backend integrado de Lovable (*Lovable Cloud*): los datos, las reglas y la trazabilidad ya están en tu Supabase.
+> 2. Pega el bloque **Prompt** como primer mensaje.
+> 3. Si Lovable propone crear tablas, funciones, políticas o migraciones, **recházalo**. El esquema ya existe y lo gobierna `supabase/schema.sql`.
+> 4. El panel usa solo la clave pública (anon) y el inicio de sesión de cada persona. La clave secreta nunca va en el panel.
 >
-> **Trazabilidad.** El panel escribe directamente en Supabase, pero solo llamando a la función `accion_panel`. Cada acción queda registrada con su autor (sacado de la sesión, no se puede suplantar) en `eventos_propuesta`, y cada corrección del material es una versión nueva en `material_versiones`. Nada se sobrescribe ni se pierde.
->
-> Después, dar de alta a los usuarios en Supabase → Authentication y su fila en `perfiles` (correo, rol, id_comercial).
+> Datos ficticios (caso de estudio). Los usuarios de la demo son alias de una cuenta de Gmail.
 
 ---
 
 ## Prompt
 
-Construye una aplicación web interna en **español** llamada **"Meridiano · Plan de retención"** para el equipo comercial de un medio digital que vive de anunciantes. La base de datos es **Supabase, ya creada**: no crees tablas, columnas, migraciones ni funciones; usa exactamente las que se describen. Los permisos los resuelve la seguridad a nivel de fila (RLS) de Supabase: no filtres por comercial en el cliente como medida de seguridad, solo como comodidad.
+Construye una aplicación web interna en **español** llamada **«Meridiano · Panel comercial»** para el equipo comercial de un medio digital que vive de anunciantes. La base de datos es **Supabase, ya creada**: no crees tablas, columnas, funciones, políticas ni migraciones, y usa exactamente lo que se describe aquí. Lo que ve cada usuario lo decide la seguridad a nivel de fila (RLS) de Supabase. Filtrar en el cliente es solo comodidad, no seguridad.
 
-**Regla principal de escritura:** la aplicación **nunca** hace `insert`, `update`, `upsert` ni `delete` sobre ninguna tabla (la base de datos lo rechaza). **Toda** acción del usuario se guarda con una única llamada:
+### Qué hace
+
+Cada semana se publican en Supabase **propuestas** para empresas. Cada una lleva una **etiqueta**:
+- `riesgo`: cliente con riesgo de abandono (churn). Se publica los martes.
+- `ampliacion`: cliente actual con oportunidad de crecer.
+- `lead_nuevo`: empresa que aún no es cliente.
+- `seguimiento`: propuesta ya enviada que hay que seguir.
+
+La IA ha redactado un material para cada propuesta. El comercial la **revisa en el panel**: la **acepta** (si es un correo, el sistema lo envía; si es una llamada, queda aprobada), **corrige** el texto o la **rechaza** con un motivo. Después **registra la respuesta** del cliente y la **cierra**. Todo queda registrado con su autor y su fecha. La aplicación **no envía correos por sí misma**: el envío lo hace otro sistema (n8n) cuando la propuesta queda aceptada.
+
+### Regla de escritura (muy importante)
+
+La aplicación **nunca** hace `insert`, `update`, `upsert` ni `delete` sobre ninguna tabla. La base de datos lo rechaza. **Todas** las acciones se hacen con estas funciones:
 
 ```ts
+// Acciones sobre una propuesta
 const { data, error } = await supabase.rpc('accion_panel', {
   p_propuesta_id: propuesta.id,
-  p_accion: 'marcar_en_curso' | 'guardar_material' | 'cerrar' | 'reabrir',
-  p_datos: { ... }   // según la acción, ver abajo
+  p_accion: 'guardar_material' | 'aprobar' | 'rechazar' | 'registrar_respuesta' | 'cerrar' | 'reabrir',
+  p_datos: { ... }   // según la acción (tabla de abajo)
 });
-// data = la propuesta actualizada (JSON). error.message = motivo legible, en español, para mostrar al usuario.
+// data = la propuesta actualizada (JSON). Si hay error, mostrar error.message (viene en español) y no dar la acción por hecha.
+
+// Alta de un lead de puerta fría
+await supabase.rpc('alta_lead_panel', { p: { razon_social, categoria, provincia, nombre, cargo, email, telefono,
+                                             consentimiento_comercial, consentimiento_medio, consentimiento_nota, mensaje } });
+
+// Registrar que un lead ha aceptado recibir información comercial
+await supabase.rpc('registrar_consentimiento', { p_id_lead, p_medio: 'telefono' | 'presencial' | 'email', p_nota });
 ```
 
-| Acción | `p_datos` | Cuándo |
+| Acción | `p_datos` | Botón |
 |---|---|---|
-| `marcar_en_curso` | `{}` | Botón "Empezar" en una propuesta pendiente |
-| `guardar_material` | `{ material: "<texto completo>" }` | Botón "Guardar corrección" del material (crea una versión nueva; si estaba pendiente, pasa a en curso) |
-| `cerrar` | `{ estado_confirmado_comercial, motivo_confirmado, diagnostico_correcto, comentario_comercial }` | Botón "Cerrar propuesta" |
-| `reabrir` | `{ motivo: "<por qué>" }` | Botón "Reabrir" en una propuesta cerrada (pide el motivo en un diálogo) |
+| `guardar_material` | `{ material: "<texto completo>" }` | «Guardar corrección» (crea una versión nueva) |
+| `aprobar` | `{}` | «Aceptar y enviar» si `canal = 'email'`; «Aprobar llamada» si `canal = 'llamada'` |
+| `rechazar` | `{ motivo }` | «Rechazar» (diálogo que pide el motivo) |
+| `registrar_respuesta` | `{ resumen }` | «Registrar respuesta del cliente» |
+| `cerrar` (etiqueta `riesgo`) | `{ estado_confirmado_comercial, motivo_confirmado, diagnostico_correcto, comentario_comercial }` | «Cerrar» |
+| `cerrar` (resto de etiquetas) | `{ desenlace, motivo_desenlace, comentario_comercial }` | «Cerrar» |
+| `reabrir` | `{ motivo }` | «Reabrir» (diálogo que pide el motivo) |
 
-Tras cada llamada correcta, sustituir la propuesta en pantalla por `data` y recargar su historial. Si hay `error`, mostrar `error.message` en un aviso y no dar la acción por hecha.
+Después de cada llamada correcta, sustituye la propuesta en pantalla por `data` y recarga su historial.
 
-**Qué hace la aplicación.** Cada **martes por la mañana** un proceso automático publica en la tabla `propuestas` 12 cuentas nuevas de anunciantes con probabilidad de abandono, repartidas entre 3 comerciales (4 cada uno), para que el trabajo no llegue todo a la vez. Cada comercial ve sus propuestas, ejecuta la acción sugerida fuera de la aplicación (llamada, reunión, correo propio) y vuelve para **cerrar** la propuesta con lo que pasó. La aplicación **no envía nada a los anunciantes**.
+### Datos (solo lectura)
 
-### Datos (Supabase)
+- `perfiles(correo, rol, id_comercial)`: rol `comercial` o `direccion`. Tras el login, lee el perfil por el correo del usuario.
+- Vista **`plan_vigente`**: propuestas de la última semana y propuestas anteriores sin cerrar. Tiene las mismas columnas que `propuestas` y además `nueva_esta_semana` (booleano).
+- **`propuestas`** (columnas principales):
+  - Identificación y prioridad: `id`, `fecha_corte`, `etiqueta`, `id_cliente`, `id_lead`, `comercial_asignado`, `comercial_nombre`, `orden_comercial`, `razon_social`, `categoria`.
+  - Diagnóstico: `tipo_riesgo` (`perdida_total` | `contraccion`), `banda_riesgo`, `facturacion_en_riesgo` (€), `valor_cuenta` (€), `cuenta_clave`, `requiere_direccion`, `motivo_principal`, `motivo_secundario`, `accion_id`, `producto_sugerido_nombre`, `fecha_limite`, `justificacion`, `ficha_cuenta`.
+  - Material y canal: `canal` (`email` | `llamada`), `id_contacto`, `asunto_email`, `material_titulo`, `material_cuerpo`, `material_editado`, `notas_internas`, `fuente_material` (`llm` o texto que empieza por `plantilla`).
+  - Seguimiento: **`estado`** (ver abajo), `texto_aprobado`, `version_aprobada`, `aprobada_por`, `aprobada_en`, `motivo_rechazo`, `enviada_en`, `error_envio`, `ultima_respuesta_en`, `estado_confirmado_comercial`, `motivo_confirmado`, `diagnostico_correcto`, `desenlace`, `motivo_desenlace`, `comentario_comercial`, `fecha_confirmacion`.
+- **`estado`** (único estado que debe mostrar el panel):
 
-- `perfiles(correo, rol, id_comercial)`: `rol` es `comercial` o `direccion`. Tras el login, leer el perfil del usuario por su correo para saber su rol.
-- Vista `plan_vigente`: las propuestas nuevas de la última semana y las de semanas anteriores que siguen sin cerrar (mismas columnas que `propuestas`, más `nueva_esta_semana` booleano).
-- `propuestas`: `id`, `fecha_corte`, `id_cliente`, `comercial_asignado`, `comercial_nombre`, `orden_comercial`, `razon_social`, `categoria`, `tipo_riesgo` (`perdida_total` | `contraccion`), `banda_riesgo`, `prob_abandono` (0–1), `valor_esperado_accion` (€), `facturacion_en_riesgo` (€), `valor_cuenta` (€), `cuenta_clave` (bool), `requiere_direccion` (bool), `motivo_principal`, `motivo_secundario`, `accion_id`, `producto_sugerido_nombre`, `fecha_limite`, `justificacion` (texto), `ficha_cuenta` (texto), `material_titulo`, `material_cuerpo`, `notas_internas`, `fuente_material` (`llm` o empieza por `plantilla`).
-  Seguimiento (solo lectura; cambia con `accion_panel`): `estado_tarea` (`pendiente` | `en_curso` | `cerrada`), `estado_confirmado_comercial`, `motivo_confirmado`, `diagnostico_correcto`, `comentario_comercial`, `material_editado` (última corrección del comercial), `fecha_confirmacion`.
-- `eventos_propuesta(id, propuesta_id, accion, usuario, estado_antes, estado_despues, datos jsonb, creado_en)`: historial de cada propuesta. Valores de `accion`: `publicada`, `material_plantilla`, `material_ia`, `marcar_en_curso`, `guardar_material`, `cerrar`, `reabrir`.
-- `material_versiones(id, propuesta_id, version, origen, autor, texto, creado_en)`: todas las versiones del material; `origen` es `plantilla` (motor), `llm` (redactado por Claude y validado) o `comercial` (corrección).
-- Datos de la cuenta, de solo lectura: `dim_clientes` (por `id_cliente`), `fact_campanas` (`fecha_emision`, `familia`, `importe_eur`, `impresiones`, `clics`, `leads_entregados`), `fact_interacciones` (`fecha`, `tipo`, `canal`, `resultado`), `fact_facturacion` (`fecha_emision`, `importe_eur`, `estado`, `dias_retraso`).
-- Solo dirección: `kpis_ciclo(fecha_corte, indicador, valor)` (uno por ciclo semanal), `estado_etiqueta(fecha_corte, etiqueta_vigente, estado, casos, acuerdo)`, `ejecuciones(fecha, origen, estado, detalle jsonb)`.
+  | Valor | Etiqueta visible | Color |
+  |---|---|---|
+  | `pendiente_aprobacion` | Pendiente de aprobar | ámbar |
+  | `enviando` | Enviando… | azul |
+  | `error_envio` | Error de envío | rojo |
+  | `en_seguimiento` | En seguimiento | verde |
+  | `rechazada` | Rechazada | gris |
+  | `cerrada` | Cerrada | gris oscuro |
 
-### Listas cerradas (usar exactamente estos valores en los desplegables)
+- `contactos(id_contacto, id_cliente, id_lead, nombre, cargo, email, telefono, principal, ficticio)`: muestra el contacto de cada propuesta (`id_contacto`). Si `ficticio` es verdadero, añade el distintivo «Contacto ficticio (demo)».
+- `eventos_propuesta(id, propuesta_id, accion, usuario, estado_antes, estado_despues, datos, creado_en)`: historial de cada propuesta.
+- `material_versiones(id, propuesta_id, version, origen, autor, texto, creado_en)`: `origen` puede ser `plantilla`, `llm` o `comercial`.
+- `leads(id_lead, razon_social, categoria, provincia, origen, comercial_asignado, estado, consentimiento_comercial, consentimiento_fecha, consentimiento_medio, consentimiento_texto, creado_en)` y `eventos_lead`.
+- Datos de cada cliente: `dim_clientes`, `fact_campanas` (`fecha_emision`, `familia`, `importe_eur`, `impresiones`, `clics`, `leads_entregados`), `fact_interacciones` (`fecha`, `tipo`, `canal`, `resultado`) y `fact_facturacion` (`fecha_emision`, `importe_eur`, `estado`, `dias_retraso`).
+- Solo dirección: `kpis_ciclo(fecha_corte, indicador, valor)`, `estado_etiqueta(fecha_corte, etiqueta_vigente, estado, casos, acuerdo)` y `ejecuciones(fecha, origen, estado, detalle)`.
 
+### Listas cerradas
+
+- **Etiqueta:** `riesgo` → «Riesgo de abandono» (rojo) · `ampliacion` → «Ampliación» (azul) · `lead_nuevo` → «Lead nuevo» (violeta) · `seguimiento` → «Seguimiento» (gris).
 - `estado_confirmado_comercial`: `Perdido`, `Redujo mucho`, `Activo`, `Pausa: volvió después`, `No sé`.
-- `motivo_confirmado` (mostrar la etiqueta, guardar el valor): `rendimiento_campanas` → "Rendimiento de las campañas", `relacion_interlocutor` → "Cambio o relación con el interlocutor", `perdida_contacto` → "Pérdida de contacto", `servicio_reclamacion` → "Servicio o reclamación", `presupuesto_inversion` → "Presupuesto o inversión", `cobro_financiero` → "Cobro o situación financiera", `temporada` → "Temporada", `otro` → "Otro".
+- `motivo_confirmado` (se muestra la etiqueta y se guarda el valor):
+
+  | Valor | Etiqueta visible |
+  |---|---|
+  | `rendimiento_campanas` | Rendimiento de las campañas |
+  | `relacion_interlocutor` | Cambio o relación con el interlocutor |
+  | `perdida_contacto` | Pérdida de contacto |
+  | `servicio_reclamacion` | Servicio o reclamación |
+  | `presupuesto_inversion` | Presupuesto o inversión |
+  | `cobro_financiero` | Cobro o situación financiera |
+  | `temporada` | Temporada |
+  | `otro` | Otro |
 - `diagnostico_correcto`: `Sí`, `No`.
-- Mostrar `tipo_riesgo` como "Pérdida total" / "Contracción" y `motivo_principal` y `accion_id` sustituyendo `_` por espacios con la primera letra en mayúscula.
+- `desenlace`: `ganada` → «Ganada», `perdida` → «Perdida», `descartada` → «Descartada». El motivo es obligatorio si no es «Ganada».
+- `tipo_riesgo`: `perdida_total` → «Pérdida total», `contraccion` → «Contracción».
+- `motivo_principal` y `accion_id`: sustituir `_` por espacios y poner la primera letra en mayúscula.
 
 ### Pantallas
 
-1. **Inicio de sesión** con Supabase Auth (correo y contraseña, o enlace mágico). Sin registro abierto: si el correo no tiene fila en `perfiles`, mostrar "Tu usuario no tiene acceso al panel; contacta con dirección" y cerrar sesión.
+1. **Inicio de sesión** con Supabase Auth (correo y contraseña). Sin registro abierto. Si el correo no tiene fila en `perfiles`, mostrar «Tu usuario no tiene acceso al panel» y cerrar la sesión.
 
-2. **Mi plan** (pantalla principal del rol `comercial`). Lee `plan_vigente`, ordenado primero por `fecha_limite` y después por `orden_comercial`. Cabecera con "Semana del dd/mm/aaaa" (la `fecha_corte` más reciente), contador "X de N cerradas" y barra de progreso. Dos secciones: **"Nuevas esta semana"** (`nueva_esta_semana` verdadero) y **"Pendientes de semanas anteriores"**. Una tarjeta por propuesta con: número de orden, `razon_social`, `categoria`, etiqueta de tipo de riesgo (contracción en ámbar, pérdida total en rojo), `facturacion_en_riesgo` en €, acción sugerida, `fecha_limite` (en rojo si ya pasó y no está cerrada), distintivos "Cuenta clave" y "Requiere dirección" cuando sean verdaderos, y el estado de la tarea. Filtros: estado de la tarea y tipo de riesgo. **No mostrar `prob_abandono` como porcentaje al comercial**; basta con `banda_riesgo`.
+2. **Mi panel** (pantalla principal).
+   - **Datos:** lee `plan_vigente`.
+   - **Cabecera:** «Semana del dd/mm/aaaa» (la `fecha_corte` más reciente) y cuatro contadores (pendientes de aprobar, en seguimiento, cerradas esta semana y errores de envío).
+   - **Filtros:** etiqueta, estado y, solo para dirección, comercial.
+   - **Agrupación:**
+     - **Pendientes de aprobar**: incluye también las de error de envío.
+     - **Enviando**
+     - **En seguimiento**
+     - **Cerradas o rechazadas esta semana**
+   - **Orden:** dentro de cada grupo, por `fecha_limite` y después por `orden_comercial`.
+   - **Tarjeta:** etiqueta de color, `razon_social`, `categoria`, tipo de riesgo si existe, `facturacion_en_riesgo` en €, acción sugerida, canal (icono de correo o de teléfono), `fecha_limite` (en rojo si ya pasó y no está cerrada), distintivos «Cuenta clave» y «Requiere dirección», estado y la marca «Nueva» si `nueva_esta_semana`.
+   - **No** mostrar `prob_abandono` como porcentaje.
+   - Si alguna propuesta está en «Enviando», refrescar la lista cada 10 segundos hasta que deje de estarlo.
 
-3. **Detalle de la propuesta** (al pulsar una tarjeta), con tres bloques:
-   - *Por qué está en el plan*: `justificacion` y `ficha_cuenta` (texto con saltos de línea), `motivo_principal` y `motivo_secundario`, producto sugerido. Debajo, pestañas de solo lectura con las últimas 10 campañas, las últimas 10 interacciones y las facturas pendientes o con retraso de ese `id_cliente`.
-   - *Material de apoyo*: `material_titulo` y un área de texto editable que se inicia con `material_editado` si existe o, si no, con `material_cuerpo`. Botones "Copiar" (al portapapeles) y "Guardar corrección" (`accion_panel` con `guardar_material`; desactivado si el texto no ha cambiado o la propuesta está cerrada). Indicar "Versión N · autor · fecha" de la versión vigente. Enlace "Ver versiones" que abre la lista de `material_versiones` de la propuesta (de la más reciente a la más antigua), con el texto de cada una y un botón "Recuperar esta versión" que copia ese texto al editor (al guardarlo se crea una versión nueva; nunca se borra ninguna). Aviso fijo: "Material interno de apoyo. Revísalo antes de usarlo; la aplicación no lo envía al cliente". Si `fuente_material` es `llm`, mostrar "Redactado con IA y validado"; si empieza por `plantilla`, "Plantilla estándar". `notas_internas` en un recuadro gris marcado "Solo para ti, no compartir con el cliente".
-   - *Cierre*: botón "Empezar" si está pendiente (`marcar_en_curso`). Formulario con los tres desplegables obligatorios (estado confirmado, motivo confirmado, ¿el diagnóstico del sistema era correcto?) y un comentario opcional. El botón "Cerrar propuesta" solo se activa con los tres desplegables rellenos y llama a `accion_panel` con `cerrar`. Una propuesta cerrada se muestra en modo lectura con un botón "Reabrir", que pide el motivo y llama a `reabrir`.
-   - *Historial*: línea de tiempo con los `eventos_propuesta` de la propuesta, del más reciente al más antiguo: fecha y hora, quién (`usuario`), qué (texto legible de `accion`: "Publicada por el motor", "Material redactado con IA", "Empezada", "Material corregido (versión N)", "Cerrada: <estado> · <motivo>", "Reabierta: <motivo>") y el cambio de estado.
+3. **Detalle de la propuesta**, en cuatro bloques:
+   - **Por qué está aquí:**
+     - `justificacion` y `ficha_cuenta` (texto con saltos de línea), motivo y producto sugerido;
+     - contacto: nombre, cargo, email y teléfono, con el distintivo de ficticio si corresponde;
+     - pestañas de solo lectura con las últimas 10 campañas, las últimas 10 interacciones y las facturas pendientes del cliente.
+   - **Material:**
+     - `material_titulo` y un editor que empieza con `material_editado` o, si no hay, con `material_cuerpo`;
+     - origen: «Redactado con IA y validado» si `fuente_material = 'llm'`; «Plantilla estándar» si empieza por `plantilla`;
+     - botones «Copiar» y «Guardar corrección». El editor solo es editable en `pendiente_aprobacion` o `error_envio`; en los demás estados se muestra en solo lectura el **texto aprobado** (`texto_aprobado`);
+     - enlace «Ver versiones»: lista de `material_versiones`, de la más reciente a la más antigua, con un botón «Recuperar esta versión» que copia el texto al editor. Al guardarlo se crea una versión nueva; nunca se borra ninguna;
+     - `notas_internas` en un recuadro gris con el título «Solo para ti, no compartir con el cliente».
+   - **Decisión y seguimiento** (los botones dependen del estado):
+     - `pendiente_aprobacion` o `error_envio`: «Aceptar y enviar» (o «Aprobar llamada») y «Rechazar». En `error_envio`, mostrar `error_envio` y el texto «Corrige si hace falta y vuelve a aceptar».
+     - `enviando`: aviso «Enviando… se actualizará en unos segundos».
+     - `en_seguimiento`: «Registrar respuesta del cliente» y «Cerrar». El formulario de cierre depende de la etiqueta:
+       - `riesgo`: los tres desplegables obligatorios y un comentario opcional;
+       - resto: desenlace obligatorio, motivo obligatorio si no es «Ganada» y un comentario opcional.
+     - `cerrada` o `rechazada`: resumen del cierre o del rechazo y botón «Reabrir», que pide el motivo.
+     - Si un lead no tiene consentimiento, al aceptar el sistema devolverá un error explicativo. Muéstralo con un botón «Registrar consentimiento».
+   - **Historial:** línea de tiempo con `eventos_propuesta`, de la más reciente a la más antigua. Muestra fecha y hora, quién y qué, en frases como:
+     - «Publicada por el motor»
+     - «Material redactado con IA»
+     - «Material corregido (versión N)»
+     - «Aceptada»
+     - «Enviada por correo»
+     - «Error de envío: …»
+     - «Respuesta del cliente: …»
+     - «Cerrada: …»
+     - «Rechazada: …»
+     - «Reabierta: …»
 
-4. **Histórico** (comercial): propuestas cerradas de `propuestas`, agrupadas por semana (`fecha_corte`), con su estado confirmado y motivo. Solo lectura.
+4. **Leads:**
+   - Lista de `leads` del usuario: origen («Formulario web» o «Puerta fría»), estado y consentimiento («Acepta información comercial» con fecha y medio, o «Sin consentimiento»).
+   - Botón **«Nuevo lead (puerta fría)»**. Abre un formulario con empresa, categoría, provincia, persona de contacto, cargo, email, teléfono y notas, y una casilla «Ha aceptado recibir información comercial» que, si se marca, pide el medio (teléfono, presencial o email) y una nota. Llama a `alta_lead_panel`.
+   - En cada lead sin consentimiento, botón **«Registrar consentimiento»**, que llama a `registrar_consentimiento`.
 
-5. **Dirección** (solo rol `direccion`; ocultar la entrada en el menú para comerciales):
-   - Selector de semana (`fecha_corte` disponibles en `propuestas`, la más reciente por defecto) y un resumen de las últimas 4 semanas.
-   - Indicadores de `kpis_ciclo` de esa semana en tarjetas (mostrar `indicador` y `valor` tal cual).
-   - Estado de la etiqueta de abandono de `estado_etiqueta`: etiqueta vigente (E2 o A), estado, casos y acuerdo como porcentaje. Si la etiqueta vigente es `A`, mostrar un aviso: "La validación automática no ha confirmado E2; el sistema mide con la regla A (210 días sin campaña)".
-   - Tabla por comercial: propuestas, cerradas, % cerradas, % "diagnóstico correcto = Sí" sobre cerradas, facturación en riesgo total y recuperada (suma de `facturacion_en_riesgo` de las cerradas con estado `Activo` o `Pausa: volvió después`).
-   - Lista de cuentas con `requiere_direccion` o `cuenta_clave` y su estado.
-   - Últimas 10 `ejecuciones` (fecha, origen, estado, y `detalle` desplegable).
-   Dirección puede abrir el detalle de cualquier propuesta.
+5. **Dirección** (solo rol `direccion`; ocultar el menú a los comerciales):
+   - Selector de semana (`fecha_corte`) e indicadores de `kpis_ciclo` en tarjetas.
+   - Estado de la etiqueta de abandono (`estado_etiqueta`). Si la vigente es `A`, avisar: «La validación automática no ha confirmado E2; el sistema mide con la regla A».
+   - Tabla por comercial con:
+     - propuestas, aceptadas, rechazadas, cerradas y errores de envío;
+     - % de «diagnóstico correcto = Sí»;
+     - facturación en riesgo total y recuperada (cerradas como `Activo` o `Pausa: volvió después`).
+   - Lista de cuentas clave o que requieren dirección, con su estado.
+   - Últimas 10 `ejecuciones` (fecha, origen y estado, con el detalle desplegable).
+   - Dirección puede abrir y gestionar cualquier propuesta.
 
 ### Estilo
 
-Herramienta de trabajo sobria: fondo claro, tipografía legible de tamaño generoso, un color de acento azul oscuro, sin animaciones decorativas ni emojis. Pensada para portátil y que funcione en móvil (las tarjetas pasan a una columna). Formato español: euros con separador de miles con punto y sin decimales (`12.500 €`), fechas `dd/mm/aaaa`.
+Herramienta de trabajo sobria:
+- fondo claro, tipografía legible, acento azul oscuro;
+- colores solo para etiquetas y estados;
+- sin animaciones decorativas ni emojis;
+- en móvil, las tarjetas pasan a una columna.
+
+Formato español: `12.500 €` y fechas `dd/mm/aaaa`.
 
 ### Reglas
 
-- No crear tablas, columnas, funciones ni políticas en Supabase.
-- Ninguna escritura que no sea `supabase.rpc('accion_panel', …)`.
-- No añadir envío de correos ni integraciones externas: los avisos los hace n8n a partir de los eventos que registra Supabase.
-- Todos los datos son ficticios (caso de estudio); no añadir datos de ejemplo inventados en el código.
+- No crear nada en Supabase. Ninguna escritura que no sea una de las tres funciones `rpc` descritas.
+- No enviar correos ni integrar servicios externos desde la aplicación.
+- No añadir datos de ejemplo inventados en el código.
 
 ---
 
-## Comprobaciones tras la primera versión (pedírselas a Lovable si fallan)
+## Comprobaciones tras la primera versión
 
 | Comprobación | Resultado esperado |
 |---|---|
-| Entrar como COM-01 | Solo ve sus 4 propuestas de la semana y sus pendientes; las cuentas de otros comerciales no aparecen ni por URL |
-| Cerrar sin los tres desplegables | El botón está desactivado |
-| Cerrar con los tres | `estado_tarea = cerrada`, `fecha_confirmacion` rellena y un evento "Cerrada" con tu correo en el historial |
-| Corregir el material dos veces | Versiones 2 y 3 en "Ver versiones", con tu correo; la plantilla original sigue como versión 1 |
-| Cerrar una cuenta clave como Perdido | Llega la alerta a dirección (n8n W2) |
-| Intentar un `update` directo desde la consola del navegador | Supabase lo rechaza (permiso denegado) |
-| Llamar a `accion_panel` sobre una propuesta de otro comercial | Error "Esta propuesta no está en tu cartera" |
-| Entrar como dirección | Ve el menú Dirección, los KPI y las 12 propuestas de la semana |
+| Entrar como COM-01 | Solo sus propuestas y sus leads. Las de otros comerciales no aparecen ni por URL |
+| Corregir el material dos veces | Versiones nuevas en «Ver versiones», con su correo; la plantilla o la IA siguen como versiones anteriores |
+| Aceptar una propuesta por correo | Pasa a «Enviando…». Cuando el flujo de envío de n8n (W5) esté activo, pasa a «En seguimiento» y llega el correo al buzón demo |
+| Aceptar una llamada | Pasa directamente a «En seguimiento» |
+| Rechazar sin motivo | El diálogo no deja confirmar |
+| Cerrar una propuesta de riesgo sin los tres desplegables | El botón está desactivado |
+| Cerrar una cuenta clave como «Perdido» | Llega la alerta a dirección (n8n W2) |
+| Alta de un lead de puerta fría sin consentimiento y aceptar su propuesta por correo | Error explicativo y botón «Registrar consentimiento» |
+| `update` directo desde la consola del navegador | Supabase lo rechaza |
