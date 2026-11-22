@@ -20,3 +20,23 @@ Resumen del auditor: «El backlog cubre los nueve nodos y el trabajo desplegado 
 | H10 | Baja | Incoherencias en dependencias y nombres de grupos de control | Corregir orden y nombrar control_riesgo y control_avisos |
 | H11 | Baja | Criterios no comprobables con sí/no | Reglas observables y checklist |
 | H12 | Baja | Falta tabla regla transversal → historia | Añadirla y enlazar los plazos de conservación |
+
+## Segunda auditoría (22-nov-2026 · ejecución n8n 100 · paquete backlog-v4, sha `c82c589`)
+
+| | 1.ª (backlog-v2) | 2.ª (backlog-v4) |
+|---|---|---|
+| Veredicto | Aprobado con cambios | Aprobado con cambios |
+| Altas | 3 | **2** (nuevas) |
+| Medias | 6 | 7 |
+| Bajas | 3 | 3 |
+
+Las tres altas de la primera (reproducibilidad, despliegue en local, encargados) no reaparecen como altas: la reproducibilidad
+y los encargados se dan por resueltos y el despliegue en local baja a media, como riesgo de operación (latido externo).
+Resumen del auditor: «Quedan dos huecos altos con corrección clara: un elemento del diseño que puede provocar propuestas
+duplicadas a un mismo cliente (leads que ya son cuentas) y varias historias declaradas desplegadas sin prueba trazable».
+
+Hallazgos: lead que ya es cliente (alta) · historias desplegadas sin test en la tabla (alta) · «aprobada con aviso» no llega
+a dirección (media) · caducidad de pendientes (media) · test del validador del comentario de W6 (media) · latido externo a
+n8n (media) · resolver en el panel un envío sin confirmar (media) · exportar todos los flujos y retirar legado (media) ·
+filas ausentes de la hoja (media) · coste mensual y rotación de credenciales (baja) · prioridades de dependencias (baja) ·
+adjuntar política de conservación y regla del piloto (baja).
