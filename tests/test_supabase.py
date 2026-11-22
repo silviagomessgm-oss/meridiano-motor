@@ -450,3 +450,21 @@ def test_aprobadas_con_aviso_llegan_a_direccion(db):
     accion(db, "CLI-1", "guardar_material", datos={"material": "Estimada Laura: no queremos perderle."})
     accion(db, "CLI-1", "aprobar")
     assert uno(db, "select razon_social, avisos from aprobadas_con_aviso")[1] == ["insinúa el riesgo"]
+
+
+# ------------------------------------------------------------------ Restaurar la demo
+def test_restaurar_demo_deja_la_semana_como_recien_publicada(db):
+    accion(db, "CLI-1", "guardar_material", datos={"material": "Estimada Laura: texto corregido."})
+    accion(db, "CLI-1", "aprobar"); accion(db, "CLI-1", "registrar_envio", "n8n", {"ok": True, "id_mensaje": "m"})
+    p = pid(db, "CLI-1")
+    _como(db, "m@meridiano.com"); db.execute("select registrar_toque(%s, 'llamada', 'contactado')", (p,)); db.execute("reset role")
+    uno(db, "select registrar_baja(token_baja) from contactos where id_contacto = 'CT-CLI-1-1'")
+    accion(db, "CLI-2", "aprobar", "j@meridiano.com")
+    db.execute(open(os.path.join(RAIZ, "supabase", "restaurar_demo.sql")).read())
+    total, no_pend, reservas, toques, bajas = db.fetchone()
+    assert total >= 2 and (no_pend, reservas, toques, bajas) == (0, 0, 0, 0)
+    assert uno(db, "select material_editado, texto_aprobado, enviada_en from propuestas where id=%s", p) == (None, None, None)
+    assert uno(db, "select count(*) from eventos_propuesta where propuesta_id=%s and accion not in ('publicada','material_ia','material_plantilla')", p)[0] == 0
+    assert uno(db, "select count(*) from eventos_propuesta where propuesta_id=%s and accion = 'publicada'", p)[0] == 1
+    accion(db, "CLI-1", "aprobar")                                               # la demo se puede repetir
+    assert estado(db, "CLI-1") == "enviando"
