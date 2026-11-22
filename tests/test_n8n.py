@@ -318,3 +318,24 @@ def test_w1_lanza_el_motor_solo_tras_la_puerta():
     w = json.load(open(os.path.join(RAIZ, "n8n", "W1_ciclo_semanal.json")))
     sig = {k: [d["node"] for d in v["main"][0]] for k, v in w["connections"].items()}
     assert sig["Fecha de corte"] == ["Supabase: estado de la carga"] and sig["Datos al día"] == ["GitHub: lanzar motor"]
+
+
+# ------------------------------------------------------------------ H6 · escalado en el resumen de dirección (W6)
+def test_w6_escalado_a_direccion():
+    base = {"asunto": "Meridiano · resumen comercial", "texto": "Resumen.\n\nPREVISIÓN\nx\n\nDetalle, alertas e indicadores en el panel:\nURL"}
+    sin = {"statusCode": 200, "body": [
+        {"comercial_nombre": "Martina", "razon_social": "Ortopedia Sol", "etiqueta": "ampliacion", "canal": "email", "toque_debido": 4,
+         "dias_vencido": 8, "enviada_en": "2026-11-02T10:00:00Z", "ultima_actividad": None}]}
+    kpi = {"statusCode": 200, "body": [{"grupo": "tratamiento", "con_toque_debido": 4, "al_dia": 3},
+                                       {"grupo": "control", "con_toque_debido": 5, "al_dia": 2}]}
+    r = correr("w6_escalado.js", {"input": [base], "nodos": {"Supabase: seguimientos sin atender": [sin], "Supabase: KPI de toques": [kpi]}})[0]
+    assert r["asunto"].endswith("· 1 seguimiento sin atender") and r["seguimientos_sin_atender"] == 1
+    t = r["texto"]
+    assert t.index("ESCALADO") < t.index("Detalle, alertas") and "Ortopedia Sol" in t and "vencido hace 8 días" in t
+    assert "tratamiento: 3 de 4 al día (75,0 %)" in t and "control: 2 de 5 al día (40,0 %)" in t
+    caido = correr("w6_escalado.js", {"input": [base], "nodos": {"Supabase: seguimientos sin atender": [{"statusCode": 500, "body": {}}],
+                                                                  "Supabase: KPI de toques": [{"statusCode": 500}]}})[0]
+    assert "No se ha podido consultar" in caido["texto"] and caido["asunto"] == base["asunto"]
+    vacio = correr("w6_escalado.js", {"input": [base], "nodos": {"Supabase: seguimientos sin atender": [{"statusCode": 200, "body": []}],
+                                                                  "Supabase: KPI de toques": [{"statusCode": 200, "body": []}]}})[0]
+    assert "Ninguno" in vacio["texto"]

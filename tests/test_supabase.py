@@ -22,6 +22,7 @@ def db():
     cur.execute(open(os.path.join(RAIZ, "supabase", "bajas.sql")).read())             # H2: baja y lista de exclusión
     cur.execute(open(os.path.join(RAIZ, "supabase", "envios.sql")).read())            # H1: envío idempotente
     cur.execute(open(os.path.join(RAIZ, "supabase", "controles.sql")).read())         # H7 y H8
+    cur.execute(open(os.path.join(RAIZ, "supabase", "seguimiento.sql")).read())       # H5 y H6
     cur.execute("""
       insert into dim_comercial values ('COM-01','Martina','m@meridiano.com'), ('COM-02','Juan','j@meridiano.com');
       insert into perfiles values ('m@meridiano.com','comercial','COM-01'), ('j@meridiano.com','comercial','COM-02'),
@@ -281,3 +282,45 @@ def test_cambio_de_interlocutor_va_por_llamada(db):
     db.execute("""insert into propuestas (fecha_corte, id_cliente, etiqueta, razon_social, comercial_asignado, accion_id, asunto_email)
                   values ('2026-09-01', 'CLI-2', 'riesgo', 'Viajes Oro', 'COM-02', 'reunion_nuevo_interlocutor', 'Reunión') returning canal""")
     assert db.fetchone()[0] == "llamada"
+
+
+# ------------------------------------------------------------------ H5 · toques registrados · H6 · escalado de seguimientos
+def _enviada_hace(db, cli, dias, grupo=None):
+    accion(db, cli, "aprobar")
+    if uno(db, "select canal from propuestas where id=%s", pid(db, cli))[0] == "email":
+        accion(db, cli, "registrar_envio", "n8n", {"ok": True, "id_mensaje": "m"})
+    db.execute("update propuestas set enviada_en = now() - make_interval(days => %s), grupo_piloto = %s where id=%s",
+               (dias, grupo, pid(db, cli)))
+
+
+def test_toque_registrado_y_llamada_cuenta_como_envio(db):
+    accion(db, "CLI-2", "aprobar", "j@meridiano.com"); p = pid(db, "CLI-2")             # CLI-2 va por llamada
+    assert uno(db, "select enviada_en from propuestas where id=%s", p)[0] is None
+    _como(db, "m@meridiano.com")
+    with pytest.raises(psycopg2.Error, match="no está en su cartera"):
+        db.execute("select registrar_toque(%s, 'llamada', 'contactado')", (p,))
+    db.execute("rollback"); _como(db, "j@meridiano.com")
+    with pytest.raises(psycopg2.Error, match="Resultado no válido"):
+        db.execute("select registrar_toque(%s, 'llamada', 'genial')", (p,))
+    db.execute("rollback"); _como(db, "j@meridiano.com")
+    assert uno(db, "select registrar_toque(%s, 'llamada', 'no_contesta', 'Volver a llamar el jueves')", p)[0]["ok"]
+    db.execute("reset role")
+    r = uno(db, "select enviada_en is not null, ultimo_toque_en is not null from propuestas where id=%s", p)
+    assert r == (True, True)
+    assert uno(db, "select datos ->> 'resultado' from eventos_propuesta where propuesta_id=%s and accion='toque'", p) == ("no_contesta",)
+
+
+def test_seguimiento_sin_atender_se_escala_salvo_control(db):
+    _enviada_hace(db, "CLI-1", 10)                         # toque del día 4 vencido hace 6 días: aún no se escala
+    assert uno(db, "select toque_pendiente, dias_vencido, sin_atender from seguimientos_estado") == (4, 6, False)
+    db.execute("update propuestas set enviada_en = now() - interval '11 days'")
+    assert uno(db, "select toque_pendiente, dias_vencido, sin_atender from seguimientos_estado") == (4, 7, True)
+    db.execute("update propuestas set enviada_en = now() - interval '13 days'")    # llega el día 12: el del 4 sigue escalado
+    assert uno(db, "select toque_debido, toque_pendiente, dias_vencido, sin_atender from seguimientos_estado") == (12, 4, 9, True)
+    assert uno(db, "select count(*) from seguimientos_sin_atender")[0] == 1
+    db.execute("update propuestas set grupo_piloto = 'control'")
+    assert uno(db, "select count(*) from seguimientos_sin_atender")[0] == 0               # el control no se escala
+    assert uno(db, "select grupo, con_toque_debido, al_dia from kpi_toques_por_grupo") == ("control", 1, 0)
+    db.execute("update propuestas set grupo_piloto = 'tratamiento', ultimo_toque_en = now() - interval '6 days'")
+    assert uno(db, "select sin_atender, toque_pendiente from seguimientos_estado") == (False, 12)   # atendido el del 4; el del 12 acaba de vencer
+    assert uno(db, "select pct_al_dia from kpi_toques_por_grupo")[0] == 100
