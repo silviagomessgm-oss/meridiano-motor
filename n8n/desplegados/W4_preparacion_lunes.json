@@ -37,7 +37,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'silviagomessgm-oss/meridiano-motor',\n  github_rama: 'main',\n  supabase_url: 'https://vxvmgwlrtrhqjuacmdss.supabase.co',\n  hoja_datos_id: '1qXWmguY7LEdKcJPN2aKaWtKEmj9cY_l7SGqDC9-V_ko',\n  panel_url: 'https://meridiano-press.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',\n  modelo_ia: 'claude-sonnet-5-5',\n  modo_demo: true,\n  buzon_demo: 'meridiano.pres@gmail.com',\n} }];\n"
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'silviagomessgm-oss/meridiano-motor',\n  github_rama: 'main',\n  supabase_url: 'https://vxvmgwlrtrhqjuacmdss.supabase.co',\n  hoja_datos_id: '1qXWmguY7LEdKcJPN2aKaWtKEmj9cY_l7SGqDC9-V_ko',\n  panel_url: 'https://meridian-insight-atlas.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',\n  modelo_ia: 'claude-sonnet-5-5',\n  modo_demo: true,\n  buzon_demo: 'meridiano.pres@gmail.com',\n} }];\n"
       },
       "id": "965486bd-c568-46d3-ad31-6e4e28be4457",
       "name": "Configuración",
