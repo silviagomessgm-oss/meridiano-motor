@@ -19,3 +19,18 @@ Auditoría de referencia: ejecución n8n 95, modelo auditor `claude-fable-5-1`, 
 | **H12** · Nodos sin criterios o con varias responsabilidades | Criterios en N4, N5, N7, N8 y N9; N4 y N9 divididos en pasos | Paquete | — |
 
 Siguiente paso: segunda ejecución de W7 sobre `paquete_diseno.md` versión diseno-v2.
+
+## Segunda auditoría (22-nov-2026 · ejecución n8n 98 · paquete diseno-v2, sha `acba874`)
+
+| | 1.ª auditoría (diseno-v1) | 2.ª auditoría (diseno-v2) |
+|---|---|---|
+| Veredicto | Aprobado con cambios | Aprobado con cambios |
+| Altas | 2 | **0** |
+| Medias | 7 | 8 (nuevas; ninguna repetida) |
+| Bajas | 3 | 4 |
+
+Resumen del auditor: «El diseño v2 resuelve bien los dos riesgos altos de la v1 (duplicidad de envío y baja/exclusión) y apoya los bloqueos críticos en la base de datos, no en el flujo. No se detecta ningún hallazgo alto nuevo».
+
+Ninguno de los 12 hallazgos de la primera auditoría reaparece. Los nuevos son de mayor profundidad (base jurídica por etiqueta, caducidad de propuestas, versión del modelo por propuesta, llamadas nunca iniciadas). Lectura: el auditor tiene un tope de 12 hallazgos y en cada pasada profundiza; lo relevante es que desaparecen las altas y no se repite ningún hallazgo.
+
+Hallazgos de la segunda auditoría: N7 llamadas nunca iniciadas (media) · base jurídica de correos a clientes y exclientes (media) · alerta inmediata de «escalar a dirección» (media) · caducidad de pendientes (media) · criterio verificable del validador y tasa de descarte (media) · versión del modelo y variables por propuesta (media) · diseño del control de riesgo con cuentas clave (media) · asignación y tope de leads (media) · buzón remitente y respuestas (baja) · timeout de Gmail tratado como error reintentable (baja) · encargados de tratamiento (baja) · validador sobre el texto editado por el comercial (baja).
