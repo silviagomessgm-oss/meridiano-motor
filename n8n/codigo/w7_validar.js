@@ -22,6 +22,11 @@ fila.tokens_entrada = (b.usage || {}).input_tokens ?? null;
 fila.tokens_salida = (b.usage || {}).output_tokens ?? null;
 const texto = b.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
 fila.respuesta_bruta = texto.slice(0, 100000);
+if (b.stop_reason === 'max_tokens') {
+  fila.estado = 'formato_invalido';
+  fila.error = `respuesta cortada por límite de longitud (${fila.tokens_salida} tokens de salida): sube max_tokens en «Claude: modelo auditor»`;
+  return [{ json: fila }];
+}
 const errores = [];
 let j = null;
 try {

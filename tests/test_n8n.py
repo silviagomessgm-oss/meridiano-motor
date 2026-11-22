@@ -213,3 +213,9 @@ def test_w7_aviso_de_coherencia_y_correo():
     e = _validar({"statusCode": 500, "body": {"error": {"message": "overloaded"}}})
     c = correr("w7_correo.js", {"input": [{}], "nodos": {"Validar respuesta del auditor": [e]}})[0]
     assert "no respondió" in c["asunto"] and "overloaded" in c["texto"]
+
+
+def test_w7_respuesta_cortada_por_longitud():
+    f = _validar({"statusCode": 200, "body": {"stop_reason": "max_tokens", "usage": {"output_tokens": 8000},
+                  "content": [{"type": "thinking", "thinking": "..."}, {"type": "text", "text": "```json\n{\"veredicto\": \"apro"}]}})
+    assert f["estado"] == "formato_invalido" and "cortada" in f["error"] and "8000" in f["error"]

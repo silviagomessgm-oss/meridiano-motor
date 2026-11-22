@@ -270,9 +270,9 @@ w7 = flujo("Meridiano · W7 Auditor (pasos 05 y 08 FORGEN)", [
     code("Preparar la petición", [900, 100], "w7_preparar.js"),
     http("Claude: modelo auditor", [1080, 100], "POST", "https://api.anthropic.com/v1/messages", "ia",
          cabeceras={"anthropic-version": "2023-06-01"},
-         cuerpo="={{ JSON.stringify({ model: $json.modelo, max_tokens: 8000, system: $json.sistema, "
+         cuerpo="={{ JSON.stringify({ model: $json.modelo, max_tokens: 32000, system: $json.sistema, "
                 "messages: [{ role: 'user', content: $json.paquete }] }) }}",
-         opciones={"timeout": 300000}, completa=True, retryOnFail=True, maxTries=2, waitBetweenTries=10000),
+         opciones={"timeout": 600000}, completa=True, retryOnFail=True, maxTries=2, waitBetweenTries=10000),
     code("Validar respuesta del auditor", [1260, 100], "w7_validar.js"),
     http("Supabase: guardar auditoría", [1440, 0], "POST", SB + "/auditorias", "sb",
          cabeceras={"Prefer": "return=minimal"}, cuerpo="={{ JSON.stringify($json) }}"),
