@@ -31,10 +31,9 @@ create table if not exists auditorias (
 );
 comment on table auditorias is 'Ejecuciones del modelo auditor (W7). Inmutables: son la evidencia de los pasos 05 y 08 de FORGEN.';
 
-create or replace function auditorias_inmutables() returns trigger language plpgsql as $$
-begin
-  raise exception 'Las auditorías no se modifican ni se borran: son la evidencia de la revisión';
-end $$;
+-- Cuerpo entre comillas simples (sin $$): el editor SQL de Supabase puede cortar el texto pegado dentro de un bloque $$
+create or replace function auditorias_inmutables() returns trigger language plpgsql
+as 'begin raise exception ''Las auditorias no se modifican ni se borran''; end';
 drop trigger if exists auditorias_inmutables on auditorias;
 create trigger auditorias_inmutables before update or delete on auditorias
   for each row execute function auditorias_inmutables();
