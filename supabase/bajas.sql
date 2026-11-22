@@ -24,20 +24,18 @@ create table if not exists exclusiones (
 );
 comment on table exclusiones is 'Lista de exclusión de comunicaciones comerciales. Se conserva mientras exista el contacto para garantizar que no se le vuelve a escribir.';
 
--- ¿Está este correo en la lista de exclusión?
+-- ¿Está este correo en la lista de exclusión?  (Funciones sin variables locales ni cadenas vacías: el editor de
+-- Supabase puede partir el texto por los «;» y así cada cuerpo se interpreta igual lo corte como lo corte.)
 create or replace function esta_excluido(p_email text) returns boolean language sql stable security definer set search_path = public
-as 'select exists (select 1 from exclusiones where email = lower(btrim(coalesce(p_email, ''''))))';
+as 'select exists (select 1 from exclusiones where email = lower(btrim(p_email)))';
 
 -- Bloqueo en la propia tabla: da igual quién llame (panel, n8n o la consola), no se aprueba ni se envía a un excluido
 create or replace function bloquear_excluidos() returns trigger language plpgsql security definer set search_path = public
-as 'declare v_email text;
-begin
+as 'begin
   if new.canal = ''email'' and new.estado_envio in (''aprobada'', ''enviada'')
-     and new.estado_envio is distinct from old.estado_envio then
-    select email into v_email from contactos where id_contacto = new.id_contacto;
-    if esta_excluido(v_email) then
-      raise exception ''El contacto se ha dado de baja de las comunicaciones comerciales: no se puede enviar por correo. Cambie el canal a llamada o rechace la propuesta.'';
-    end if;
+     and new.estado_envio is distinct from old.estado_envio
+     and esta_excluido((select c.email from contactos c where c.id_contacto = new.id_contacto)) then
+    raise exception ''El contacto se ha dado de baja de las comunicaciones comerciales: no se puede enviar por correo. Rechace la propuesta o contacte por teléfono.'';
   end if;
   return new;
 end';
@@ -45,51 +43,47 @@ drop trigger if exists propuestas_bloquear_excluidos on propuestas;
 create trigger propuestas_bloquear_excluidos before update of estado_envio on propuestas
   for each row execute function bloquear_excluidos();
 
--- Baja desde el enlace del correo (n8n, W8). Devuelve el correo enmascarado para la página de confirmación.
-create or replace function registrar_baja(p_token uuid) returns jsonb language plpgsql security definer set search_path = public
-as 'declare c contactos; v_email text;
-begin
-  select * into c from contactos where token_baja = p_token;
-  if not found or coalesce(btrim(c.email), '''') = '''' then
-    return jsonb_build_object(''ok'', false, ''motivo'', ''enlace_no_valido'');
-  end if;
-  v_email := lower(btrim(c.email));
-  insert into exclusiones (email, motivo, origen, registrado_por, id_contacto)
-  values (v_email, ''enlace_baja'', ''correo'', ''enlace del correo'', c.id_contacto)
-  on conflict (email) do nothing;
-  if c.id_lead is not null then
-    insert into eventos_lead (id_lead, accion, usuario, datos)
-    values (c.id_lead, ''baja_comunicaciones'', ''enlace del correo'', jsonb_build_object(''id_contacto'', c.id_contacto));
-  end if;
-  return jsonb_build_object(''ok'', true,
-    ''email'', left(v_email, 2) || ''***'' || substr(v_email, position(''@'' in v_email)));
-end';
+-- Baja desde el enlace del correo (n8n, W8): una sola sentencia. Devuelve el correo enmascarado para la página de confirmación.
+create or replace function registrar_baja(p_token uuid) returns jsonb language sql volatile security definer set search_path = public
+as 'with c as (select id_contacto, id_lead, lower(btrim(email)) as email from contactos
+               where token_baja = p_token and email like ''%@%''),
+     alta as (insert into exclusiones (email, motivo, origen, registrado_por, id_contacto)
+              select email, ''enlace_baja'', ''correo'', ''enlace del correo'', id_contacto from c
+              on conflict (email) do nothing),
+     traza as (insert into eventos_lead (id_lead, accion, usuario, datos)
+               select id_lead, ''baja_comunicaciones'', ''enlace del correo'', jsonb_build_object(''id_contacto'', id_contacto)
+               from c where id_lead is not null)
+  select coalesce((select jsonb_build_object(''ok'', true, ''email'',
+                            left(email, 2) || ''***'' || substr(email, position(''@'' in email))) from c),
+                  jsonb_build_object(''ok'', false, ''motivo'', ''enlace_no_valido''))';
+
+-- Comercial de la cartera a la que pertenece un contacto (cliente o lead)
+create or replace function comercial_del_contacto(p_id_contacto text) returns text language sql stable security definer set search_path = public
+as 'select coalesce((select d.comercial_asignado from contactos c join dim_clientes d on d.id_cliente = c.id_cliente
+                     where c.id_contacto = p_id_contacto),
+                    (select l.comercial_asignado from contactos c join leads l on l.id_lead = c.id_lead
+                     where c.id_contacto = p_id_contacto))';
 
 -- Baja registrada desde el panel (el contacto la pidió por teléfono, por correo o en persona). Solo sobre la propia cartera.
 create or replace function baja_panel(p_id_contacto text, p_motivo text default 'solicitud_contacto', p_nota text default null)
 returns jsonb language plpgsql security definer set search_path = public
-as 'declare v_correo text := auth.jwt() ->> ''email''; perfil perfiles; c contactos; v_com text;
-begin
-  if coalesce(v_correo, '''') = '''' then raise exception ''Sesión no válida: vuelva a iniciar sesión''; end if;
-  select * into perfil from perfiles where correo = v_correo;
-  if not found then raise exception ''Su usuario no tiene acceso al panel''; end if;
-  select * into c from contactos where id_contacto = p_id_contacto;
-  if not found then raise exception ''El contacto no existe''; end if;
-  if coalesce(btrim(c.email), '''') = '''' then raise exception ''El contacto no tiene correo electrónico''; end if;
-  select coalesce((select comercial_asignado from dim_clientes where id_cliente = c.id_cliente),
-                  (select comercial_asignado from leads where id_lead = c.id_lead)) into v_com;
-  if perfil.rol <> ''direccion'' and perfil.id_comercial is distinct from v_com then
+as 'begin
+  if not exists (select 1 from perfiles where correo = auth.jwt() ->> ''email'') then
+    raise exception ''Su usuario no tiene acceso al panel''; end if;
+  if not exists (select 1 from contactos where id_contacto = p_id_contacto and email like ''%@%'') then
+    raise exception ''El contacto no existe o no tiene correo electrónico''; end if;
+  if not es_direccion() and mi_comercial() is distinct from comercial_del_contacto(p_id_contacto) then
     raise exception ''Este contacto no está en su cartera''; end if;
-  if coalesce(p_motivo, '''') not in (''solicitud_contacto'', ''oposicion'', ''rebote_permanente'') then
+  if coalesce(p_motivo, ''x'') not in (''solicitud_contacto'', ''oposicion'', ''rebote_permanente'') then
     raise exception ''Motivo de baja no válido''; end if;
   insert into exclusiones (email, motivo, origen, registrado_por, id_contacto, nota)
-  values (lower(btrim(c.email)), p_motivo, ''panel'', v_correo, c.id_contacto, left(p_nota, 500))
+  select lower(btrim(email)), p_motivo, ''panel'', auth.jwt() ->> ''email'', id_contacto, left(p_nota, 500)
+  from contactos where id_contacto = p_id_contacto
   on conflict (email) do nothing;
-  if c.id_lead is not null then
-    insert into eventos_lead (id_lead, accion, usuario, datos)
-    values (c.id_lead, ''baja_comunicaciones'', v_correo, jsonb_build_object(''id_contacto'', c.id_contacto, ''motivo'', p_motivo));
-  end if;
-  return jsonb_build_object(''ok'', true, ''id_contacto'', c.id_contacto);
+  insert into eventos_lead (id_lead, accion, usuario, datos)
+  select id_lead, ''baja_comunicaciones'', auth.jwt() ->> ''email'', jsonb_build_object(''id_contacto'', id_contacto, ''motivo'', p_motivo)
+  from contactos where id_contacto = p_id_contacto and id_lead is not null;
+  return jsonb_build_object(''ok'', true, ''id_contacto'', p_id_contacto);
 end';
 
 -- Permisos: la baja por enlace solo la registra n8n; la del panel, un usuario con sesión
@@ -102,7 +96,7 @@ grant select on exclusiones to authenticated;
 revoke update, delete, truncate on exclusiones from service_role;
 grant select, insert on exclusiones to service_role;            -- sin update ni delete: una baja no se deshace por error
 -- (una reactivación solo la hace dirección desde el editor SQL, con el consentimiento nuevo registrado)
-revoke all on function registrar_baja(uuid), bloquear_excluidos() from public, anon, authenticated;
+revoke all on function registrar_baja(uuid), bloquear_excluidos(), comercial_del_contacto(text) from public, anon, authenticated;
 grant execute on function registrar_baja(uuid) to service_role;
 revoke all on function baja_panel(text, text, text) from public, anon;
 grant execute on function baja_panel(text, text, text), esta_excluido(text) to authenticated, service_role;
@@ -138,3 +132,9 @@ create or replace view conservacion_vencida with (security_invoker = true) as
                  (select max(creado_en) from propuestas p where p.id_lead = l.id_lead)) < now() - interval '24 months';
 revoke all on conservacion_vencida from anon;
 grant select on conservacion_vencida to service_role;
+
+-- ---------------------------------------------------------------- Comprobación (debe devolver: true, true, true, true)
+select to_regclass('public.exclusiones') is not null as tabla_exclusiones,
+       exists (select 1 from information_schema.columns where table_name = 'contactos' and column_name = 'token_baja') as token_baja,
+       exists (select 1 from pg_trigger where tgname = 'propuestas_bloquear_excluidos') as bloqueo,
+       to_regclass('public.contactos_estado') is not null as vista_panel;
