@@ -5,7 +5,7 @@ return [{ json: {
   github_rama: 'main',
   supabase_url: 'https://xxxxxxxx.supabase.co',
   hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja
-  panel_url: 'https://meridiano-panel.lovable.app',
+  panel_url: 'https://meridian-insight-atlas.lovable.app',
   correo_direccion: 'direccion@meridiano.com',
   correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)
   correo_privacidad: 'privacidad@meridiano.example',             // aparece en el pie de los correos (derechos de protección de datos)
