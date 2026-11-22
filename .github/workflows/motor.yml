@@ -43,16 +43,17 @@ jobs:
           FECHA_CORTE: ${{ inputs.fecha_corte }}
         run: python motor/ejecutar_ciclo.py --fecha_corte "$FECHA_CORTE" --salida resultado.json
 
-      - name: Guardar resultados (cuadro de mando y plan)
+      # Minimización (auditoría del backlog, H3): solo se guarda el cuadro de mando AGREGADO. El plan, las puntuaciones y el
+      # resultado por cuenta ya están en Supabase y no se publican como artefacto (los artefactos de un repositorio público
+      # los puede descargar cualquier usuario de GitHub).
+      - name: Guardar el cuadro de mando (solo agregados)
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: resultados-${{ github.run_id }}
-          path: |
-            salidas/
-            resultado.json
+          name: cuadro-de-mando-${{ github.run_id }}
+          path: salidas/*/cuadro_de_mando.xlsx
           if-no-files-found: ignore
-          retention-days: 30
+          retention-days: 7
 
       - name: Avisar a n8n
         if: always() && inputs.resume_url != ''

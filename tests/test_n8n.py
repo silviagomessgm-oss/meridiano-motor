@@ -2,7 +2,7 @@
 import json, os, subprocess, tempfile, shutil
 import pytest
 RAIZ = os.path.join(os.path.dirname(__file__), ".."); N8N = os.path.join(RAIZ, "n8n")
-FLUJOS = ["W0_carga_semanal", "W1_ciclo_semanal", "W2_alertas_cierre", "W3_recordatorio_semanal", "W5_envio_al_aceptar", "W7_auditor", "W8_baja"]
+FLUJOS = ["W0_carga_semanal", "W1_ciclo_semanal", "W2_alertas_cierre", "W3_recordatorio_semanal", "W5_envio_al_aceptar", "W7_auditor", "W8_baja", "W9_aviso_error"]
 pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="requiere node")
 
 
@@ -379,3 +379,13 @@ def test_w6_llamada_sin_iniciar_y_envios_sin_confirmar():
                                             "Supabase: KPI de toques": [{"statusCode": 200, "body": []}],
                                             "Supabase: envíos sin confirmar": [dud]}})[0]["texto"]
     assert "aprobada el 05/11 y aún sin ninguna llamada registrada" in r and "ENVÍOS SIN CONFIRMAR" in r and "Propuesta 12" in r
+
+
+# ------------------------------------------------------------------ W9 · aviso de error (auditoría del backlog, H7)
+def test_w9_aviso_de_error():
+    e = {"execution": {"id": "120", "url": "http://localhost:5678/execution/120", "lastNodeExecuted": "GitHub: lanzar motor",
+                       "mode": "trigger", "error": {"message": "401 Bad credentials"}},
+         "workflow": {"id": "x", "name": "Meridiano · W1 Ciclo semanal de retención (martes)"}}
+    r = correr("w9_aviso_error.js", {"nodos": {"Error en un flujo": [e], "Configuración": [{"correo_direccion": "d@m.com", "correo_datos": "x@m.com"}]}})[0]
+    assert r["para"] == "d@m.com,x@m.com" and "ERROR en Meridiano · W1" in r["asunto"]
+    assert "GitHub: lanzar motor" in r["texto"] and "401 Bad credentials" in r["texto"] and "plan anterior" in r["texto"]

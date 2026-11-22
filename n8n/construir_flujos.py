@@ -339,7 +339,15 @@ w8 = flujo("Meridiano · W8 Baja de comunicaciones", [
     ("Token de la baja", "Supabase: registrar baja"), ("Supabase: registrar baja", "Página de resultado"),
     ("Página de resultado", "Mostrar resultado")])
 
+# ------------------------------------------------------------------ W9 · aviso de error de cualquier flujo (auditoría del backlog)
+w9 = flujo("Meridiano · W9 Aviso de error", [
+    nodo("Error en un flujo", "n8n-nodes-base.errorTrigger", 1, [0, 0], {}),
+    code("Configuración", [200, 0], "configuracion.js"),
+    code("Preparar aviso", [400, 0], "w9_aviso_error.js"),
+    correo("Aviso de error a dirección y datos", [600, 0], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.texto }}"),
+], [("Error en un flujo", "Configuración"), ("Configuración", "Preparar aviso"), ("Preparar aviso", "Aviso de error a dirección y datos")])
+
 if __name__ == "__main__":
-    for nombre, w in [("W0_carga_semanal", w0), ("W1_ciclo_semanal", w1), ("W2_alertas_cierre", w2), ("W5_envio_al_aceptar", w5), ("W3_recordatorio_semanal", w3), ("W7_auditor", w7), ("W8_baja", w8)]:
+    for nombre, w in [("W0_carga_semanal", w0), ("W1_ciclo_semanal", w1), ("W2_alertas_cierre", w2), ("W5_envio_al_aceptar", w5), ("W3_recordatorio_semanal", w3), ("W7_auditor", w7), ("W8_baja", w8), ("W9_aviso_error", w9)]:
         json.dump(w, open(os.path.join(AQUI, nombre + ".json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print(nombre, len(w["nodes"]), "nodos")
