@@ -328,14 +328,14 @@ def test_w6_escalado_a_direccion():
          "dias_vencido": 8, "enviada_en": "2026-11-02T10:00:00Z", "ultima_actividad": None}]}
     kpi = {"statusCode": 200, "body": [{"grupo": "tratamiento", "con_toque_debido": 4, "al_dia": 3},
                                        {"grupo": "control", "con_toque_debido": 5, "al_dia": 2}]}
-    r = correr("w6_escalado.js", {"input": [base], "nodos": {"Supabase: seguimientos sin atender": [sin], "Supabase: KPI de toques": [kpi]}})[0]
+    r = correr("w6_escalado.js", {"nodos": {"Resumen para dirección": [base], "Supabase: seguimientos sin atender": [sin], "Supabase: KPI de toques": [kpi]}})[0]
     assert r["asunto"].endswith("· 1 seguimiento sin atender") and r["seguimientos_sin_atender"] == 1
     t = r["texto"]
     assert t.index("ESCALADO") < t.index("Detalle, alertas") and "Ortopedia Sol" in t and "vencido hace 8 días" in t
     assert "tratamiento: 3 de 4 al día (75,0 %)" in t and "control: 2 de 5 al día (40,0 %)" in t
-    caido = correr("w6_escalado.js", {"input": [base], "nodos": {"Supabase: seguimientos sin atender": [{"statusCode": 500, "body": {}}],
+    caido = correr("w6_escalado.js", {"nodos": {"Resumen para dirección": [base], "Supabase: seguimientos sin atender": [{"statusCode": 500, "body": {}}],
                                                                   "Supabase: KPI de toques": [{"statusCode": 500}]}})[0]
     assert "No se ha podido consultar" in caido["texto"] and caido["asunto"] == base["asunto"]
-    vacio = correr("w6_escalado.js", {"input": [base], "nodos": {"Supabase: seguimientos sin atender": [{"statusCode": 200, "body": []}],
+    vacio = correr("w6_escalado.js", {"nodos": {"Resumen para dirección": [base], "Supabase: seguimientos sin atender": [{"statusCode": 200, "body": []}],
                                                                   "Supabase: KPI de toques": [{"statusCode": 200, "body": []}]}})[0]
     assert "Ninguno" in vacio["texto"]

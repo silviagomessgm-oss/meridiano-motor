@@ -1,7 +1,7 @@
 // H6 · Escalado a dirección en el resumen de los lunes: seguimientos cuyo toque lleva 7 días vencido sin respuesta del
 // cliente ni toque registrado (vista seguimientos_sin_atender; el grupo de control del piloto queda fuera) y el KPI de
 // seguimientos al día por grupo del piloto. Se añade al resumen de dirección; si Supabase falla, se dice en el correo.
-const base = $input.first().json || {};
+const base = $('Resumen para dirección').first().json || {};
 const leer = nombre => {
   const n = $(nombre);
   const r = (n.isExecuted && n.first().json) || {};
