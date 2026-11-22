@@ -346,3 +346,38 @@ def test_avisos_del_texto_no_bloquean_y_quedan_registrados(db):
     accion(db, "CLI-1", "aprobar")                                                     # aprueba igualmente (decide la persona)
     assert estado(db, "CLI-1") == "enviando"
     assert uno(db, "select datos -> 'avisos' from eventos_propuesta where propuesta_id=%s and accion='aprobada_con_aviso'", p)[0] == ["insinúa el riesgo", "condición económica"]
+
+
+# ------------------------------------------------------------------ Auditoría del backlog · H8 concurrencia real · H6 permisos cruzados
+def test_reserva_concurrente_con_dos_transacciones(db):
+    """Dos ejecuciones de W5 a la vez (dos conexiones): la segunda espera al bloqueo de la fila y no recibe la propuesta."""
+    import threading
+    accion(db, "CLI-1", "aprobar"); p = pid(db, "CLI-1")
+    db.connection.commit()                                    # la propuesta aprobada, visible para las dos conexiones
+    a = psycopg2.connect(DSN, dbname=db.connection.info.dbname); b = psycopg2.connect(DSN, dbname=db.connection.info.dbname)
+    try:
+        ca, cb = a.cursor(), b.cursor()
+        ca.execute("select reservar_envios(array[%s]::bigint[])", (p,)); ra = ca.fetchone()[0]   # A reserva y no confirma aún
+        out = {}
+        t = threading.Thread(target=lambda: (cb.execute("select reservar_envios(array[%s]::bigint[])", (p,)),
+                                             out.setdefault("b", cb.fetchone()[0])))
+        t.start(); t.join(1.0)
+        assert t.is_alive()                                   # B está esperando el bloqueo de A
+        a.commit(); t.join(5); b.commit()
+        assert ra == {"reservadas": [p]} and out["b"] == {"reservadas": []}
+    finally:
+        a.close(); b.close()
+
+
+def test_permisos_cruzados_entre_comerciales(db):
+    """Un comercial no ve ni puede tocar la cartera de otro; dirección ve todo."""
+    total = uno(db, "select count(*) from propuestas")[0]; ajena = pid(db, "CLI-2")
+    _como(db, "m@meridiano.com"); de_m = uno(db, "select count(*) from propuestas")[0]
+    assert 0 < de_m < total
+    assert uno(db, "select count(*) from propuestas where comercial_asignado <> 'COM-01'")[0] == 0
+    with pytest.raises(psycopg2.Error, match="cartera"):
+        db.execute("select accion_panel(%s, 'aprobar', '{}')", (ajena,))
+    db.execute("rollback"); _como(db, "j@meridiano.com")
+    assert uno(db, "select count(*) from propuestas where comercial_asignado = 'COM-01'")[0] == 0
+    db.execute("rollback"); _como(db, "d@meridiano.com")
+    assert uno(db, "select count(*) from propuestas")[0] == total
