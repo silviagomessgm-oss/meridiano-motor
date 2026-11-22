@@ -1,7 +1,7 @@
 # Meridiano · Paquete de auditoría del diseño (paso 05 FORGEN)
 
-Versión: diseno-v2 · 22-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
-Cambios respecto a diseno-v1: correcciones de la primera auditoría (H1–H12), resumidas en la sección 6.
+Versión: diseno-v3 · 22-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
+Cambios: diseno-v2 corrige la primera auditoría (H1–H12, sección 6); diseno-v3 corrige la segunda (sección 7).
 Caso ficticio de un trabajo fin de programa: datos, contactos y cifras son simulados.
 
 ## 1. Contexto y problema
@@ -53,12 +53,28 @@ permisos por fila y trazabilidad), panel y formulario web en Lovable, Google She
   correo sin enlace de baja. Plazos de conservación (supuestos de diseño): leads no convertidos, 24 meses desde su última
   actividad; contactos de excliente, 36 meses; lista de exclusión, mientras exista el contacto. Vista `conservacion_vencida`;
   el borrado lo decide dirección.
+- **Base de cada envío (2.ª auditoría):** riesgo y ampliación se dirigen a clientes y exclientes con relación contractual
+  previa, sobre productos de la misma oferta publicitaria que contrataron, con oposición en cada correo (art. 21.2 LSSI). Los
+  exclientes solo entran si facturaron en los últimos 18 meses (horizonte de actividad del motor). Lead del formulario:
+  consentimiento expreso con texto y fecha. Lead de puerta fría: se registra el origen del dato y, sin consentimiento, solo
+  llamada; la información del art. 14 RGPD se da en la primera llamada y se anota en el panel. La etiqueta de la propuesta
+  determina su base, y la base se muestra en el pie de cada correo.
+- **Encargados de tratamiento:** Anthropic (API de Claude; solo datos de empresa), Supabase (base de datos; región UE),
+  Google (Sheets y Gmail), Lovable (panel; sin datos propios: lee Supabase con la sesión de cada usuario), GitHub (motor; las
+  tablas se procesan en la ejecución y no se guardan). Requieren contrato de encargado (art. 28 RGPD). La hoja fuente tiene
+  permisos nominales (responsable de datos y dirección) y Google registra quién la edita. Los anunciantes son empresas; si
+  alguno es autónomo, su razón social es un dato personal y se trata con la misma base que el resto de contactos.
+- **Remitente y respuestas:** en producción, cada correo sale de un remitente del dominio de Meridiano con *reply-to* del
+  comercial asignado, así que la respuesta llega a su buzón y la registra en el panel (`registrar_respuesta`). El
+  identificador del mensaje de Gmail queda en la propuesta para localizar el hilo. En la demo todo va a un buzón de pruebas.
 - **Datos que recibe la IA (H10):** solo datos de empresa: razón social, sector, acción, motivo, producto y cifras de
   campaña. Nunca el nombre, el correo ni el teléfono del contacto. El saludo es genérico («responsable de marketing de…»);
   el comercial puede personalizarlo al revisar el texto en el panel.
 - **Modo demo:** todos los correos van a un buzón de pruebas con el asunto `[DEMO → destinatario]`; los contactos son
   ficticios (dominio .example) y un contacto ficticio no puede recibir correo fuera del modo demo.
-- **Grupos de control:** riesgo, grupo de control estable por trimestre. Seguimiento (ampliación y lead), sorteo 50 % por
+- **Grupos de control:** riesgo, grupo de control estable por trimestre, solo en banda media y **nunca con cuentas clave**
+  (las cuentas clave y la banda alta siempre reciben acción); 20 % de la banda media, decidido por dirección y revisable cada
+  trimestre. Seguimiento (ampliación y lead), sorteo 50 % por
   hash reproducible; el control no recibe avisos de toque.
 
 ## 4. Nodos
@@ -88,7 +104,8 @@ permisos por fila y trazabilidad), panel y formulario web en Lovable, Google She
   comercial y semana: si no hay suficientes con valor neto positivo, las plazas quedan libres y el cuadro de mando informa de
   cuántas («plazas sin cubrir»). 90 días sin repetir; grupo de control por sorteo.
 - Marcas: «cuenta clave» = 5 % de más valor de toda la cartera activa; «escalar a dirección» = cuenta clave con motivo de
-  cambio de interlocutor, reclamación o cobro.
+  cambio de interlocutor, reclamación o cobro. Al publicarse, W1 avisa a dirección el mismo día (cuenta, motivo, comercial y
+  facturación en riesgo); no espera al resumen del lunes.
 - Fuera: contactar al cliente; decidir la acción final; usar datos posteriores al corte.
 - Criterios: como máximo 4 por comercial, todas con valor neto positivo y sin repetir en 90 días; cada una con motivo, tipo de
   riesgo y facturación en riesgo; si el acuerdo entre E2 y el estado confirmado por el comercial baja del 70 % con al menos
@@ -129,6 +146,9 @@ Dos pasos con responsabilidad y criterio propios (H12): N4a redacta (IA), N4b va
 - Reglas de la base de datos: aprobar un correo exige contacto con correo; a un lead, consentimiento; al aprobar se guarda
   el texto exacto y su versión; una llamada aprobada pasa directamente a seguimiento. Rechazar exige motivo; una rechazada
   se puede reabrir.
+- Texto editado por el comercial: cada versión corregida pasa por las mismas reglas del validador (salvo cifras trazables,
+  porque el comercial puede añadir cifras que conoce) como aviso **no bloqueante**; la versión guarda los avisos y, si se
+  aprueba con avisos, queda el evento «aprobada_con_aviso». Decide la persona.
 - Bloqueos: no se aprueba un correo a un contacto dado de baja (H2). Con motivo «cambio de interlocutor», la propuesta se
   publica como llamada (H8): el contacto principal puede ser quien ya se fue.
 - Fuera: enviar el correo (lo hace N6); escribir en tablas.
@@ -146,12 +166,17 @@ Dos pasos con responsabilidad y criterio propios (H12): N4a redacta (IA), N4b va
   comprobar en Gmail que el correo no salió.
 - Correo en HTML con la identidad de la marca y pie de baja (H2); no se envía a excluidos ni sin enlace de baja. Los bloqueos
   se registran como error con su motivo.
+- Respuesta de Gmail: solo un rechazo explícito (4xx) pasa a «Error de envío» reintentable. Un timeout, un error de red, un
+  5xx o una respuesta vacía no se registran: la reserva queda en `envios_sin_confirmar`, se avisa a dirección en el momento y
+  figura en el resumen del lunes hasta que se libera.
 - Criterios: se envía exactamente el texto aprobado y como mucho una vez por aprobación; correcto → «En seguimiento» con
   identificador del mensaje; fallo → «Error de envío», visible en el panel y reintentable.
 
 ### N7 · Avisar del toque y registrarlo (vistas SQL `seguimientos_debidos` y `seguimientos_estado`, panel)
 - Propuestas en seguimiento: primer toque a los 4 días, segundo a los 12, último o cierre a los 25. Aviso en el panel y en el
   correo del lunes. El grupo de control del piloto no recibe avisos.
+- Llamada nunca iniciada: una propuesta por llamada aprobada sin ninguna llamada registrada cuenta desde la aprobación
+  (fase «inicio»); si a los 4 días no hay actividad vence el toque y a los 7 días de retraso se escala como los demás.
 - Registro (H5): el comercial anota cada toque en el panel (`registrar_toque`: llamada, correo propio o reunión, con
   resultado y nota). En una propuesta por llamada, la primera llamada registrada cuenta como su envío y desde ella corren los
   días 4, 12 y 25.
@@ -209,3 +234,21 @@ Tres pasos con criterio propio (H12): N9a balance (SQL), N9b comentario (IA + va
 | H10 · datos a la IA | Solo datos de empresa (documentado) | Reglas |
 | H11 · filas borradas | Pendiente; riesgo aceptado | Riesgos |
 | H12 · criterios y responsabilidades | Criterios en N4, N5, N7, N8 y N9; N4 y N9 divididos en pasos | N4–N9 |
+
+
+## 7. Correcciones respecto a diseno-v2 (segunda auditoría: aprobado con cambios, 0 altas, 8 medias, 4 bajas)
+
+| Hallazgo | Corrección | Estado |
+|---|---|---|
+| Llamada nunca iniciada sin escalado (media) | Fase «inicio» desde la aprobación, escalado a 7 días | Implantado |
+| Base jurídica por etiqueta (media) | Base de cada envío documentada en las reglas | Documentado |
+| «Escalar a dirección» tarda hasta 6 días (media) | Aviso a dirección el mismo día desde W1 | Implantado |
+| Propuestas pendientes sin caducidad (media) | Trabajo futuro: caducidad a 10 días laborables, con KPI y regeneración | Declarado |
+| Criterio del validador no verificable y sin tasa de descarte (media) | Trabajo futuro: lista versionada y KPI semanal «% de texto IA aceptado» | Declarado |
+| Versión del modelo y variables por propuesta (media) | Trabajo futuro: guardar ejecución, versión, probabilidad y variables por propuesta | Declarado |
+| Control de riesgo con cuentas clave (media) | Aclarado: las cuentas clave nunca van al control | Documentado |
+| Asignación y tope de leads (media) | Trabajo futuro: reparto y tope semanal; detección de leads que ya son clientes | Declarado |
+| Remitente y respuestas (baja) | Remitente del dominio con *reply-to* del comercial | Documentado |
+| Timeout de Gmail como error reintentable (baja) | Solo 4xx es error; lo ambiguo queda sin confirmar y avisa | Implantado |
+| Encargados de tratamiento (baja) | Lista de encargados y permisos de la hoja | Documentado |
+| Validador sobre el texto del comercial (baja) | Avisos no bloqueantes y evento «aprobada_con_aviso» | Implantado |

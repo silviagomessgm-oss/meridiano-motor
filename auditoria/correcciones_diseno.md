@@ -34,3 +34,9 @@ Resumen del auditor: «El diseño v2 resuelve bien los dos riesgos altos de la v
 Ninguno de los 12 hallazgos de la primera auditoría reaparece. Los nuevos son de mayor profundidad (base jurídica por etiqueta, caducidad de propuestas, versión del modelo por propuesta, llamadas nunca iniciadas). Lectura: el auditor tiene un tope de 12 hallazgos y en cada pasada profundiza; lo relevante es que desaparecen las altas y no se repite ningún hallazgo.
 
 Hallazgos de la segunda auditoría: N7 llamadas nunca iniciadas (media) · base jurídica de correos a clientes y exclientes (media) · alerta inmediata de «escalar a dirección» (media) · caducidad de pendientes (media) · criterio verificable del validador y tasa de descarte (media) · versión del modelo y variables por propuesta (media) · diseño del control de riesgo con cuentas clave (media) · asignación y tope de leads (media) · buzón remitente y respuestas (baja) · timeout de Gmail tratado como error reintentable (baja) · encargados de tratamiento (baja) · validador sobre el texto editado por el comercial (baja).
+
+### Correcciones tras la segunda auditoría (paquete diseno-v3)
+
+Implantadas (commit `caedd86`, `supabase/auditoria2.sql`, W1, W5, W6; 78 tests): llamada nunca iniciada con escalado; aviso a dirección el mismo día de las propuestas «escalar a dirección»; timeout de Gmail sin reintento (solo un rechazo 4xx es error reintentable); avisos no bloqueantes del validador sobre el texto del comercial.
+Documentadas en el paquete: base de cada envío por etiqueta, encargados de tratamiento, remitente y respuestas, y que las cuentas clave nunca van al grupo de control.
+Trabajo futuro declarado: caducidad de pendientes, KPI de textos de IA aceptados, versión del modelo por propuesta, asignación y tope de leads.
