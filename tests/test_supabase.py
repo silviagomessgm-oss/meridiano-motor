@@ -19,11 +19,16 @@ def db():
     cur = c.cursor()
     cur.execute(open(os.path.join(RAIZ, "tests", "supabase_stub.sql")).read())
     cur.execute(open(os.path.join(RAIZ, "supabase", "schema.sql")).read())
+    cur.execute(open(os.path.join(RAIZ, "supabase", "auditorias.sql")).read())
     cur.execute(open(os.path.join(RAIZ, "supabase", "bajas.sql")).read())             # H2: baja y lista de exclusión
     cur.execute(open(os.path.join(RAIZ, "supabase", "envios.sql")).read())            # H1: envío idempotente
     cur.execute(open(os.path.join(RAIZ, "supabase", "controles.sql")).read())         # H7 y H8
     cur.execute(open(os.path.join(RAIZ, "supabase", "seguimiento.sql")).read())       # H5 y H6
     cur.execute(open(os.path.join(RAIZ, "supabase", "auditoria2.sql")).read())        # 2.ª auditoría
+    # Esquema desplegado (volcado de producción): lunes, piloto, alta de leads, vistas del panel y webhooks
+    cur.execute("create schema if not exists supabase_functions; create or replace function supabase_functions.http_request() "
+                "returns trigger language plpgsql as $$ begin return null; end $$")
+    cur.execute(open(os.path.join(RAIZ, "supabase", "esquema_desplegado.sql")).read())
     cur.execute("""
       insert into dim_comercial values ('COM-01','Martina','m@meridiano.com'), ('COM-02','Juan','j@meridiano.com');
       insert into perfiles values ('m@meridiano.com','comercial','COM-01'), ('j@meridiano.com','comercial','COM-02'),
@@ -381,3 +386,30 @@ def test_permisos_cruzados_entre_comerciales(db):
     assert uno(db, "select count(*) from propuestas where comercial_asignado = 'COM-01'")[0] == 0
     db.execute("rollback"); _como(db, "d@meridiano.com")
     assert uno(db, "select count(*) from propuestas")[0] == total
+
+
+# ------------------------------------------------------------------ Esquema desplegado (auditoría del backlog, H1)
+def test_preparar_lunes_es_idempotente_y_respeta_una_etiqueta(db):
+    lead = uno(db, """select alta_lead_web('{"razon_social": "Clínica Sol", "nombre": "Ana Ruiz", "email": "ana@clinica-sol.example",
+                      "acepta_comercial": true, "texto_consentimiento": "Acepto recibir información comercial"}'::jsonb)""")[0]
+    db.execute("select count(*) from preparar_lunes('2026-11-23')"); primera = db.fetchone()[0]
+    n1 = uno(db, "select count(*) from propuestas where fecha_corte = '2026-11-23'")[0]
+    db.execute("select count(*) from preparar_lunes('2026-11-23')")
+    assert uno(db, "select count(*) from propuestas where fecha_corte = '2026-11-23'")[0] == n1           # idempotente
+    assert uno(db, "select etiqueta, canal, grupo_piloto in ('tratamiento', 'control') from propuestas where id_lead=%s", lead) == \
+        ("lead_nuevo", "email", True)                                                                      # consentimiento → correo; sorteo del piloto
+    assert primera >= 1
+
+
+def test_balance_lunes_una_fila_por_comercial(db):
+    accion(db, "CLI-1", "aprobar")
+    filas = [r[0] for r in (db.execute("select * from balance_lunes(current_date + 1)") or db.fetchall())]
+    assert sorted(f["id_comercial"] for f in filas) == sorted(r[0] for r in (db.execute("select id_comercial from dim_comercial") or db.fetchall()))
+    m = next(f for f in filas if f["id_comercial"] == "COM-01")
+    assert m["semana_anterior"]["aceptadas"] == 1 and set(m) >= {"pendientes", "prevision", "seguimientos_debidos", "riesgo_abiertas"}
+
+
+def test_sorteo_del_piloto_reproducible(db):
+    r = [x[0] for x in (db.execute("select sorteo_piloto(i) from generate_series(1, 400) i") or db.fetchall())]
+    assert r == [x[0] for x in (db.execute("select sorteo_piloto(i) from generate_series(1, 400) i") or db.fetchall())]
+    assert 0.40 < r.count("tratamiento") / len(r) < 0.60                                                  # en torno al 50 %

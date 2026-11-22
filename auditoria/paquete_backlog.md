@@ -1,6 +1,6 @@
 # Meridiano · Paquete de auditoría del backlog y de la solución desplegada (paso 08 FORGEN)
 
-Versión: backlog-v3 · 22-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
+Versión: backlog-v4 · 22-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
 Caso ficticio de un trabajo fin de programa: datos, contactos y cifras son simulados. El diseño de los nodos N1–N9 está en
 `paquete_diseno.md` (paso 05, versión diseno-v3, ya auditado dos veces); aquí se revisa si el backlog lo cubre y si lo
 desplegado lo cumple. Cambios respecto a backlog-v1: historias nuevas o modificadas por las correcciones de las dos
@@ -85,7 +85,9 @@ Incidencias resueltas durante el despliegue:
 - Un webhook sin la cabecera Content-Type anulaba las acciones del panel: cabecera obligatoria.
 - «Cuenta clave» marcaba 9 de cada 12 propuestas: umbral sobre toda la cartera.
 - El contenedor de desarrollo se reemplazó y se perdió el repositorio de trabajo principal: se siguió en `meridiano-motor`
-  (GitHub). El código de W4 y W6 y el SQL de los lunes y del piloto siguen desplegados, pero no están en el repositorio.
+  (GitHub). W4 y W6 se recuperaron exportándolos de n8n (`n8n/desplegados/`) y el SQL de los lunes, el piloto y el panel con
+  un volcado del catálogo de Supabase (`supabase/esquema_desplegado.sql`, con los secretos de los webhooks sustituidos por
+  marcadores).
 - El editor SQL de Supabase partía las funciones por los «;» internos: parches reescritos sin variables locales ni `$$`.
 - La primera ejecución del auditor se cortó por longitud (el modelo razona antes de responder): límite ampliado y detección
   del corte, que queda registrado como `formato_invalido`.
@@ -93,8 +95,6 @@ Incidencias resueltas durante el despliegue:
 
 ## 4. Pendiente conocido
 
-- Reproducibilidad: exportar W4 y W6 al repositorio y recuperar `preparar_lunes`, `balance_lunes`, la vista de seguimientos
-  y el piloto con un volcado del esquema de Supabase.
 - n8n corre en local (decisión del equipo para un proyecto de formación, sección 6).
 - Prompts de Lovable aplicados por el equipo sin pruebas automáticas de la interfaz; la seguridad que hay detrás sí está
   probada (permisos cruzados entre comerciales y acciones solo por función, en Postgres).
@@ -149,8 +149,12 @@ Contrato de encargado (art. 28 RGPD) necesario con cada uno en producción. **Re
 | E4-H9 · escalado | `test_seguimiento_sin_atender_se_escala_salvo_control`, `test_llamada_aprobada_sin_iniciar_se_escala`, `test_w6_escalado_a_direccion` |
 | E4-H3, E4-H10 · alertas a dirección | `test_w2_alerta_solo_en_cierres_que_lo_requieren`, `test_w1_escalado_inmediato_a_direccion` |
 | W9 · aviso de error | `test_w9_aviso_de_error` |
-Sin prueba automática: la interfaz de Lovable (contadores, historial visible), la comprobación visual del correo en Gmail
-y E4-H4/E4-H5 (funciones `balance_lunes` desplegadas sin fuente versionada, H1). Se comprueban a mano en la demo.
+| E1-H4 · lunes idempotente; lead con consentimiento por correo | `test_preparar_lunes_es_idempotente_y_respeta_una_etiqueta` |
+| E4-H4, E4-H5 · balance por comercial | `test_balance_lunes_una_fila_por_comercial` |
+| E4-H6 · sorteo reproducible al 50 % | `test_sorteo_del_piloto_reproducible` |
+Todos los tests de base de datos se ejecutan sobre el esquema desplegado: `schema.sql`, los parches y el volcado de producción.
+Sin prueba automática: la interfaz de Lovable (contadores, historial visible) y la comprobación visual del correo en Gmail; se
+comprueban a mano en la demo.
 
 ### Paso a producción del envío (H9)
 `modo_demo = false` en Configuración; remitente del dominio de Meridiano con *reply-to* del comercial; SPF, DKIM y DMARC del
@@ -172,5 +176,11 @@ el enlace de baja funcionando.
 ### Trabajo futuro añadido
 E2-H4 aviso visual de los avisos del validador en el panel; versión del modelo, probabilidad y variables por propuesta (H4).
 
-### Pendiente de esta respuesta
-H1 · reproducibilidad: exportar W4 y W6 y el esquema de Supabase al repositorio (en curso).
+### Reproducibilidad (H1) · resuelto
+- W4 y W6: `n8n/desplegados/` (exportación directa de n8n; el resto de flujos se generan con `construir_flujos.py`).
+- Base de datos: `supabase/esquema_desplegado.sql` (28 funciones, 17 vistas, 10 triggers y el inventario de 35 tablas, 16 de
+  ellas de una iteración anterior marcadas como legado), generado con `supabase/volcar_esquema.sql`.
+- Comprobación: el esquema se restaura desde cero sobre Postgres 16 (`schema.sql` → `auditorias.sql` → parches → volcado) y
+  los 85 tests de la base de datos y de n8n se ejecutan sobre esa copia, incluidos `preparar_lunes`, `balance_lunes` y el
+  sorteo del piloto, que antes no tenían prueba.
+- Los webhooks de Supabase hacia n8n usan un túnel (ngrok) hacia el n8n local; su URL y su token no se versionan.
