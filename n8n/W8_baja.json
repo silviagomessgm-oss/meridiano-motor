@@ -1,0 +1,279 @@
+{
+  "name": "Meridiano · W8 Baja de comunicaciones",
+  "nodes": [
+    {
+      "id": "2912d0ab-c573-518f-b79f-f13e2fdd5e54",
+      "name": "Enlace de baja (abrir)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "meridiano-baja",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "32e1695f-52ec-559f-88d3-54b474bdc5dd"
+    },
+    {
+      "id": "aa8ae050-6465-5676-a0fb-70b00e44386f",
+      "name": "Página de confirmación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Página de baja con la identidad de Meridiano.\n//  · GET  (el contacto pulsa el enlace del correo): pide confirmación con un botón. No da de baja todavía, porque los\n//    filtros de seguridad del correo abren los enlaces automáticamente y darían de baja a quien no lo ha pedido.\n//  · POST (pulsa «Confirmar la baja»): muestra el resultado de registrar_baja() en Supabase.\nconst abrir = $('Enlace de baja (abrir)');\nconst C = { ink: '#1B1712', paper: '#ECE5D3', paper2: '#E1D8BF', brass: '#C0902F', brassDark: '#8F6A22', teal: '#3E5C52',\n            onInk: '#ECE5D3', onPaper: '#211D17', blanco: '#FBF8F1', alerta: '#A3412E' };\nconst esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n\nfunction pagina(eyebrow, titulo, cuerpo) {\n  return `<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<meta name=\"robots\" content=\"noindex\"><title>Meridiano · ${esc(titulo)}</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap\" rel=\"stylesheet\">\n<style>\n body{margin:0;background:${C.paper};color:${C.onPaper};font-family:'Libre Franklin',Arial,sans-serif;font-size:16px;line-height:1.6}\n header{background:${C.ink};padding:20px 28px}\n .logo{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:24px;letter-spacing:.03em;color:${C.onInk}}\n .logo em{font-style:italic;font-weight:500;color:${C.brass}}\n main{max-width:560px;margin:48px auto;background:${C.blanco};border:1px solid ${C.paper2};padding:36px 32px}\n .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:${C.teal}}\n .eyebrow:before{content:'';display:inline-block;width:20px;height:1px;background:${C.teal};vertical-align:middle;margin-right:10px}\n h1{font-family:Fraunces,Georgia,serif;font-weight:500;font-size:28px;line-height:1.1;margin:12px 0 18px}\n button{background:${C.brass};color:${C.ink};border:0;border-radius:2px;padding:12px 22px;font:600 15px 'Libre Franklin',Arial,sans-serif;cursor:pointer}\n button:hover{background:${C.brassDark};color:${C.blanco}}\n .nota{font-size:13px;color:#5A5246;margin-top:24px}\n .error{color:${C.alerta}}\n</style></head><body>\n<header><span class=\"logo\">MERID<em>I</em>ANO</span></header>\n<main><div class=\"eyebrow\">${esc(eyebrow)}</div><h1>${esc(titulo)}</h1>${cuerpo}</main>\n</body></html>`;\n}\n\nif (abrir.isExecuted) {\n  const t = String((abrir.first().json.query || {}).t || '');\n  if (!UUID.test(t))\n    return [{ json: { html: pagina('Comunicaciones comerciales', 'Enlace no válido',\n      `<p class=\"error\">El enlace de baja está incompleto o no es válido.</p>\n       <p>Si desea dejar de recibir comunicaciones comerciales, responda al correo indicando «Baja» y lo tramitaremos.</p>`) } }];\n  return [{ json: { html: pagina('Comunicaciones comerciales', '¿Desea darse de baja?',\n    `<p>Si confirma, Meridiano dejará de enviarle comunicaciones comerciales por correo electrónico a esta dirección.</p>\n     <form method=\"post\"><input type=\"hidden\" name=\"t\" value=\"${esc(t)}\"><button type=\"submit\">Confirmar la baja</button></form>\n     <p class=\"nota\">Puede volver a recibir información cuando lo desee: basta con pedírselo a su contacto en Meridiano.</p>`) } }];\n}\n\n// POST: resultado de Supabase (registrar_baja devuelve { ok, email } o { ok:false, motivo })\nconst r = $input.first().json || {};\nconst body = r.body && typeof r.body === 'object' ? r.body : r;\nif (r.statusCode >= 300 || body.ok !== true)\n  return [{ json: { html: pagina('Comunicaciones comerciales', 'No hemos podido tramitar la baja',\n    `<p class=\"error\">${body.motivo === 'enlace_no_valido' ? 'El enlace de baja no es válido o ha caducado.' : 'Se ha producido un error al registrar su solicitud.'}</p>\n     <p>Responda al correo indicando «Baja» y la tramitaremos manualmente.</p>`) } }];\nreturn [{ json: { html: pagina('Comunicaciones comerciales', 'Baja registrada',\n  `<p>La dirección <strong>${esc(body.email)}</strong> ya no recibirá comunicaciones comerciales de Meridiano.</p>\n   <p class=\"nota\">Conservamos únicamente esta dirección en una lista de exclusión, para asegurarnos de no volver a escribirle.</p>`) } }];\n"
+      }
+    },
+    {
+      "id": "aa774b66-460b-5437-8acb-391b42c58a08",
+      "name": "Mostrar confirmación",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "434acfc6-7165-5592-8617-8da9f2e13606",
+      "name": "Enlace de baja (confirmar)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        240
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meridiano-baja",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "62d42685-e125-5cf2-b0c8-e7ee54c83859"
+    },
+    {
+      "id": "3c89f6ed-bb0a-5548-b228-c66c6f9dd512",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Los correos salen de la cuenta de Gmail conectada en n8n; el buzón de pruebas puede ser esa misma cuenta (con alias +demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n} }];\n"
+      }
+    },
+    {
+      "id": "d644c286-706a-57bf-a5ef-05c2e3a75b3a",
+      "name": "Token de la baja",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Token de la baja enviado por el formulario (POST). Si no es un identificador válido se sustituye por uno nulo,\n// y registrar_baja() responde «enlace no válido» sin dar de baja a nadie.\nconst w = $('Enlace de baja (confirmar)').first().json;\nconst t = String((w.body || {}).t || (w.query || {}).t || '');\nconst valido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t);\nreturn [{ json: { p_token: valido ? t : '00000000-0000-0000-0000-000000000000' } }];\n"
+      }
+    },
+    {
+      "id": "2c4bfba8-36a5-5d7d-91c3-b2cb8721c73e",
+      "name": "Supabase: registrar baja",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/rpc/registrar_baja",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "6e1097c6-c6b3-58e0-b202-d7dddb51e57f",
+      "name": "Página de resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Página de baja con la identidad de Meridiano.\n//  · GET  (el contacto pulsa el enlace del correo): pide confirmación con un botón. No da de baja todavía, porque los\n//    filtros de seguridad del correo abren los enlaces automáticamente y darían de baja a quien no lo ha pedido.\n//  · POST (pulsa «Confirmar la baja»): muestra el resultado de registrar_baja() en Supabase.\nconst abrir = $('Enlace de baja (abrir)');\nconst C = { ink: '#1B1712', paper: '#ECE5D3', paper2: '#E1D8BF', brass: '#C0902F', brassDark: '#8F6A22', teal: '#3E5C52',\n            onInk: '#ECE5D3', onPaper: '#211D17', blanco: '#FBF8F1', alerta: '#A3412E' };\nconst esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n\nfunction pagina(eyebrow, titulo, cuerpo) {\n  return `<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<meta name=\"robots\" content=\"noindex\"><title>Meridiano · ${esc(titulo)}</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap\" rel=\"stylesheet\">\n<style>\n body{margin:0;background:${C.paper};color:${C.onPaper};font-family:'Libre Franklin',Arial,sans-serif;font-size:16px;line-height:1.6}\n header{background:${C.ink};padding:20px 28px}\n .logo{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:24px;letter-spacing:.03em;color:${C.onInk}}\n .logo em{font-style:italic;font-weight:500;color:${C.brass}}\n main{max-width:560px;margin:48px auto;background:${C.blanco};border:1px solid ${C.paper2};padding:36px 32px}\n .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:${C.teal}}\n .eyebrow:before{content:'';display:inline-block;width:20px;height:1px;background:${C.teal};vertical-align:middle;margin-right:10px}\n h1{font-family:Fraunces,Georgia,serif;font-weight:500;font-size:28px;line-height:1.1;margin:12px 0 18px}\n button{background:${C.brass};color:${C.ink};border:0;border-radius:2px;padding:12px 22px;font:600 15px 'Libre Franklin',Arial,sans-serif;cursor:pointer}\n button:hover{background:${C.brassDark};color:${C.blanco}}\n .nota{font-size:13px;color:#5A5246;margin-top:24px}\n .error{color:${C.alerta}}\n</style></head><body>\n<header><span class=\"logo\">MERID<em>I</em>ANO</span></header>\n<main><div class=\"eyebrow\">${esc(eyebrow)}</div><h1>${esc(titulo)}</h1>${cuerpo}</main>\n</body></html>`;\n}\n\nif (abrir.isExecuted) {\n  const t = String((abrir.first().json.query || {}).t || '');\n  if (!UUID.test(t))\n    return [{ json: { html: pagina('Comunicaciones comerciales', 'Enlace no válido',\n      `<p class=\"error\">El enlace de baja está incompleto o no es válido.</p>\n       <p>Si desea dejar de recibir comunicaciones comerciales, responda al correo indicando «Baja» y lo tramitaremos.</p>`) } }];\n  return [{ json: { html: pagina('Comunicaciones comerciales', '¿Desea darse de baja?',\n    `<p>Si confirma, Meridiano dejará de enviarle comunicaciones comerciales por correo electrónico a esta dirección.</p>\n     <form method=\"post\"><input type=\"hidden\" name=\"t\" value=\"${esc(t)}\"><button type=\"submit\">Confirmar la baja</button></form>\n     <p class=\"nota\">Puede volver a recibir información cuando lo desee: basta con pedírselo a su contacto en Meridiano.</p>`) } }];\n}\n\n// POST: resultado de Supabase (registrar_baja devuelve { ok, email } o { ok:false, motivo })\nconst r = $input.first().json || {};\nconst body = r.body && typeof r.body === 'object' ? r.body : r;\nif (r.statusCode >= 300 || body.ok !== true)\n  return [{ json: { html: pagina('Comunicaciones comerciales', 'No hemos podido tramitar la baja',\n    `<p class=\"error\">${body.motivo === 'enlace_no_valido' ? 'El enlace de baja no es válido o ha caducado.' : 'Se ha producido un error al registrar su solicitud.'}</p>\n     <p>Responda al correo indicando «Baja» y la tramitaremos manualmente.</p>`) } }];\nreturn [{ json: { html: pagina('Comunicaciones comerciales', 'Baja registrada',\n  `<p>La dirección <strong>${esc(body.email)}</strong> ya no recibirá comunicaciones comerciales de Meridiano.</p>\n   <p class=\"nota\">Conservamos únicamente esta dirección en una lista de exclusión, para asegurarnos de no volver a escribirle.</p>`) } }];\n"
+      }
+    },
+    {
+      "id": "3f810be4-055f-5ef5-9449-12649adf9920",
+      "name": "Mostrar resultado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        240
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Enlace de baja (abrir)": {
+      "main": [
+        [
+          {
+            "node": "Página de confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página de confirmación": {
+      "main": [
+        [
+          {
+            "node": "Mostrar confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enlace de baja (confirmar)": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Token de la baja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token de la baja": {
+      "main": [
+        [
+          {
+            "node": "Supabase: registrar baja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: registrar baja": {
+      "main": [
+        [
+          {
+            "node": "Página de resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página de resultado": {
+      "main": [
+        [
+          {
+            "node": "Mostrar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Madrid"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

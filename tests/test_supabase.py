@@ -19,6 +19,7 @@ def db():
     cur = c.cursor()
     cur.execute(open(os.path.join(RAIZ, "tests", "supabase_stub.sql")).read())
     cur.execute(open(os.path.join(RAIZ, "supabase", "schema.sql")).read())
+    cur.execute(open(os.path.join(RAIZ, "supabase", "bajas.sql")).read())             # H2: baja y lista de exclusión
     cur.execute("""
       insert into dim_comercial values ('COM-01','Martina','m@meridiano.com'), ('COM-02','Juan','j@meridiano.com');
       insert into perfiles values ('m@meridiano.com','comercial','COM-01'), ('j@meridiano.com','comercial','COM-02'),
@@ -159,3 +160,55 @@ def test_panel_solo_lee_y_actua_con_accion_panel(db):
     assert uno(db, "select accion_panel(%s, 'aprobar', '{}')", p1)[0]["aprobada_por"] == "m@meridiano.com"
     db.execute("reset role; set role anon")
     with pytest.raises(psycopg2.Error): db.execute(f"select accion_panel({p1}, 'rechazar', '{{}}')")
+
+
+# ------------------------------------------------------------------ H2 · baja de comunicaciones y lista de exclusión
+def token(cur, ct): return str(uno(cur, "select token_baja from contactos where id_contacto=%s", ct)[0])
+
+
+def test_baja_por_enlace_bloquea_aprobar_y_enviar(db):
+    accion(db, "CLI-1", "aprobar")                                            # aprobada antes de la baja
+    assert uno(db, "select contacto_excluido, token_baja is not null from envios_pendientes") == (False, True)
+    r = uno(db, "select registrar_baja(%s::uuid)", token(db, "CT-CLI-1-1"))[0]
+    assert r == {"ok": True, "email": "la***@ortopedia-sol.example"}
+    assert uno(db, "select registrar_baja(%s::uuid)", token(db, "CT-CLI-1-1"))[0]["ok"]          # repetir no falla
+    assert uno(db, "select count(*) from exclusiones")[0] == 1
+    assert uno(db, "select contacto_excluido from envios_pendientes")[0] is True                  # W5 la bloquea
+    with pytest.raises(psycopg2.Error, match="dado de baja"):                                    # y la base también
+        accion(db, "CLI-1", "registrar_envio", "n8n", {"ok": True, "id_mensaje": "m"})
+    r = accion(db, "CLI-1", "registrar_envio", "n8n", {"ok": False, "error": "El contacto se ha dado de baja"})
+    assert r["estado"] == "error_envio"
+    with pytest.raises(psycopg2.Error, match="dado de baja"):                                    # no se puede volver a aprobar
+        accion(db, "CLI-1", "aprobar")
+    accion(db, "CLI-1", "rechazar", datos={"motivo": "Se dio de baja"})                          # pero sí rechazar
+    assert estado(db, "CLI-1") == "rechazada"
+
+
+def test_baja_con_token_desconocido_no_hace_nada(db):
+    r = uno(db, "select registrar_baja('00000000-0000-0000-0000-000000000000'::uuid)")[0]
+    assert r == {"ok": False, "motivo": "enlace_no_valido"} and uno(db, "select count(*) from exclusiones")[0] == 0
+
+
+def test_baja_mayusculas_y_llamada_no_afectada(db):
+    db.execute("update contactos set email='Pedro.Gil@Viajes-Oro.example ' where id_contacto='CT-CLI-2-1'")
+    db.execute("insert into exclusiones (email, motivo, origen, registrado_por) values ('pedro.gil@viajes-oro.example','oposicion','panel','x')")
+    assert uno(db, "select esta_excluido('PEDRO.GIL@viajes-oro.example')")[0] is True
+    accion(db, "CLI-2", "aprobar", "j@meridiano.com")                                            # canal llamada: no se bloquea
+    assert estado(db, "CLI-2") == "en_seguimiento"
+
+
+def test_baja_desde_el_panel_solo_en_la_propia_cartera(db):
+    _como(db, "m@meridiano.com")
+    with pytest.raises(psycopg2.Error, match="no está en su cartera"):
+        db.execute("select baja_panel('CT-CLI-2-1')")
+    db.execute("rollback"); _como(db, "m@meridiano.com")
+    with pytest.raises(psycopg2.Error): db.execute("select registrar_baja(gen_random_uuid())")    # solo n8n
+    db.execute("rollback"); _como(db, "m@meridiano.com")
+    with pytest.raises(psycopg2.Error): db.execute("insert into exclusiones values ('a@b.c','oposicion','panel','x',null,null,now())")
+    db.execute("rollback"); _como(db, "m@meridiano.com")
+    assert uno(db, "select baja_panel('CT-CLI-1-1', 'solicitud_contacto', 'Lo pidió por teléfono')")[0]["ok"]
+    assert uno(db, "select dado_de_baja, motivo_baja from contactos_estado where id_contacto='CT-CLI-1-1'") == (True, "solicitud_contacto")
+    db.execute("select count(*) from exclusiones"); assert db.fetchone()[0] == 1                 # ve la de su cartera
+    db.execute("reset role")
+    assert uno(db, "select registrado_por, origen from exclusiones") == ("m@meridiano.com", "panel")
+    with pytest.raises(psycopg2.Error): db.execute("set role service_role; delete from exclusiones")   # no se borra por error

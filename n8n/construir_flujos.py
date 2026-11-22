@@ -10,6 +10,8 @@ Genera los flujos de n8n de Meridiano (JSON importables: Workflows → Import fr
   W3_recordatorio_semanal.json · lunes: tareas sin cerrar del plan vigente → recordatorio a cada comercial
   W7_auditor.json              · a mano: lee de GitHub el paquete y la rúbrica → modelo auditor (Claude, distinto y más capaz
                                  que el generador) → valida el JSON → guarda en Supabase (auditorias) → resumen por correo
+  W8_baja.json                 · enlace de baja del pie de los correos: página de confirmación → registrar_baja en Supabase
+                                 (lista de exclusión) → página de resultado. W5 no envía a contactos excluidos.
 El código JavaScript de los nodos Code está en n8n/codigo/*.js (probado con node en tests/test_n8n.py).
 Credenciales (se crean en n8n y se seleccionan en los nodos tras importar):
   · "GitHub account"            GitHub API   · Access Token = token de GitHub (solo meridiano-motor, Actions: lectura y escritura)
@@ -96,7 +98,7 @@ def _interior(expr):
     return json.dumps(expr.lstrip("="), ensure_ascii=False)
 
 
-def correo(nombre, pos, para, asunto, texto):
+def correo(nombre, pos, para, asunto, texto, html=False):
     """Todo correo pasa por el MODO DEMO: con modo_demo activo (por defecto) va al buzón de pruebas y el asunto indica
     a quién habría ido. Así ningún correo del caso ficticio sale a direcciones de terceros."""
     destino, tema = _interior(para), _interior(asunto)
@@ -104,7 +106,7 @@ def correo(nombre, pos, para, asunto, texto):
                 {"resource": "message", "operation": "send",
                  "sendTo": "={{ " + CFG + ".modo_demo ? " + CFG + ".buzon_demo : (" + destino + ") }}",
                  "subject": "={{ (" + CFG + ".modo_demo ? '[DEMO → ' + (" + destino + ") + '] ' : '') + (" + tema + ") }}",
-                 "emailType": "text", "message": texto,
+                 "emailType": "html" if html else "text", "message": texto,
                  "options": {"appendAttribution": False, "senderName": "Meridiano · Plan comercial"}}, "gmail")
 
 
@@ -233,7 +235,7 @@ w5 = flujo("Meridiano · W5 Envío al aceptar", [
     http("Supabase: envíos pendientes", [600, 110], "GET", SB + "/envios_pendientes?select=*{{ $json.filtro }}", "sb"),
     code("Preparar correo", [800, 110], "w5_preparar_correo.js"),
     code("Solo enviables", [1000, 110], "w5_solo_enviables.js"),
-    dict(correo("Enviar al contacto", [1200, 110], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.texto }}"),
+    dict(correo("Enviar al contacto", [1200, 110], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.html }}", html=True),
          onError="continueRegularOutput"),
     code("Resultado del envío", [1400, 110], "w5_resultado_envio.js"),
     http("Supabase: registrar envío", [1600, 110], "POST", SB + "/rpc/registrar_accion", "sb",
@@ -285,7 +287,36 @@ w7 = flujo("Meridiano · W7 Auditor (pasos 05 y 08 FORGEN)", [
     ("Validar respuesta del auditor", "Supabase: guardar auditoría"), ("Validar respuesta del auditor", "Redactar resumen"),
     ("Redactar resumen", "Resumen de la auditoría")])
 
+
+# ------------------------------------------------------------------ W8 · baja de comunicaciones comerciales (H2)
+def pagina_html(nombre, pos):
+    return nodo(nombre, "n8n-nodes-base.respondToWebhook", 1.1, pos,
+                {"respondWith": "text", "responseBody": "={{ $json.html }}",
+                 "options": {"responseHeaders": {"entries": [{"name": "Content-Type", "value": "text/html; charset=utf-8"},
+                                                             {"name": "Cache-Control", "value": "no-store"}]}}})
+
+
+w8 = flujo("Meridiano · W8 Baja de comunicaciones", [
+    nodo("Enlace de baja (abrir)", "n8n-nodes-base.webhook", 2, [0, 0],
+         {"httpMethod": "GET", "path": "meridiano-baja", "responseMode": "responseNode", "options": {}},
+         webhookId=str(uuid.uuid5(uuid.NAMESPACE_DNS, "w8-baja-get"))),
+    code("Página de confirmación", [240, 0], "w8_pagina.js"),
+    pagina_html("Mostrar confirmación", [480, 0]),
+    nodo("Enlace de baja (confirmar)", "n8n-nodes-base.webhook", 2, [0, 240],
+         {"httpMethod": "POST", "path": "meridiano-baja", "responseMode": "responseNode", "options": {}},
+         webhookId=str(uuid.uuid5(uuid.NAMESPACE_DNS, "w8-baja-post"))),
+    code("Configuración", [200, 240], "configuracion.js"),
+    code("Token de la baja", [400, 240], "w8_token.js"),
+    http("Supabase: registrar baja", [600, 240], "POST", SB + "/rpc/registrar_baja", "sb",
+         cuerpo="={{ JSON.stringify($json) }}", completa=True),
+    code("Página de resultado", [800, 240], "w8_pagina.js"),
+    pagina_html("Mostrar resultado", [1000, 240]),
+], [("Enlace de baja (abrir)", "Página de confirmación"), ("Página de confirmación", "Mostrar confirmación"),
+    ("Enlace de baja (confirmar)", "Configuración"), ("Configuración", "Token de la baja"),
+    ("Token de la baja", "Supabase: registrar baja"), ("Supabase: registrar baja", "Página de resultado"),
+    ("Página de resultado", "Mostrar resultado")])
+
 if __name__ == "__main__":
-    for nombre, w in [("W0_carga_semanal", w0), ("W1_ciclo_semanal", w1), ("W2_alertas_cierre", w2), ("W5_envio_al_aceptar", w5), ("W3_recordatorio_semanal", w3), ("W7_auditor", w7)]:
+    for nombre, w in [("W0_carga_semanal", w0), ("W1_ciclo_semanal", w1), ("W2_alertas_cierre", w2), ("W5_envio_al_aceptar", w5), ("W3_recordatorio_semanal", w3), ("W7_auditor", w7), ("W8_baja", w8)]:
         json.dump(w, open(os.path.join(AQUI, nombre + ".json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print(nombre, len(w["nodes"]), "nodos")

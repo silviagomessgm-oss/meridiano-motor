@@ -2,7 +2,7 @@
 import json, os, subprocess, tempfile, shutil
 import pytest
 RAIZ = os.path.join(os.path.dirname(__file__), ".."); N8N = os.path.join(RAIZ, "n8n")
-FLUJOS = ["W0_carga_semanal", "W1_ciclo_semanal", "W2_alertas_cierre", "W3_recordatorio_semanal", "W5_envio_al_aceptar", "W7_auditor"]
+FLUJOS = ["W0_carga_semanal", "W1_ciclo_semanal", "W2_alertas_cierre", "W3_recordatorio_semanal", "W5_envio_al_aceptar", "W7_auditor", "W8_baja"]
 pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="requiere node")
 
 
@@ -131,12 +131,53 @@ PEND = {"id": 7, "razon_social": "Ortopedia Sol", "asunto_email": None, "materia
         "contacto_ficticio": True, "comercial_nombre": "Martina Rodriguez"}
 
 
+TOKEN = "3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+CFG_W5 = {"modo_demo": True, "baja_url": "http://localhost:5678/webhook/meridiano-baja"}
+
+
 def test_w5_correo_con_texto_aprobado_y_bloqueo_fuera_de_demo():
-    r = correr("w5_preparar_correo.js", {"input": [PEND], "nodos": {"Configuración": [{"modo_demo": True}]}})[0]
+    p = dict(PEND, token_baja=TOKEN, contacto_excluido=False)
+    r = correr("w5_preparar_correo.js", {"input": [p], "nodos": {"Configuración": [CFG_W5]}})[0]
     assert r["bloqueo"] is None and r["asunto"] == "Informe de resultados" and "Estimada Laura" in r["texto"]
     assert "Correo de demostración" in r["texto"] and "laura@ortopedia-sol.example" in r["texto"] and "Martina Rodriguez" in r["texto"]
-    r = correr("w5_preparar_correo.js", {"input": [PEND], "nodos": {"Configuración": [{"modo_demo": False}]}})[0]
+    r = correr("w5_preparar_correo.js", {"input": [p], "nodos": {"Configuración": [dict(CFG_W5, modo_demo=False)]}})[0]
     assert r["bloqueo"] and "ficticio" in r["bloqueo"]
+
+
+def test_w5_correo_html_con_marca_y_enlace_de_baja():
+    p = dict(PEND, token_baja=TOKEN, contacto_excluido=False, etiqueta="riesgo", comercial_correo="m@meridiano.com",
+             texto_aprobado="Estimada Laura:\n\nLe resumo:\n\n- 3 campañas\n- CTR 0,8 <b>\n\nUn saludo")
+    r = correr("w5_preparar_correo.js", {"input": [p], "nodos": {"Configuración": [CFG_W5]}})[0]
+    h = r["html"]
+    assert f"meridiano-baja?t={TOKEN}" in h and "darse de baja" in h and f"meridiano-baja?t={TOKEN}" in r["texto"]
+    assert "#1B1712" in h and "#C0902F" in h and "Fraunces" in h and "MERID<em" in h     # identidad de marca
+    assert "<li" in h and "&lt;b&gt;" in h and "<b>" not in h                              # listas y texto escapado
+    assert "Correo de demostración" in h and "en riesgo" not in h.lower()
+
+
+def test_w5_no_envia_a_excluidos_ni_sin_enlace_de_baja():
+    p = dict(PEND, token_baja=TOKEN, contacto_excluido=True)
+    r = correr("w5_preparar_correo.js", {"input": [p], "nodos": {"Configuración": [CFG_W5]}})[0]
+    assert "baja" in r["bloqueo"]
+    r = correr("w5_preparar_correo.js", {"input": [dict(p, contacto_excluido=False)], "nodos": {"Configuración": [{"modo_demo": True}]}})[0]
+    assert "enlace de baja" in r["bloqueo"] and r["html"] is None
+
+
+def test_w8_pagina_pide_confirmacion_y_muestra_resultado():
+    r = correr("w8_pagina.js", {"nodos": {"Enlace de baja (abrir)": [{"query": {"t": TOKEN}}]}})[0]["html"]
+    assert 'method="post"' in r and TOKEN in r and "Confirmar la baja" in r and "MERID<em>I</em>ANO" in r
+    r = correr("w8_pagina.js", {"nodos": {"Enlace de baja (abrir)": [{"query": {"t": "<script>"}}]}})[0]["html"]
+    assert "no válido" in r and "<script>" not in r
+    ok = correr("w8_pagina.js", {"input": [{"statusCode": 200, "body": {"ok": True, "email": "la***@x.example"}}], "nodos": {}})[0]["html"]
+    assert "Baja registrada" in ok and "la***@x.example" in ok
+    ko = correr("w8_pagina.js", {"input": [{"statusCode": 200, "body": {"ok": False, "motivo": "enlace_no_valido"}}], "nodos": {}})[0]["html"]
+    assert "No hemos podido" in ko
+
+
+def test_w8_token_invalido_no_da_de_baja():
+    assert correr("w8_token.js", {"nodos": {"Enlace de baja (confirmar)": [{"body": {"t": TOKEN}}]}}) == [{"p_token": TOKEN}]
+    r = correr("w8_token.js", {"nodos": {"Enlace de baja (confirmar)": [{"body": {"t": "x' or 1=1"}}]}})
+    assert r == [{"p_token": "00000000-0000-0000-0000-000000000000"}]
 
 
 def test_w5_registra_envio_correcto_error_y_bloqueo():
