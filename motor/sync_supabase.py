@@ -20,7 +20,7 @@ COLS_PROPUESTA = ["fecha_corte", "id_cliente", "comercial_asignado", "comercial_
                   "valor_cuenta", "cuenta_clave", "requiere_direccion", "motivo_principal", "motivo_secundario", "accion_id",
                   "producto_sugerido_nombre", "fecha_limite", "justificacion", "ficha_cuenta", "material_titulo",
                   "material_cuerpo", "notas_internas", "fuente_material"]
-COLS_CONFIRMACION = ["id_cliente", "fecha_corte", "banda_riesgo", "motivo_principal", "estado_confirmado_comercial",
+COLS_CONFIRMACION = ["id_cliente", "fecha_corte", "comercial_asignado", "banda_riesgo", "motivo_principal", "estado_confirmado_comercial",
                      "motivo_confirmado", "diagnostico_correcto", "comentario_comercial"]
 
 
@@ -104,6 +104,16 @@ def bajar():
     elif os.path.exists(ruta_otras):
         os.remove(ruta_otras)
     print(f"propuestas de otras etiquetas: {len(otras)}")
+    # H4: cuentas en las que ya se actuó (propuesta aprobada o enviada, cualquier etiqueta). El reentrenamiento las excluye
+    # en los cortes afectados: su resultado ya no es el «natural» que el modelo debe aprender
+    interv = leer_tabla("propuestas", "&id_cliente=not.is.null&estado_envio=in.(aprobada,enviada)")
+    ruta_interv = os.path.join(HIST, "intervenciones.csv")
+    if len(interv):
+        interv.assign(fecha=pd.to_datetime(interv.aprobada_en.fillna(interv.fecha_corte), utc=True, format="mixed").dt.date)[
+            ["id_cliente", "fecha"]].to_csv(ruta_interv, index=False)
+    elif os.path.exists(ruta_interv):
+        os.remove(ruta_interv)
+    print(f"intervenciones (propuestas aprobadas o enviadas): {len(interv)}")
     conf = leer_tabla("propuestas", "&estado_tarea=eq.cerrada&etiqueta=eq.riesgo&estado_confirmado_comercial=not.is.null")
     os.makedirs(HIST, exist_ok=True)
     if len(conf):

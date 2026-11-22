@@ -25,11 +25,26 @@ def poblacion_observable(fact, T, max_dias):
     return pd.DataFrame({"fecha_baja_real": pd.NaT, "ultima_orden_total": pd.NaT}, index=ok)
 
 
+def excluir_intervenidas(entr, ruta, H, dias_previos=90):
+    """H4 (auditoría): una observación (cliente, corte T) no se usa para entrenar si hubo una intervención comercial sobre
+    ese cliente entre T - dias_previos y T + H: la acción cambia el resultado que el modelo intenta aprender. Las cuentas
+    del grupo de control no tienen intervención, así que se conservan (son las observaciones limpias)."""
+    if not ruta or not os.path.exists(ruta):
+        return entr, 0
+    iv = pd.read_csv(ruta, parse_dates=["fecha"], dtype={"id_cliente": str})
+    if iv.empty:
+        return entr, 0
+    m = entr[["id_cliente", "corte"]].reset_index().astype({"id_cliente": str}).merge(iv, on="id_cliente")
+    afectada = m[(m.fecha >= m.corte - pd.Timedelta(days=dias_previos)) & (m.fecha <= m.corte + pd.Timedelta(days=H))]["index"].unique()
+    return entr.drop(index=afectada).reset_index(drop=True), len(afectada)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datos", default="data"); ap.add_argument("--config", default="config/criterio.json")
     ap.add_argument("--produccion", default="config/produccion.json"); ap.add_argument("--salida", default="resultados")
     ap.add_argument("--etiqueta_config", default="config/etiqueta.json"); ap.add_argument("--estado_etiqueta", default="resultados/estado_etiqueta.json")
+    ap.add_argument("--intervenciones", default=None, help="CSV id_cliente,fecha: cuentas en las que ya se actuó (H4)")
     a = ap.parse_args(); os.makedirs(a.salida, exist_ok=True)
     cfg = json.load(open(a.config, encoding="utf-8")); prod = json.load(open(a.produccion, encoding="utf-8"))
     H = prod["horizonte_objetivo_dias"]; Tp = pd.Timestamp(prod["fecha_puntuacion"])
@@ -60,7 +75,10 @@ def main():
         else:
             s["y"] = s.V3_sin_campana_210d
         return s
-    entr = pd.concat([con_etiqueta(T) for T in cortes], ignore_index=True)
+    entr = pd.concat([con_etiqueta(T).assign(corte=T) for T in cortes], ignore_index=True)
+    entr, n_fuera = excluir_intervenidas(entr, a.intervenciones, H, prod.get("dias_intervencion_previa", 90))
+    if n_fuera:
+        print(f"H4: {n_fuera} observaciones fuera del entrenamiento por intervención comercial en su ventana")
     cli = pd.read_csv(os.path.join(a.datos, "dim_clientes.csv")).set_index("id_cliente")
     entr = variables_extra(entr, ini, cli)
     mod = p_activo.Logistica(cfg["p_activo"].get("regularizacion_L2", 1.0)).fit(variables_logit(entr, prod["modelo"]), entr.y)

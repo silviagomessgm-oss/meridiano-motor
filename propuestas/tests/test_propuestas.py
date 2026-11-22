@@ -185,3 +185,16 @@ def test_tipo_de_riesgo_e2(salida):
     gg, _ = P.riesgo(pd.concat([g, caso]), CFG, pd.DataFrame({"id_cliente": ["GOLD5"], "prob_abandono": [0.9]}))
     r = P.plan(gg, CFG, x["p"], x["f"], T).set_index("id_cliente").loc["GOLD5"]
     assert r.tipo_riesgo == "contraccion" and r.accion_id == "informe_resultados_y_optimizacion"
+
+
+# ---------------------------------------------------------------- H9 (auditoría) · valor neto positivo y huecos
+def test_solo_se_propone_con_valor_neto_positivo(salida):
+    pl, g, _ = salida
+    assert (pl[pl.estado_plan == "propuesto"].valor_esperado_accion > 0).all()
+    assert (g[g.valor_esperado_accion <= 0].banda_riesgo == "baja").all()          # con modelo o con respaldo
+
+
+def test_huecos_cuando_no_hay_cuentas_suficientes():
+    pl = pd.DataFrame({"comercial_asignado": ["COM-01"] * 4 + ["COM-02"], "estado_plan": ["propuesto"] * 4 + ["propuesto"]})
+    h = P.huecos(pl, ["COM-01", "COM-02", "COM-03"], 4)
+    assert h.plazas_sin_cubrir.to_dict() == {"COM-01": 0, "COM-02": 3, "COM-03": 4}

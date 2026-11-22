@@ -47,7 +47,18 @@ def veredicto(r, cfg):
     else:
         vigente, estado = va["etiqueta_respaldo"], (f"E2 NO VALIDADA: acuerdo {acuerdo:.1%} en {n} casos (< {va['umbral_acuerdo']:.0%}). "
                                                     "Vuelta automática a la regla A. Revisar la definición con el equipo")
-    return dict(etiqueta_vigente=vigente, estado=estado, casos=n, acuerdo=acuerdo, fecha=datetime.now().isoformat(timespec="seconds"))
+    # H4 (auditoría): el control depende del juicio de cada comercial. Se informa del acuerdo por comercial y se avisa si
+    # alguno se aparta más de 20 puntos del resto (posible criterio distinto al confirmar), para revisarlo con el equipo
+    por_comercial, aviso = {}, None
+    if n and "comercial_asignado" in r.columns:
+        g = r.assign(ok=r.tipo_e2 == r.clase_comercial).groupby("comercial_asignado").ok.agg(["mean", "size"])
+        por_comercial = {c: {"acuerdo": round(float(v["mean"]), 3), "casos": int(v["size"])} for c, v in g.iterrows()}
+        for c, v in g[g["size"] >= 5].iterrows():
+            resto = r[r.comercial_asignado != c]
+            if len(resto) and abs(v["mean"] - float((resto.tipo_e2 == resto.clase_comercial).mean())) > 0.2:
+                aviso = f"El acuerdo de {c} ({v['mean']:.0%}) se aparta más de 20 puntos del resto: revisar cómo confirma"
+    return dict(etiqueta_vigente=vigente, estado=estado, casos=n, acuerdo=acuerdo, acuerdo_por_comercial=por_comercial,
+                aviso_comercial=aviso, fecha=datetime.now().isoformat(timespec="seconds"))
 
 
 def main():

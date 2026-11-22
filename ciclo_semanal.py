@@ -98,6 +98,8 @@ def cuadro_de_mando(T, sal, estado):
             ("   Churn E2 total", f"{(pt + ct) / n:.1%}"),
             ("   Facturación perdida en la ventana frente al año anterior (€)", round(float(fact_perdida))),
             ("Propuestas de la semana", len(prop)), ("Aplazadas por capacidad", len(apl)), ("Grupo de control", len(ctl)),
+            ("Plazas sin cubrir (sin más cuentas con valor neto positivo)",
+             int(plan["Resumen"].get("plazas_sin_cubrir", pd.Series(dtype=float)).sum())),
             ("Facturación en riesgo de las propuestas (€)", round(float(prop.facturacion_en_riesgo.sum())))]
     por_com = prop.groupby("comercial_nombre").agg(propuestas=("id_cliente", "size"), facturacion_en_riesgo=("facturacion_en_riesgo", "sum"))
     por_tipo = pd.crosstab(prop.accion_id, prop.tipo_riesgo, margins=True)
@@ -130,7 +132,11 @@ def main():
     estado = json.load(open(estado_ruta, encoding="utf-8"))
     paso(3, f"Puntuaciones L2 (etiqueta vigente: {estado['etiqueta_vigente']})")
     prod = config_temporal(os.path.join(EV, "config", "produccion.json"), os.path.join(sal, "produccion_usada.json"), {"fecha_puntuacion": str(T.date())})
-    ejecutar(["src/generar_scores.py", "--datos", TABLAS, "--produccion", prod, "--estado_etiqueta", estado_ruta, "--salida", sal], EV)
+    args = ["src/generar_scores.py", "--datos", TABLAS, "--produccion", prod, "--estado_etiqueta", estado_ruta, "--salida", sal]
+    interv = os.path.join(HIST, "intervenciones.csv")          # H4: cuentas en las que ya se actuó (fuera del entrenamiento)
+    if os.path.exists(interv):
+        args += ["--intervenciones", interv]
+    ejecutar(args, EV)
     paso(4, "Propuestas de retención")
     datos_pr = os.path.join(sal, "tablas_con_scores"); shutil.rmtree(datos_pr, ignore_errors=True); shutil.copytree(TABLAS, datos_pr)
     shutil.copy(os.path.join(sal, "scores_modelo.csv"), os.path.join(datos_pr, "scores_modelo.csv"))

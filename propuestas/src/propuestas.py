@@ -159,9 +159,14 @@ def riesgo(g, cfg, scores=None):
     g["valor_esperado_accion"] = g.prob_abandono * g.valor_cuenta * ve["tasa_recuperacion"] - ve["coste_accion_eur"]
     banda_mod = np.where(g.valor_esperado_accion > 0,
                          np.where(g.prob_abandono >= ve["banda_alta_prob_desde"], "alta", "media"), "baja")
-    g["banda_riesgo"] = np.where(g.fuente_riesgo == "modelo", banda_mod, banda_resp)
     # La pausa estacional no rebaja la prioridad (podría ser un abandono real): cambia la acción en N05.
     intensidad = np.where(g.fuente_riesgo == "modelo", g.prob_abandono, g.puntos_respaldo / max(1, alta))
+    # H9 (auditoría): también sin modelo se exige valor neto positivo. Con el respaldo, la intensidad de las señales hace de
+    # probabilidad aproximada (acotada a 1); una cuenta cuya acción cuesta más de lo que puede recuperar no se propone.
+    ve_resp = np.clip(g.puntos_respaldo / max(1, alta), 0, 1) * g.valor_cuenta * ve["tasa_recuperacion"] - ve["coste_accion_eur"]
+    g["valor_esperado_accion"] = np.where(g.fuente_riesgo == "modelo", g.valor_esperado_accion, ve_resp).round(0)
+    banda_resp = np.where(ve_resp > 0, banda_resp, "baja")
+    g["banda_riesgo"] = np.where(g.fuente_riesgo == "modelo", banda_mod, banda_resp)
     g["facturacion_en_riesgo"] = (g.valor_cuenta * np.clip(intensidad, 0, 1)).round(0)
     # N04 · motivo
     orden = {m: i for i, m in enumerate(ORDEN_MOTIVOS)}
@@ -246,6 +251,14 @@ def plan(g, cfg, p, f_hasta_T, T):
                                            f"facturación en riesgo {eur(r.facturacion_en_riesgo)}" +
                                            ("; cuenta clave: revisa dirección comercial" if r.cuenta_clave else ""), axis=1)
     return g
+
+
+def huecos(pl, comerciales, cap):
+    """Plazas de la semana que quedan sin cubrir por comercial (H9): capacidad menos propuestas con valor neto positivo."""
+    n = pl[pl.estado_plan == "propuesto"].groupby("comercial_asignado").size()
+    idx = pd.Index(sorted(set(comerciales) | set(n.index)), name="comercial_asignado")
+    n = n.reindex(idx, fill_value=0)
+    return pd.DataFrame({"capacidad": cap, "plazas_sin_cubrir": (cap - n).clip(lower=0)}, index=idx)
 
 
 # ------------------------------------------------------------------ N06 · materiales
@@ -371,6 +384,11 @@ def ejecutar(datos, config, salida):
     apl = pl[pl.estado_plan == "aplazado"][cols]; ctl = pl[pl.estado_plan == "control"][cols]
     resumen = (pl.groupby(["comercial_asignado", "estado_plan"]).size().unstack(fill_value=0)
                .join(pl[pl.estado_plan == "propuesto"].groupby("comercial_asignado").facturacion_en_riesgo.sum().rename("facturacion_en_riesgo_propuesta")))
+    # H9: «hasta» la capacidad, no «exactamente»: si un comercial no tiene suficientes cuentas con valor neto positivo,
+    # las plazas quedan libres y se informa de cuántas (no se rellenan con cuentas que no compensan)
+    hu = huecos(pl, g.comercial_asignado.dropna().unique(), cfg["capacidad_semanal_por_comercial"] * cfg["semanas_del_plan"])
+    resumen = resumen.reindex(hu.index).fillna(0).join(hu)
+    print(f"Plazas sin cubrir (sin más cuentas con valor neto positivo): {int(hu.plazas_sin_cubrir.sum())}")
     with pd.ExcelWriter(os.path.join(salida, "propuestas_retencion.xlsx")) as xl:
         prop.to_excel(xl, sheet_name="Plan_por_comercial", index=False); apl.to_excel(xl, sheet_name="Aplazados", index=False)
         ctl.to_excel(xl, sheet_name="Grupo_control", index=False); resumen.to_excel(xl, sheet_name="Resumen")
