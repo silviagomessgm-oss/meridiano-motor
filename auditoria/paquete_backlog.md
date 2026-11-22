@@ -1,10 +1,10 @@
 # Meridiano · Paquete de auditoría del backlog y de la solución desplegada (paso 08 FORGEN)
 
-Versión: backlog-v4 · 22-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
+Versión: backlog-v5 · 22-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
 Caso ficticio de un trabajo fin de programa: datos, contactos y cifras son simulados. El diseño de los nodos N1–N9 está en
 `paquete_diseno.md` (paso 05, versión diseno-v3, ya auditado dos veces); aquí se revisa si el backlog lo cubre y si lo
 desplegado lo cumple. Cambios respecto a backlog-v1: historias nuevas o modificadas por las correcciones de las dos
-auditorías del diseño (marcadas «A1» o «A2») y de la primera auditoría del backlog (sección 6).
+auditorías del diseño (marcadas «A1» o «A2») y de las dos primeras auditorías del backlog (secciones 6 y 7).
 
 ## 1. Épicas
 
@@ -25,10 +25,10 @@ auditorías del diseño (marcadas «A1» o «A2») y de la primera auditoría de
 | E1-H6 | Como dirección no quiero propuestas calculadas con datos viejos o rotos (A1) | W1 y W4 consultan `ultima_carga()`; si la última carga no terminó bien o tiene más de 8 días, no generan nada, avisan a dirección y datos y lo registran | N2, N3 | Alta | Desplegada |
 | E1-H7 | Como equipo quiero que el modelo no aprenda de cuentas en las que ya actuamos (A1) | El reentrenamiento excluye observaciones con propuesta aprobada o enviada en su ventana; la validación de la etiqueta informa del acuerdo por comercial | N2 | Media | Desplegada (motor) |
 | E1-H4 | Como comercial quiero propuestas de ampliación y para leads nuevos cada lunes | 2 ampliaciones por comercial; todo lead nuevo con propuesta; volver a ejecutar no duplica | N3 | Alta | Desplegada (W4) |
-| E1-H5 | Como cliente no quiero recibir dos propuestas a la vez | Una etiqueta por empresa; el ciclo del martes excluye las empresas con propuesta del lunes; 90 días de enfriamiento común | N2, N3 | Alta | Desplegada |
+| E1-H5 | Como cliente no quiero recibir dos propuestas a la vez, ni una de «lead nuevo» si ya soy cliente | Una etiqueta por empresa; el ciclo del martes excluye las empresas con propuesta del lunes; 90 días de enfriamiento común; un lead que coincide con un cliente actual (dominio de correo no genérico o razón social normalizada) no recibe propuesta de lead: se marca descartado con el cliente y el evento «ya_es_cliente» | N2, N3 | Alta | Desplegada |
 | E2-H1 | Como comercial quiero la propuesta ya redactada | Texto de Claude con el contexto de la cuenta; tono de usted; máximo 200 palabras | N4 | Alta | Desplegada (W1, W4) |
 | E2-H2 | Como dirección quiero que la IA no invente, no prometa condiciones ni deje ver que vemos riesgo (A1) | El validador descarta cifras no trazables, %, €, descuentos, textos largos y menciones o insinuaciones del riesgo; si falla queda la plantilla con el motivo; el reintento solo rehace esas | N4 | Alta | Desplegada |
-| E2-H3 | Como dirección quiero saber si un comercial aprueba un texto con problemas, para revisarlo con él (A2) | Cada versión corregida guarda en `material_versiones.avisos` los avisos del validador (lista cerrada de patrones de `avisos_texto()`); si se aprueba con avisos queda el evento «aprobada_con_aviso» | N5 | Media | **Parcial**: base de datos desplegada; el aviso visual en el panel es historia futura (E2-H4) |
+| E2-H3 | Como dirección quiero saber si un comercial aprueba un texto con problemas, para revisarlo con él (A2) | Cada versión corregida guarda en `material_versiones.avisos` los avisos del validador (lista cerrada de patrones de `avisos_texto()`); si se aprueba con avisos queda el evento «aprobada_con_aviso» y aparece en el resumen de dirección de los lunes (vista `aprobadas_con_aviso`) | N5, N9 | Media | Desplegada (el aviso visual al comercial en el panel es la historia futura E2-H4) |
 | E3-H1 | Como comercial quiero ver solo mi cartera, ordenada por estado | Pendientes, enviando, en seguimiento y cerradas en 7 días; contadores iguales a las tarjetas | N5 | Alta | Desplegada (Lovable) |
 | E3-H2 | Como comercial quiero corregir el texto sin perder lo anterior | Cada corrección es una versión con autor y fecha; se puede ver el historial | N5 | Alta | Desplegada |
 | E3-H3 | Como comercial quiero aprobar y que se envíe solo, una sola vez (A1, A2) | Al aprobar se congela el texto; se envía exactamente ese texto; reserva atómica antes de Gmail (dos ejecuciones simultáneas no duplican); correcto → En seguimiento; rechazo explícito de Gmail → Error de envío reintentable; respuesta ambigua → sin confirmar, aviso a dirección, sin reintento automático | N5, N6 | Alta | Desplegada (W5) |
@@ -36,8 +36,8 @@ auditorías del diseño (marcadas «A1» o «A2») y de la primera auditoría de
 | E3-H8 | Como contacto quiero que los correos de Meridiano sean reconocibles (A1) | Correo HTML con la identidad de la marca (paleta y tipografías del panel), firma del comercial, base del envío y derechos | N6 | Media | Desplegada (W5) |
 | E3-H9 | Como comercial no quiero escribir a un interlocutor que ya no está (A1) | Las propuestas por cambio de interlocutor se publican como llamada | N5 | Media | Desplegada |
 | E3-H4 | Como comercial quiero rechazar con motivo y reabrir si me equivoco | Rechazar exige motivo; una rechazada se puede reabrir; todo queda en el historial | N5 | Media | Desplegada |
-| E3-H5 | Como empresa interesada quiero pedir información desde la web | Formulario con consentimiento obligatorio; se guarda el texto aceptado y la fecha; se asigna comercial | N3 | Media | Desplegada (Lovable) |
-| E3-H6 | Como comercial quiero dar de alta un lead de puerta fría | Alta desde el panel; sin consentimiento solo se le puede llamar | N3, N5 | Media | Desplegada |
+| E3-H5 | Como empresa interesada quiero pedir información desde la web | Formulario con consentimiento obligatorio; se guarda el texto aceptado y la fecha; se asigna comercial | N3 | Alta | Desplegada (Lovable) |
+| E3-H6 | Como comercial quiero dar de alta un lead de puerta fría | Alta desde el panel; sin consentimiento solo se le puede llamar | N3, N5 | Alta | Desplegada |
 | E4-H1 | Como comercial quiero saber a quién debo un toque, para que ninguna propuesta muera en silencio | Aviso a los 4, 12 y 25 días sin respuesta ni toque registrado, en el panel y en el correo del lunes; el grupo `control_avisos` del piloto no lo recibe | N7 | Alta | Desplegada |
 | E4-H8 | Como comercial quiero registrar mis llamadas y toques (A1) | `registrar_toque` con tipo, resultado y nota; la primera llamada de una propuesta por teléfono cuenta como su envío | N7 | Alta | Desplegada (base de datos y panel) |
 | E4-H9 | Como dirección quiero enterarme de los seguimientos que nadie atiende (A1, A2) | En el resumen de los lunes: propuestas cuyo toque pendiente más antiguo lleva 7 días vencido sin actividad, incluidas llamadas aprobadas y nunca iniciadas; sin el grupo de control; KPI de seguimientos al día por grupo | N7, N9 | Alta | Desplegada (W6) |
@@ -49,8 +49,9 @@ auditorías del diseño (marcadas «A1» o «A2») y de la primera auditoría de
 | E4-H6 | Como dirección quiero saber si los avisos aumentan las ventas | Sorteo 50 % reproducible; métrica: ganadas a 90 días; 320 por grupo; regla de decisión registrada antes de empezar | N7 | Media | En marcha (piloto) |
 | E4-H7 | Como equipo quiero que un modelo independiente audite el diseño | W7 lee paquete y rúbrica de GitHub, llama al modelo auditor, valida el JSON (también si la respuesta se corta por longitud) y guarda la evidencia inmutable | Transversal | Media | Desplegada (W7); dos auditorías del diseño ejecutadas: de 2 altas a 0 |
 
-Dependencias: E1-H1 → E1-H6 → E1-H2 → E2-H1 → E3-H3 → E4-H8 → E4-H1 → E4-H9 → E4-H2 → E4-H4. E1-H4 depende de E3-H5 y
-E3-H6 (altas de leads). E1-H5 depende de E1-H2 y E1-H4.
+Dependencias técnicas (una historia necesita lo que construye la otra): E1-H1 → E1-H6 → E1-H2 y E1-H4; E1-H2 → E2-H1 → E3-H3;
+E3-H5 y E3-H6 → E1-H4; E1-H2 y E1-H4 → E1-H5; E3-H3 → E4-H8 → E4-H1 → E4-H9; E3-H3 → E4-H2 → E4-H3. E4-H4 y E4-H5 leen lo
+que producen todas las anteriores. El orden de construcción fue el de las épicas (E1 → E4).
 
 Grupos de control (dos, con nombre propio): `control_riesgo` (E1-H3: cuentas en riesgo sin propuesta; columna
 `grupo_experimental` del motor) y `control_avisos` (E4-H6: propuestas de ampliación y lead sin avisos de toque; columna
@@ -184,3 +185,31 @@ E2-H4 aviso visual de los avisos del validador en el panel; versión del modelo,
   los 85 tests de la base de datos y de n8n se ejecutan sobre esa copia, incluidos `preparar_lunes`, `balance_lunes` y el
   sorteo del piloto, que antes no tenían prueba.
 - Los webhooks de Supabase hacia n8n usan un túnel (ngrok) hacia el n8n local; su URL y su token no se versionan.
+
+
+## 7. Respuesta a la segunda auditoría del backlog (aprobado con cambios: 2 altas, 7 medias, 3 bajas)
+
+| Hallazgo | Respuesta | Estado |
+|---|---|---|
+| Lead que ya es cliente (alta) | Trigger `evitar_lead_cliente`: sin propuesta de lead, lead descartado con su cliente y evento «ya_es_cliente» | Desplegado · `test_lead_que_ya_es_cliente_no_recibe_propuesta_de_lead` |
+| Historias desplegadas sin test (alta) | Tests nuevos y tabla completada (abajo); E3-H8 con comprobación manual declarada | Hecho |
+| «Aprobada con aviso» no llega a dirección (media) | Vista `aprobadas_con_aviso` en el resumen de W6 | Desplegado · `test_aprobadas_con_aviso_llegan_a_direccion`, `test_w6_aprobadas_con_aviso_en_el_resumen` |
+| Comentario de IA de W6 sin test (media) | El validador ya existía en W6; test sobre el código desplegado | `test_w6_validador_del_comentario_solo_cifras_de_los_hechos` |
+| Recuento de tests (media, parte de H8) | Un único recuento: 91 tests del sistema (base de datos y n8n), 33 de evaluación y 21 del motor de propuestas | Hecho |
+| Dependencias y prioridades (baja) | Dependencias técnicas separadas del orden de construcción; E3-H5 y E3-H6 pasan a Alta | Hecho |
+| Política de conservación y regla del piloto (baja) | En el repositorio: `auditoria/politica_correo.md` (plazos) y `config/piloto.json` del repositorio de evaluación (regla de decisión registrada el 8-nov-2026, antes del primer sorteo) | Enlazado |
+| Caducidad de pendientes · latido externo a n8n · resolver en el panel un envío sin confirmar · exportar todos los flujos y retirar el legado · filas ausentes de la hoja · coste mensual y rotación de credenciales | Trabajo futuro declarado. Mitigaciones actuales: dirección libera los envíos sin confirmar con `liberar_envio()`; W9 avisa de cualquier fallo mientras n8n está encendido; el legado no lo usa ningún flujo | Declarado |
+
+Tests añadidos a la tabla criterio → test:
+| Criterio | Test |
+|---|---|
+| E1-H1 · W0 se detiene si falta pestaña o columna o supera el 5 % | `test_w0_se_detiene_si_falta_pestana_columna_o_supera_5_por_ciento` |
+| E2-H1 · máximo 200 palabras | `test_validador_descarta_y_conserva_plantilla` (caso de 201 palabras) |
+| E3-H9 · interlocutor por llamada | `test_cambio_de_interlocutor_va_por_llamada` |
+| E4-H1 · avisos a los 4, 12 y 25 días; sin aviso con respuesta o en `control_avisos` | `test_avisos_de_toque_a_los_4_12_y_25_dias` |
+| E4-H7 · respuesta del auditor cortada por longitud | `test_w7_respuesta_cortada_por_longitud` |
+| E3-H8 · correo con la identidad de la marca | `test_w5_correo_html_con_marca_y_enlace_de_baja` (paleta, tipografías, logotipo y pie en el HTML); visualización en Gmail comprobada a mano el 22-nov-2026 |
+
+### Regla de cierre del paso 08 (fijada antes de esta auditoría)
+Esta es la última pasada. Si no hay hallazgos altos, el paso se cierra. Si aparece alguno nuevo, se cierra igualmente y se
+declara como riesgo aceptado o trabajo futuro con su justificación; no habrá más pasadas.
