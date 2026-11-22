@@ -20,6 +20,7 @@ def db():
     cur.execute(open(os.path.join(RAIZ, "tests", "supabase_stub.sql")).read())
     cur.execute(open(os.path.join(RAIZ, "supabase", "schema.sql")).read())
     cur.execute(open(os.path.join(RAIZ, "supabase", "bajas.sql")).read())             # H2: baja y lista de exclusión
+    cur.execute(open(os.path.join(RAIZ, "supabase", "envios.sql")).read())            # H1: envío idempotente
     cur.execute("""
       insert into dim_comercial values ('COM-01','Martina','m@meridiano.com'), ('COM-02','Juan','j@meridiano.com');
       insert into perfiles values ('m@meridiano.com','comercial','COM-01'), ('j@meridiano.com','comercial','COM-02'),
@@ -39,6 +40,8 @@ def db():
 def uno(cur, q, *a): cur.execute(q, a); return cur.fetchone()
 def pid(cur, cli): return uno(cur, "select id from propuestas where coalesce(id_cliente, id_lead)=%s", cli)[0]
 def accion(cur, cli, acc, usuario="m@meridiano.com", datos=None):
+    if acc == "registrar_envio" and (datos or {}).get("ok"):                       # como W5: reservar antes de enviar
+        cur.execute("select reservar_envios(array[%s]::bigint[])", (pid(cur, cli),))
     return uno(cur, "select registrar_accion(%s, %s, %s, %s::jsonb)", pid(cur, cli), acc, usuario, json.dumps(datos or {}))[0]
 def estado(cur, cli): return uno(cur, "select estado from propuestas where coalesce(id_cliente, id_lead)=%s", cli)[0]
 def eventos(cur, cli):
@@ -212,3 +215,47 @@ def test_baja_desde_el_panel_solo_en_la_propia_cartera(db):
     db.execute("reset role")
     assert uno(db, "select registrado_por, origen from exclusiones") == ("m@meridiano.com", "panel")
     with pytest.raises(psycopg2.Error): db.execute("set role service_role; delete from exclusiones")   # no se borra por error
+
+
+# ------------------------------------------------------------------ H1 · envío idempotente
+def test_reserva_atomica_solo_una_ejecucion_envia(db):
+    accion(db, "CLI-1", "aprobar"); p = pid(db, "CLI-1")
+    assert uno(db, "select count(*) from envios_pendientes")[0] == 1
+    assert uno(db, "select reservar_envios(array[%s]::bigint[])", p)[0] == {"reservadas": [p]}
+    assert uno(db, "select reservar_envios(array[%s]::bigint[])", p)[0] == {"reservadas": []}       # la otra ejecución no la recibe
+    assert uno(db, "select count(*) from envios_pendientes")[0] == 0                                  # ni la vuelve a leer
+    assert estado(db, "CLI-1") == "enviando"
+    db.execute("select registrar_accion(%s, 'registrar_envio', 'n8n', '{\"ok\": true, \"id_mensaje\": \"m\"}')", (p,))
+    assert estado(db, "CLI-1") == "en_seguimiento"
+    with pytest.raises(psycopg2.Error):                                                              # ya no se puede registrar otra vez
+        db.execute("select registrar_accion(%s, 'registrar_envio', 'n8n', '{\"ok\": true}')", (p,))
+
+
+def test_sin_reserva_no_se_marca_enviada(db):
+    accion(db, "CLI-1", "aprobar")
+    with pytest.raises(psycopg2.Error, match="sin reserva"):
+        db.execute("select registrar_accion(%s, 'registrar_envio', 'n8n', '{\"ok\": true}')", (pid(db, "CLI-1"),))
+
+
+def test_reaprobar_tras_error_limpia_la_reserva(db):
+    accion(db, "CLI-1", "aprobar"); p = pid(db, "CLI-1")
+    uno(db, "select reservar_envios(array[%s]::bigint[])", p)
+    accion(db, "CLI-1", "registrar_envio", "n8n", {"ok": False, "error": "Gmail: cuota"})
+    accion(db, "CLI-1", "aprobar")
+    assert uno(db, "select envio_reservado_en is null from propuestas where id=%s", p)[0] is True
+    assert uno(db, "select reservar_envios(array[%s]::bigint[])", p)[0] == {"reservadas": [p]}
+
+
+def test_reserva_sin_confirmar_solo_la_libera_direccion(db):
+    accion(db, "CLI-1", "aprobar"); p = pid(db, "CLI-1")
+    uno(db, "select reservar_envios(array[%s]::bigint[])", p)
+    db.execute("update propuestas set envio_reservado_en = now() - interval '1 hour' where id=%s", (p,))
+    assert uno(db, "select id from envios_sin_confirmar") == (p,)
+    assert uno(db, "select reservar_envios(array[%s]::bigint[])", p)[0] == {"reservadas": []}       # no se reenvía sola
+    _como(db, "m@meridiano.com")
+    assert uno(db, "select liberar_envio(%s)", p)[0] == {"ok": False}                               # un comercial no puede
+    _como(db, "d@meridiano.com")
+    assert uno(db, "select liberar_envio(%s)", p)[0] == {"ok": True}
+    db.execute("reset role")
+    assert uno(db, "select count(*) from envios_pendientes")[0] == 1
+    assert uno(db, "select accion from eventos_propuesta where propuesta_id=%s order by id desc limit 1", p) == ("liberar_envio",)

@@ -48,7 +48,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Los correos salen de la cuenta de Gmail conectada en n8n; el buzón de pruebas puede ser esa misma cuenta (con alias +demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n} }];\n"
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  correo_privacidad: 'privacidad@meridiano.example',             // aparece en el pie de los correos (derechos de protección de datos)\n  baja_url: 'http://localhost:5678/webhook/meridiano-baja',      // URL de producción del webhook de W8 (enlace de baja de los correos)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Los correos salen de la cuenta de Gmail conectada en n8n; el buzón de pruebas puede ser esa misma cuenta (con alias +demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n} }];\n"
       }
     },
     {
@@ -105,18 +105,45 @@
       }
     },
     {
-      "id": "d4be99fe-2406-5c0d-b3e8-de0865005bc7",
-      "name": "Solo enviables",
+      "id": "f92126e8-2962-5765-8f4c-89d3bdab9ade",
+      "name": "Supabase: reservar envíos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/rpc/reservar_envios",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_ids: $('Preparar correo').all().filter(i => !i.json.bloqueo).map(i => i.json.id) }) }}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "5975d9d6-6555-5861-87e3-1b4e844965f1",
+      "name": "Solo reservados",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1000,
-        110
+        1200,
+        40
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "return $input.all().filter(i => !i.json.bloqueo);\n"
+        "jsCode": "// Solo se envían las propuestas que ESTA ejecución ha conseguido reservar en Supabase (reservar_envios).\n// Si el aviso del panel y un reintento manual coinciden, la otra ejecución no recibe la reserva y no envía (H1).\nconst r = $input.first().json || {};\nconst reservadas = new Set((r.reservadas || []).map(Number));\nreturn $('Preparar correo').all().filter(i => !i.json.bloqueo && reservadas.has(Number(i.json.id)));\n"
       }
     },
     {
@@ -125,8 +152,8 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        1200,
-        110
+        1400,
+        40
       ],
       "parameters": {
         "resource": "message",
@@ -154,13 +181,13 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1400,
-        110
+        1600,
+        40
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Resultado de cada envío de Gmail → registrar_envio en Supabase (enviada con su id de mensaje, o error_envio con el motivo).\nconst enviados = $('Solo enviables').all().map(i => i.json);\nconst bloqueados = $('Preparar correo').all().map(i => i.json).filter(p => p.bloqueo);\nconst res = $input.all().map(i => i.json || {});\nconst out = enviados.map((p, k) => {\n  const r = res[k] || {};\n  const ok = !!(r.id || r.threadId) && !r.error;\n  const error = ok ? null : String((r.error && (r.error.message || r.error.description)) || r.error || 'Gmail no ha confirmado el envío').slice(0, 400);\n  return { json: { p_propuesta_id: p.id, p_accion: 'registrar_envio', p_usuario: 'n8n',\n                   p_datos: ok ? { ok: true, id_mensaje: r.id } : { ok: false, error } } };\n});\nfor (const p of bloqueados)\n  out.push({ json: { p_propuesta_id: p.id, p_accion: 'registrar_envio', p_usuario: 'n8n', p_datos: { ok: false, error: p.bloqueo } } });\nreturn out;\n"
+        "jsCode": "// Resultado de cada envío de Gmail → registrar_envio en Supabase (enviada con su id de mensaje, o error_envio con el motivo).\n// Gmail devuelve un elemento por cada correo, en el mismo orden que «Solo reservados».\nconst enviados = $('Solo reservados').all().map(i => i.json);\nconst res = $input.all().map(i => i.json || {});\nreturn enviados.map((p, k) => {\n  const r = res[k] || {};\n  const ok = !!(r.id || r.threadId) && !r.error;\n  const error = ok ? null : String((r.error && (r.error.message || r.error.description)) || r.error || 'Gmail no ha confirmado el envío').slice(0, 400);\n  return { json: { p_propuesta_id: p.id, p_accion: 'registrar_envio', p_usuario: 'n8n',\n                   p_datos: ok ? { ok: true, id_mensaje: r.id } : { ok: false, error } } };\n});\n"
       }
     },
     {
@@ -169,8 +196,58 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1600,
-        110
+        1800,
+        40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/rpc/registrar_accion",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "dfee970c-7bee-5272-b6ec-069fb85ba14c",
+      "name": "Bloqueados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Propuestas que no se pueden enviar (contacto dado de baja, ficticio fuera del modo demo, sin enlace de baja):\n// se registran como error_envio con el motivo, en una rama propia para que se registren aunque no haya nada que enviar.\nreturn $input.all().map(i => i.json).filter(p => p.bloqueo).map(p => ({ json: {\n  p_propuesta_id: p.id, p_accion: 'registrar_envio', p_usuario: 'n8n', p_datos: { ok: false, error: p.bloqueo } } }));\n"
+      }
+    },
+    {
+      "id": "72649bf7-6df7-56ae-8b86-fad2c8f4cdc1",
+      "name": "Supabase: registrar bloqueo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        220
       ],
       "parameters": {
         "method": "POST",
@@ -259,14 +336,30 @@
       "main": [
         [
           {
-            "node": "Solo enviables",
+            "node": "Supabase: reservar envíos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bloqueados",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Solo enviables": {
+    "Supabase: reservar envíos": {
+      "main": [
+        [
+          {
+            "node": "Solo reservados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo reservados": {
       "main": [
         [
           {
@@ -293,6 +386,17 @@
         [
           {
             "node": "Supabase: registrar envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bloqueados": {
+      "main": [
+        [
+          {
+            "node": "Supabase: registrar bloqueo",
             "type": "main",
             "index": 0
           }

@@ -234,17 +234,24 @@ w5 = flujo("Meridiano · W5 Envío al aceptar", [
     code("Qué enviar", [400, 110], "w5_que_enviar.js"),
     http("Supabase: envíos pendientes", [600, 110], "GET", SB + "/envios_pendientes?select=*{{ $json.filtro }}", "sb"),
     code("Preparar correo", [800, 110], "w5_preparar_correo.js"),
-    code("Solo enviables", [1000, 110], "w5_solo_enviables.js"),
-    dict(correo("Enviar al contacto", [1200, 110], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.html }}", html=True),
+    http("Supabase: reservar envíos", [1000, 40], "POST", SB + "/rpc/reservar_envios", "sb",
+         cuerpo="={{ JSON.stringify({ p_ids: $('Preparar correo').all().filter(i => !i.json.bloqueo).map(i => i.json.id) }) }}",
+         executeOnce=True),
+    code("Solo reservados", [1200, 40], "w5_solo_reservados.js"),
+    dict(correo("Enviar al contacto", [1400, 40], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.html }}", html=True),
          onError="continueRegularOutput"),
-    code("Resultado del envío", [1400, 110], "w5_resultado_envio.js"),
-    http("Supabase: registrar envío", [1600, 110], "POST", SB + "/rpc/registrar_accion", "sb",
+    code("Resultado del envío", [1600, 40], "w5_resultado_envio.js"),
+    http("Supabase: registrar envío", [1800, 40], "POST", SB + "/rpc/registrar_accion", "sb",
+         cuerpo="={{ JSON.stringify($json) }}", completa=True),
+    code("Bloqueados", [1000, 220], "w5_bloqueados.js"),
+    http("Supabase: registrar bloqueo", [1200, 220], "POST", SB + "/rpc/registrar_accion", "sb",
          cuerpo="={{ JSON.stringify($json) }}", completa=True),
 ], [("Propuesta aceptada en el panel", "Configuración"), ("Reintentar envíos pendientes", "Configuración"),
     ("Configuración", "Qué enviar"), ("Qué enviar", "Supabase: envíos pendientes"),
-    ("Supabase: envíos pendientes", "Preparar correo"), ("Preparar correo", "Solo enviables"),
-    ("Solo enviables", "Enviar al contacto"), ("Enviar al contacto", "Resultado del envío"),
-    ("Resultado del envío", "Supabase: registrar envío")])
+    ("Supabase: envíos pendientes", "Preparar correo"), ("Preparar correo", "Supabase: reservar envíos"),
+    ("Supabase: reservar envíos", "Solo reservados"), ("Solo reservados", "Enviar al contacto"),
+    ("Enviar al contacto", "Resultado del envío"), ("Resultado del envío", "Supabase: registrar envío"),
+    ("Preparar correo", "Bloqueados"), ("Bloqueados", "Supabase: registrar bloqueo")])
 
 # ------------------------------------------------------------------ W3 · recordatorio semanal
 w3 = flujo("Meridiano · W3 Recordatorio semanal", [

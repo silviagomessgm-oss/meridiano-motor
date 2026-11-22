@@ -180,14 +180,36 @@ def test_w8_token_invalido_no_da_de_baja():
     assert r == [{"p_token": "00000000-0000-0000-0000-000000000000"}]
 
 
-def test_w5_registra_envio_correcto_error_y_bloqueo():
+def test_w5_registra_envio_correcto_y_error():
     env = [dict(id=7), dict(id=8)]
-    prep = [dict(id=7, bloqueo=None), dict(id=8, bloqueo=None), dict(id=9, bloqueo="Contacto ficticio: no se envía fuera del modo demo")]
     r = correr("w5_resultado_envio.js", {"input": [{"id": "msg-1", "threadId": "t1"}, {"error": {"message": "Quota exceeded"}}],
-                                         "nodos": {"Solo enviables": env, "Preparar correo": prep}})
+                                         "nodos": {"Solo reservados": env}})
     assert r[0]["p_datos"] == {"ok": True, "id_mensaje": "msg-1"} and r[0]["p_accion"] == "registrar_envio" and r[0]["p_usuario"] == "n8n"
-    assert r[1]["p_datos"]["ok"] is False and "Quota" in r[1]["p_datos"]["error"]
-    assert r[2]["p_propuesta_id"] == 9 and "ficticio" in r[2]["p_datos"]["error"]
+    assert r[1]["p_datos"]["ok"] is False and "Quota" in r[1]["p_datos"]["error"] and len(r) == 2
+
+
+def test_w5_bloqueados_en_rama_propia():
+    prep = [dict(id=7, bloqueo=None), dict(id=9, bloqueo="Contacto ficticio: no se envía fuera del modo demo")]
+    r = correr("w5_bloqueados.js", {"input": prep})
+    assert r == [{"p_propuesta_id": 9, "p_accion": "registrar_envio", "p_usuario": "n8n",
+                  "p_datos": {"ok": False, "error": "Contacto ficticio: no se envía fuera del modo demo"}}]
+    assert correr("w5_bloqueados.js", {"input": [dict(id=7, bloqueo=None)]}) == []
+
+
+def test_w5_solo_envia_lo_que_ha_reservado():
+    prep = [dict(id=7, bloqueo=None), dict(id=8, bloqueo=None), dict(id=9, bloqueo="baja")]
+    r = correr("w5_solo_reservados.js", {"input": [{"reservadas": [8, 9]}], "nodos": {"Preparar correo": prep}})
+    assert [x["id"] for x in r] == [8]                     # 7 la reservó otra ejecución; 9 está bloqueada
+    assert correr("w5_solo_reservados.js", {"input": [{"reservadas": []}], "nodos": {"Preparar correo": prep}}) == []
+
+
+def test_w5_estructura_reserva_antes_de_gmail():
+    w = json.load(open(os.path.join(RAIZ, "n8n", "W5_envio_al_aceptar.json")))
+    sig = {k: [d["node"] for d in v["main"][0]] for k, v in w["connections"].items()}
+    assert sig["Preparar correo"] == ["Supabase: reservar envíos", "Bloqueados"]
+    assert sig["Supabase: reservar envíos"] == ["Solo reservados"] and sig["Solo reservados"] == ["Enviar al contacto"]
+    n = {x["name"]: x for x in w["nodes"]}
+    assert n["Supabase: reservar envíos"]["executeOnce"] is True and "reservar_envios" in n["Supabase: reservar envíos"]["parameters"]["url"]
 
 
 # ------------------------------------------------------------------ W7 · auditor
