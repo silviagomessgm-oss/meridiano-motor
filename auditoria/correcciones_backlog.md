@@ -40,3 +40,27 @@ a dirección (media) · caducidad de pendientes (media) · test del validador de
 n8n (media) · resolver en el panel un envío sin confirmar (media) · exportar todos los flujos y retirar legado (media) ·
 filas ausentes de la hoja (media) · coste mensual y rotación de credenciales (baja) · prioridades de dependencias (baja) ·
 adjuntar política de conservación y regla del piloto (baja).
+
+## Tercera y última auditoría (22-nov-2026 · ejecución n8n 101 · paquete backlog-v5, sha `c078dfc`) · PASO 08 CERRADO
+
+Veredicto: **aprobado con cambios** · 2 altas (nuevas), 6 medias, 4 bajas.
+
+Se aplica la regla de cierre fijada antes de esta pasada: no hay más auditorías del backlog. El auditor señaló en su nota de
+proceso que las altas deben corregirse y no solo declararse, así que las dos se atienden sin una pasada adicional:
+
+| Alta | Respuesta |
+|---|---|
+| La puerta de datos de W4 no tenía test | Corregido: `test_w4_puerta_de_datos` sobre el W4 desplegado (carga apta, fallida y de más de 8 días; aviso y registro) |
+| Puerta fría sin base legal revisada | Base legal por tipo de contacto documentada en `politica_correo.md` (interés legítimo B2B, solo llamada, información del art. 14, lista de exclusión); la validación por un asesor legal queda declarada como requisito antes de un uso real |
+
+Medias y bajas declaradas como trabajo futuro: tamaño del piloto alcanzable y regla alternativa; historia de medición del
+`control_riesgo`; `liberar_envio()` con comprobación de Enviados; aviso al comercial de los avisos del validador (E2-H4);
+latido externo a n8n y coste mensual; dominio estable para el enlace de baja; recuento único de tests (92 del sistema);
+tests de ampliaciones por comercial; orden de construcción; inventario de legado.
+
+### Evolución del paso 08
+| Pasada | Paquete | Altas | Medias | Bajas | Altas anteriores que reaparecen |
+|---|---|---|---|---|---|
+| 1.ª | backlog-v2 | 3 | 6 | 3 | — |
+| 2.ª | backlog-v4 | 2 | 7 | 3 | 0 |
+| 3.ª | backlog-v5 | 2 | 6 | 4 | 0 |

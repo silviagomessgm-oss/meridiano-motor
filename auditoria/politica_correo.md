@@ -35,3 +35,15 @@ El borrado no se automatiza: una reclamación abierta necesita la evidencia. La 
 
 - `tests/test_supabase.py`: baja por enlace (con bloqueo al aprobar y al enviar, y con posibilidad de rechazar), token desconocido, mayúsculas y espacios en el correo, canal llamada no afectado, baja desde el panel solo en la propia cartera, y sin permiso de borrado.
 - `tests/test_n8n.py`: correo HTML con la marca y el enlace de baja, texto escapado, bloqueo de excluidos y de correos sin enlace, página de baja en dos pasos y token inválido.
+
+## 5. Base legal por tipo de contacto (cierre de la auditoría del backlog)
+
+| Tipo | Canal | Base | Condiciones en el sistema |
+|---|---|---|---|
+| Riesgo y ampliación (clientes actuales y exclientes de los últimos 18 meses) | Correo | Relación contractual previa y productos de la misma oferta publicitaria, con oposición en cada correo (art. 21.2 LSSI); interés legítimo (art. 6.1.f RGPD) | Pie con la base del envío y enlace de baja; lista de exclusión comprobada en la base de datos |
+| Lead del formulario web | Correo | Consentimiento expreso (art. 21.1 LSSI; art. 6.1.a RGPD) | Casilla obligatoria; se guardan el texto aceptado y la fecha |
+| Lead de puerta fría sin consentimiento | Solo llamada | Interés legítimo en la prospección B2B (art. 6.1.f RGPD), solo con datos de contacto corporativos de empresas | Sin correo comercial hasta registrar el consentimiento (`registrar_consentimiento`); información del art. 14 RGPD en la primera llamada; un contacto en la lista de exclusión no se trata |
+
+**Limitación declarada:** esta tabla la redacta el equipo de un proyecto de formación. Antes de un uso real, la base legal de la
+puerta fría y los plazos de conservación los tiene que validar un asesor legal. Las 16 tablas de una iteración anterior
+(legado, ver `supabase/esquema_desplegado.sql`) contienen datos simulados; en producción se vaciarían en el siguiente parche.

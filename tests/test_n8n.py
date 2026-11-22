@@ -434,3 +434,35 @@ def test_w6_aprobadas_con_aviso_en_el_resumen():
     r = correr("w6_escalado.js", {"nodos": {"Resumen para dirección": [base], "Supabase: seguimientos sin atender": [vac],
                                             "Supabase: KPI de toques": [vac], "Supabase: aprobadas con aviso": [av]}})[0]["texto"]
     assert "APROBADAS CON AVISO" in r and "Martina · Ortopedia Sol · insinúa el riesgo · aprobada el 20/11" in r
+
+
+# ------------------------------------------------------------------ 3.ª auditoría del backlog · puerta de datos en W4 (desplegado)
+def _codigo_desplegado(flujo, nodo):
+    w = json.load(open(os.path.join(RAIZ, "n8n", "desplegados", flujo)))
+    return next(n for n in w["nodes"] if n["name"] == nodo)["parameters"]["jsCode"], w
+
+
+def test_w4_puerta_de_datos():
+    import tempfile
+    _, w = _codigo_desplegado("W4_preparacion_lunes.json", "Datos al día")
+    sig = {k: [d["node"] for d in v["main"][0]] for k, v in w["connections"].items()}
+    assert sig["Fecha del lunes"] == ["Supabase: estado de la carga"] and sig["Datos al día"] == ["Supabase: preparar propuestas"]
+    assert set(sig["Datos no aptos"]) == {"Aviso: datos no al día", "Supabase: registrar ciclo detenido"}
+    nodos = {"Fecha del lunes": [{"fecha": "2026-11-23"}], "Configuración": [{"correo_direccion": "d@m.com", "correo_datos": "x@m.com"}]}
+    casos = {"apta": {"statusCode": 200, "body": {"apta": True, "estado": "carga_ok"}},
+             "fallida": {"statusCode": 200, "body": {"apta": False, "estado": "carga_detenida", "motivo": "la última carga de datos terminó en carga_detenida"}},
+             "vieja": {"statusCode": 200, "body": {"apta": False, "estado": "carga_ok", "motivo": "la última carga de datos es de hace más de 8 días"}}}
+    rutas = {}
+    try:
+        for nodo in ("Datos al día", "Datos no aptos"):
+            codigo, _ = _codigo_desplegado("W4_preparacion_lunes.json", nodo)
+            with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, dir=os.path.join(RAIZ, "n8n", "codigo")) as f:
+                f.write(codigo); rutas[nodo] = os.path.basename(f.name)
+        assert correr(rutas["Datos al día"], {"input": [casos["apta"]], "nodos": nodos}) == [{"fecha": "2026-11-23"}]
+        assert correr(rutas["Datos no aptos"], {"input": [casos["apta"]], "nodos": nodos}) == []
+        for caso in ("fallida", "vieja"):
+            assert correr(rutas["Datos al día"], {"input": [casos[caso]], "nodos": nodos}) == []
+            r = correr(rutas["Datos no aptos"], {"input": [casos[caso]], "nodos": nodos})[0]
+            assert r["para"] == "d@m.com,x@m.com" and r["registro"]["estado"] == "detenido_por_datos" and casos[caso]["body"]["motivo"] in r["texto"]
+    finally:
+        for r in rutas.values(): os.remove(os.path.join(RAIZ, "n8n", "codigo", r))
