@@ -187,7 +187,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Resultado de cada envío de Gmail → registrar_envio en Supabase (enviada con su id de mensaje, o error_envio con el motivo).\n// Gmail devuelve un elemento por cada correo, en el mismo orden que «Solo reservados».\nconst enviados = $('Solo reservados').all().map(i => i.json);\nconst res = $input.all().map(i => i.json || {});\nreturn enviados.map((p, k) => {\n  const r = res[k] || {};\n  const ok = !!(r.id || r.threadId) && !r.error;\n  const error = ok ? null : String((r.error && (r.error.message || r.error.description)) || r.error || 'Gmail no ha confirmado el envío').slice(0, 400);\n  return { json: { p_propuesta_id: p.id, p_accion: 'registrar_envio', p_usuario: 'n8n',\n                   p_datos: ok ? { ok: true, id_mensaje: r.id } : { ok: false, error } } };\n});\n"
+        "jsCode": "// Resultado de cada envío de Gmail → registrar_envio en Supabase.\n//  · Gmail confirma (id de mensaje)                → «enviada» con su id.\n//  · Gmail rechaza de forma explícita (error 4xx) → «error_envio» con el motivo: el correo no salió y se puede reintentar.\n//  · Respuesta ambigua (timeout, red, 5xx, vacía)  → NO se registra: la reserva queda en envios_sin_confirmar y dirección\n//    la libera tras mirar Enviados en Gmail (el correo pudo salir; reintentarlo podría duplicarlo). Lo avisa\n//    «Envíos sin confirmar» (w5_sin_confirmar.js), que usa la misma clasificación.\n// Gmail devuelve un elemento por cada correo, en el mismo orden que «Solo reservados».\nconst enviados = $('Solo reservados').all().map(i => i.json);\nconst res = $input.all().map(i => i.json || {});\nconst AMBIGUO = /timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNABORTED|ECONNREFUSED|EAI_AGAIN|socket hang up|network|aborted/i;\nfunction clasificar(r) {\n  if ((r.id || r.threadId) && !r.error) return { tipo: 'ok' };\n  const e = r.error || {};\n  const msg = String(e.message || e.description || (typeof e === 'string' ? e : '') || '');\n  const code = Number(e.httpCode || e.status || e.statusCode || (msg.match(/\\b([45]\\d\\d)\\b/) || [])[1] || 0);\n  if (code >= 400 && code < 500 && !AMBIGUO.test(msg)) return { tipo: 'error', error: msg.slice(0, 400) || `Gmail: error ${code}` };\n  return { tipo: 'ambiguo', error: (msg || 'Gmail no ha respondido').slice(0, 400) };\n}\nreturn enviados.map((p, k) => ({ p, c: clasificar(res[k] || {}), r: res[k] || {} }))\n  .filter(x => x.c.tipo !== 'ambiguo')\n  .map(({ p, c, r }) => ({ json: { p_propuesta_id: p.id, p_accion: 'registrar_envio', p_usuario: 'n8n',\n    p_datos: c.tipo === 'ok' ? { ok: true, id_mensaje: r.id } : { ok: false, error: c.error } } }));\n"
       }
     },
     {
@@ -224,6 +224,49 @@
       },
       "onError": "continueRegularOutput",
       "alwaysOutputData": true
+    },
+    {
+      "id": "d6b6af21-5b22-500f-a173-969f1670ddc6",
+      "name": "Envíos sin confirmar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Envíos con respuesta ambigua de Gmail (timeout, red, 5xx o sin respuesta): no se registran ni se reintentan solos.\n// Aviso inmediato a dirección para que compruebe en Enviados si el correo salió y, si no, lo libere con liberar_envio(id).\nconst enviados = $('Solo reservados').all().map(i => i.json);\nconst res = $('Enviar al contacto').all().map(i => i.json || {});\nconst AMBIGUO = /timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNABORTED|ECONNREFUSED|EAI_AGAIN|socket hang up|network|aborted/i;\nconst ambiguo = r => {\n  if ((r.id || r.threadId) && !r.error) return false;\n  const e = r.error || {};\n  const msg = String(e.message || e.description || (typeof e === 'string' ? e : '') || '');\n  const code = Number(e.httpCode || e.status || e.statusCode || (msg.match(/\\b([45]\\d\\d)\\b/) || [])[1] || 0);\n  return !(code >= 400 && code < 500 && !AMBIGUO.test(msg));\n};\nconst dudosos = enviados.map((p, k) => ({ p, r: res[k] || {} })).filter(x => ambiguo(x.r));\nif (!dudosos.length) return [];\nconst cfg = $('Configuración').first().json;\nreturn [{ json: {\n  para: cfg.correo_direccion,\n  asunto: `Meridiano · ${dudosos.length} envío${dudosos.length === 1 ? '' : 's'} sin confirmar: revisar antes de reintentar`,\n  texto: 'Gmail no ha confirmado ni rechazado estos envíos, así que el correo pudo salir o no. No se reintentan solos para ' +\n    'no enviarlos dos veces.\\n\\n' +\n    dudosos.map(({ p, r }) => `- Propuesta ${p.id} · ${p.razon_social} · para ${p.para}\\n  Respuesta: ` +\n      String((r.error && (r.error.message || r.error)) || 'sin respuesta').slice(0, 200)).join('\\n') +\n    '\\n\\nCompruebe la carpeta Enviados. Si el correo NO salió, libérelo en Supabase con: select liberar_envio(<id>); ' +\n    'y vuelva a lanzar «Reintentar envíos pendientes» en W5. Si salió, márquelo como enviado desde el panel.',\n} }];\n"
+      }
+    },
+    {
+      "id": "43cd67bc-e3da-5d34-9afe-d059f76c3efe",
+      "name": "Aviso: envíos sin confirmar",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1800,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($json.para) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($json.para) + '] ' : '') + ($json.asunto) }}",
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail",
+          "name": "Gmail account"
+        }
+      }
     },
     {
       "id": "dfee970c-7bee-5272-b6ec-069fb85ba14c",
@@ -377,6 +420,11 @@
             "node": "Resultado del envío",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Envíos sin confirmar",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -386,6 +434,17 @@
         [
           {
             "node": "Supabase: registrar envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envíos sin confirmar": {
+      "main": [
+        [
+          {
+            "node": "Aviso: envíos sin confirmar",
             "type": "main",
             "index": 0
           }

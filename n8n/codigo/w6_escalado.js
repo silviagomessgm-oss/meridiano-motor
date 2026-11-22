@@ -9,6 +9,7 @@ const leer = nombre => {
 };
 const sin = leer('Supabase: seguimientos sin atender');
 const kpi = leer('Supabase: KPI de toques');
+const dudosos = (() => { try { return leer('Supabase: envíos sin confirmar'); } catch (e) { return null; } })();
 const fecha = s => { const [a, m, d] = String(s || '').slice(0, 10).split('-'); return `${d}/${m}`; };
 const NOMBRE = { riesgo: 'riesgo', ampliacion: 'ampliación', lead_nuevo: 'lead nuevo', seguimiento: 'seguimiento' };
 
@@ -21,11 +22,18 @@ else {
   for (const [com, l] of Object.entries(porCom)) {
     lineas.push(`${com}: ${l.length}`);
     for (const s of l.slice(0, 10))
-      lineas.push(`  - ${s.razon_social} (${NOMBRE[s.etiqueta] || s.etiqueta}, ${s.canal}): toque del día ${s.toque_debido} ` +
-                  `vencido hace ${s.dias_vencido} días; enviada el ${fecha(s.enviada_en)}` +
-                  (s.ultima_actividad ? `, última actividad el ${fecha(s.ultima_actividad)}` : ', sin actividad desde el envío'));
+      lineas.push(s.fase === 'inicio'
+        ? `  - ${s.razon_social} (${NOMBRE[s.etiqueta] || s.etiqueta}, llamada): aprobada el ${fecha(s.dia_envio)} y aún sin ` +
+          `ninguna llamada registrada (${s.dias_vencido} días de retraso)`
+        : `  - ${s.razon_social} (${NOMBRE[s.etiqueta] || s.etiqueta}, ${s.canal}): toque del día ${s.toque_debido} ` +
+          `vencido hace ${s.dias_vencido} días; enviada el ${fecha(s.enviada_en)}` +
+          (s.ultima_actividad ? `, última actividad el ${fecha(s.ultima_actividad)}` : ', sin actividad desde el envío'));
     if (l.length > 10) lineas.push(`  … y ${l.length - 10} más en el panel`);
   }
+}
+if (dudosos && dudosos.length) {
+  lineas.push('', 'ENVÍOS SIN CONFIRMAR (Gmail no confirmó ni rechazó; comprobar Enviados y liberar con liberar_envio)');
+  for (const d of dudosos) lineas.push(`  - Propuesta ${d.id} · ${d.razon_social} · reservada el ${fecha(d.envio_reservado_en)}`);
 }
 if (kpi && kpi.length) {
   lineas.push('', 'SEGUIMIENTOS AL DÍA POR GRUPO DEL PILOTO (propuestas con algún toque debido)');

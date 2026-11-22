@@ -182,7 +182,7 @@ def test_w8_token_invalido_no_da_de_baja():
 
 def test_w5_registra_envio_correcto_y_error():
     env = [dict(id=7), dict(id=8)]
-    r = correr("w5_resultado_envio.js", {"input": [{"id": "msg-1", "threadId": "t1"}, {"error": {"message": "Quota exceeded"}}],
+    r = correr("w5_resultado_envio.js", {"input": [{"id": "msg-1", "threadId": "t1"}, {"error": {"message": "Quota exceeded", "httpCode": "429"}}],
                                          "nodos": {"Solo reservados": env}})
     assert r[0]["p_datos"] == {"ok": True, "id_mensaje": "msg-1"} and r[0]["p_accion"] == "registrar_envio" and r[0]["p_usuario"] == "n8n"
     assert r[1]["p_datos"]["ok"] is False and "Quota" in r[1]["p_datos"]["error"] and len(r) == 2
@@ -339,3 +339,43 @@ def test_w6_escalado_a_direccion():
     vacio = correr("w6_escalado.js", {"nodos": {"Resumen para dirección": [base], "Supabase: seguimientos sin atender": [{"statusCode": 200, "body": []}],
                                                                   "Supabase: KPI de toques": [{"statusCode": 200, "body": []}]}})[0]
     assert "Ninguno" in vacio["texto"]
+
+
+# ------------------------------------------------------------------ 2.ª auditoría · timeout de Gmail, escalado inmediato
+def test_w5_respuesta_ambigua_no_se_registra_y_avisa():
+    env = [dict(id=7, razon_social="A", para="a@x.example"), dict(id=8, razon_social="B", para="b@x.example"),
+           dict(id=9, razon_social="C", para="c@x.example"), dict(id=10, razon_social="D", para="d@x.example")]
+    gm = [{"id": "m1"}, {"error": {"message": "timeout of 300000ms exceeded"}}, {},
+          {"error": {"message": "Invalid To header", "httpCode": "400"}}]
+    r = correr("w5_resultado_envio.js", {"input": gm, "nodos": {"Solo reservados": env}})
+    assert [(x["p_propuesta_id"], x["p_datos"]["ok"]) for x in r] == [(7, True), (10, False)]      # 8 y 9 quedan sin registrar
+    a = correr("w5_sin_confirmar.js", {"nodos": {"Solo reservados": env, "Enviar al contacto": gm,
+                                                 "Configuración": [{"correo_direccion": "d@m.com"}]}})[0]
+    assert a["para"] == "d@m.com" and "2 envíos sin confirmar" in a["asunto"] and "Propuesta 8" in a["texto"] and "Propuesta 9" in a["texto"]
+    assert "Propuesta 10" not in a["texto"] and "liberar_envio" in a["texto"]
+    assert correr("w5_sin_confirmar.js", {"nodos": {"Solo reservados": env[:1], "Enviar al contacto": gm[:1],
+                                                    "Configuración": [{}]}}) == []
+
+
+def test_w1_escalado_inmediato_a_direccion():
+    motor = {"ok": True, "fecha_corte": "2026-11-16", "detalle_propuestas": [
+        {"razon_social": "Residencias Sol", "motivo_principal": "servicio_reclamacion", "comercial_nombre": "Martina",
+         "requiere_direccion": True, "facturacion_en_riesgo": 42000},
+        {"razon_social": "Viajes Oro", "motivo_principal": "rendimiento_campanas", "requiere_direccion": False}]}
+    cfg = {"Configuración": [{"correo_direccion": "d@m.com", "panel_url": "https://panel"}]}
+    r = correr("w1_escalar_direccion.js", {"nodos": dict(cfg, **{"Resultado del motor": [motor]})})[0]
+    assert "1 cuenta clave" in r["asunto"] and "Residencias Sol · reclamación sin resolver" in r["texto"] and "42.000 €" in r["texto"]
+    assert "Viajes Oro" not in r["texto"]
+    sin = dict(motor, detalle_propuestas=motor["detalle_propuestas"][1:])
+    assert correr("w1_escalar_direccion.js", {"nodos": dict(cfg, **{"Resultado del motor": [sin]})}) == []
+
+
+def test_w6_llamada_sin_iniciar_y_envios_sin_confirmar():
+    base = {"asunto": "Resumen", "texto": "R.\n\nDetalle, alertas e indicadores"}
+    sin = {"statusCode": 200, "body": [{"comercial_nombre": "Jorge", "razon_social": "Ortopedia Sur", "etiqueta": "riesgo",
+                                         "canal": "llamada", "fase": "inicio", "dia_envio": "2026-11-05", "dias_vencido": 9}]}
+    dud = {"statusCode": 200, "body": [{"id": 12, "razon_social": "Seguros Mar", "envio_reservado_en": "2026-11-20T09:00:00Z"}]}
+    r = correr("w6_escalado.js", {"nodos": {"Resumen para dirección": [base], "Supabase: seguimientos sin atender": [sin],
+                                            "Supabase: KPI de toques": [{"statusCode": 200, "body": []}],
+                                            "Supabase: envíos sin confirmar": [dud]}})[0]["texto"]
+    assert "aprobada el 05/11 y aún sin ninguna llamada registrada" in r and "ENVÍOS SIN CONFIRMAR" in r and "Propuesta 12" in r

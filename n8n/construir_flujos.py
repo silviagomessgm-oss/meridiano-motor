@@ -184,6 +184,8 @@ w1 = flujo("Meridiano · W1 Ciclo semanal de retención (martes)", [
     code("Resultado del motor", [900, 100], "w1_resultado_motor.js"),
     code("Solo si falla el motor", [1080, 250], "w1_fallo_motor.js"),
     code("Separar propuestas", [1080, 0], "w1_separar_propuestas.js"),
+    code("Escalar a dirección", [1080, -200], "w1_escalar_direccion.js"),
+    correo("Aviso a dirección: cuentas clave", [1260, -200], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.texto }}"),
     http("Claude: redactar material", [880, 0], "POST", "https://api.anthropic.com/v1/messages", "ia",
          cabeceras={"anthropic-version": "2023-06-01"},
          cuerpo="={{ JSON.stringify({ model: " + CFG + ".modelo_ia, max_tokens: 600, system: "
@@ -211,7 +213,8 @@ w1 = flujo("Meridiano · W1 Ciclo semanal de retención (martes)", [
 
     ("GitHub: lanzar motor", "Esperar al motor", 0), ("GitHub: lanzar motor", "Solo si falla el motor", 1),
     ("Esperar al motor", "Resultado del motor"),
-    ("Resultado del motor", "Separar propuestas"), ("Resultado del motor", "Solo si falla el motor"),
+    ("Resultado del motor", "Separar propuestas"), ("Resultado del motor", "Escalar a dirección"),
+    ("Escalar a dirección", "Aviso a dirección: cuentas clave"), ("Resultado del motor", "Solo si falla el motor"),
     ("Solo si falla el motor", "Aviso a dirección: fallo del motor"),
     ("Separar propuestas", "Claude: redactar material"), ("Claude: redactar material", "Validador (sensor Govern)"),
     ("Validador (sensor Govern)", "Supabase: guardar material"), ("Validador (sensor Govern)", "Resumen de la ejecución"),
@@ -253,6 +256,8 @@ w5 = flujo("Meridiano · W5 Envío al aceptar", [
     code("Resultado del envío", [1600, 40], "w5_resultado_envio.js"),
     http("Supabase: registrar envío", [1800, 40], "POST", SB + "/rpc/registrar_accion", "sb",
          cuerpo="={{ JSON.stringify($json) }}", completa=True),
+    code("Envíos sin confirmar", [1600, 200], "w5_sin_confirmar.js"),
+    correo("Aviso: envíos sin confirmar", [1800, 200], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.texto }}"),
     code("Bloqueados", [1000, 220], "w5_bloqueados.js"),
     http("Supabase: registrar bloqueo", [1200, 220], "POST", SB + "/rpc/registrar_accion", "sb",
          cuerpo="={{ JSON.stringify($json) }}", completa=True),
@@ -261,6 +266,7 @@ w5 = flujo("Meridiano · W5 Envío al aceptar", [
     ("Supabase: envíos pendientes", "Preparar correo"), ("Preparar correo", "Supabase: reservar envíos"),
     ("Supabase: reservar envíos", "Solo reservados"), ("Solo reservados", "Enviar al contacto"),
     ("Enviar al contacto", "Resultado del envío"), ("Resultado del envío", "Supabase: registrar envío"),
+    ("Enviar al contacto", "Envíos sin confirmar"), ("Envíos sin confirmar", "Aviso: envíos sin confirmar"),
     ("Preparar correo", "Bloqueados"), ("Bloqueados", "Supabase: registrar bloqueo")])
 
 # ------------------------------------------------------------------ W3 · recordatorio semanal

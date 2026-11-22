@@ -10,7 +10,8 @@ sys.path.insert(0, os.path.join(RAIZ, "motor"))
 import sync_supabase as sync
 
 CAMPOS = ["id_cliente", "comercial_asignado", "comercial_nombre", "razon_social", "categoria", "tipo_riesgo", "accion_id",
-          "motivo_principal", "producto_sugerido_nombre", "notas_internas", "material_titulo", "material_cuerpo"]
+          "motivo_principal", "producto_sugerido_nombre", "notas_internas", "material_titulo", "material_cuerpo",
+          "cuenta_clave", "requiere_direccion", "facturacion_en_riesgo"]      # las tres últimas: alerta inmediata a dirección (W1)
 
 
 def lunes_anterior(hoy=None):

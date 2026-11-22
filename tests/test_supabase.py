@@ -23,6 +23,7 @@ def db():
     cur.execute(open(os.path.join(RAIZ, "supabase", "envios.sql")).read())            # H1: envío idempotente
     cur.execute(open(os.path.join(RAIZ, "supabase", "controles.sql")).read())         # H7 y H8
     cur.execute(open(os.path.join(RAIZ, "supabase", "seguimiento.sql")).read())       # H5 y H6
+    cur.execute(open(os.path.join(RAIZ, "supabase", "auditoria2.sql")).read())        # 2.ª auditoría
     cur.execute("""
       insert into dim_comercial values ('COM-01','Martina','m@meridiano.com'), ('COM-02','Juan','j@meridiano.com');
       insert into perfiles values ('m@meridiano.com','comercial','COM-01'), ('j@meridiano.com','comercial','COM-02'),
@@ -324,3 +325,24 @@ def test_seguimiento_sin_atender_se_escala_salvo_control(db):
     db.execute("update propuestas set grupo_piloto = 'tratamiento', ultimo_toque_en = now() - interval '6 days'")
     assert uno(db, "select sin_atender, toque_pendiente from seguimientos_estado") == (False, 12)   # atendido el del 4; el del 12 acaba de vencer
     assert uno(db, "select pct_al_dia from kpi_toques_por_grupo")[0] == 100
+
+
+# ------------------------------------------------------------------ 2.ª auditoría · llamada sin iniciar y avisos del texto
+def test_llamada_aprobada_sin_iniciar_se_escala(db):
+    accion(db, "CLI-2", "aprobar", "j@meridiano.com"); p = pid(db, "CLI-2")
+    db.execute("update propuestas set aprobada_en = now() - interval '11 days' where id=%s", (p,))
+    assert uno(db, "select fase, toque_pendiente, dias_vencido, sin_atender from seguimientos_estado") == ("inicio", 4, 7, True)
+    assert uno(db, "select count(*) from seguimientos_sin_atender")[0] == 1
+    _como(db, "j@meridiano.com"); db.execute("select registrar_toque(%s, 'llamada', 'contactado')", (p,)); db.execute("reset role")
+    assert uno(db, "select fase, sin_atender from seguimientos_estado") == ("seguimiento", False)
+
+
+def test_avisos_del_texto_no_bloquean_y_quedan_registrados(db):
+    assert uno(db, "select avisos_texto('Le resumo sus 3 campañas del último año')")[0] == []
+    assert uno(db, "select avisos_texto('Hemos notado una caída; le hacemos un 10 %% de descuento')")[0] == ["insinúa el riesgo", "condición económica"]
+    p = pid(db, "CLI-1")
+    accion(db, "CLI-1", "guardar_material", datos={"material": "Estimada Laura: no queremos perderle. Le ofrecemos un descuento."})
+    assert uno(db, "select avisos from material_versiones where propuesta_id=%s and origen='comercial'", p)[0] == ["insinúa el riesgo", "condición económica"]
+    accion(db, "CLI-1", "aprobar")                                                     # aprueba igualmente (decide la persona)
+    assert estado(db, "CLI-1") == "enviando"
+    assert uno(db, "select datos -> 'avisos' from eventos_propuesta where propuesta_id=%s and accion='aprobada_con_aviso'", p)[0] == ["insinúa el riesgo", "condición económica"]

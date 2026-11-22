@@ -306,6 +306,49 @@
       }
     },
     {
+      "id": "dcd75e49-53bf-5462-8002-5dbc49ca6e63",
+      "name": "Escalar a dirección",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        -200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Alerta inmediata a dirección (2.ª auditoría): las propuestas marcadas «escalar a dirección» (cuenta clave con cambio de\n// interlocutor, reclamación o cobro) se avisan el mismo martes en que se publican, no en el resumen del lunes siguiente.\nconst r = $('Resultado del motor').first().json || {};\nconst lista = (r.detalle_propuestas || []).filter(p => p.requiere_direccion === true || p.requiere_direccion === 1);\nif (!r.ok || !lista.length) return [];\nconst cfg = $('Configuración').first().json;\nconst MOTIVO = { relacion_interlocutor: 'cambio de interlocutor', servicio_reclamacion: 'reclamación sin resolver',\n                 cobro_financiero: 'incidencia de cobro' };\nconst eur = n => String(Math.round(Number(n) || 0)).replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.') + ' €';\nreturn [{ json: {\n  para: cfg.correo_direccion,\n  asunto: `Meridiano · ${lista.length} cuenta${lista.length === 1 ? '' : 's'} clave para dirección esta semana`,\n  texto: `El ciclo de retención del ${r.fecha_corte} ha publicado propuestas que requieren a dirección antes de actuar:\\n\\n` +\n    lista.map(p => `- ${p.razon_social} · ${MOTIVO[p.motivo_principal] || p.motivo_principal} · comercial: ${p.comercial_nombre}` +\n      (p.facturacion_en_riesgo != null ? ` · facturación en riesgo: ${eur(p.facturacion_en_riesgo)}` : '')).join('\\n') +\n    `\\n\\nEstán en el panel, pendientes de aprobar:\\n${cfg.panel_url || ''}`,\n} }];\n"
+      }
+    },
+    {
+      "id": "d3fa19f3-40b9-5358-9dfb-db23d43c5f93",
+      "name": "Aviso a dirección: cuentas clave",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1260,
+        -200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($json.para) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($json.para) + '] ' : '') + ($json.asunto) }}",
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
       "id": "89ae2bd1-6a75-5791-9e50-efdc2c812c76",
       "name": "Claude: redactar material",
       "type": "n8n-nodes-base.httpRequest",
@@ -650,7 +693,23 @@
             "index": 0
           },
           {
+            "node": "Escalar a dirección",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Solo si falla el motor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalar a dirección": {
+      "main": [
+        [
+          {
+            "node": "Aviso a dirección: cuentas clave",
             "type": "main",
             "index": 0
           }
