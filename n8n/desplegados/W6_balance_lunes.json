@@ -1,0 +1,537 @@
+{
+  "name": "Meridiano: W6, Balance y previsión de los lunes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "id": "c2bcfab0-a834-40bc-9f20-ee310b6fd08c",
+      "name": "Lunes 8:15",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -544,
+        -144
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b93e87f4-8a0b-44f2-a2c4-2d5a8e76d37f",
+      "name": "Ejecutar a mano",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'silviagomessgm-oss/meridiano-motor',\n  github_rama: 'main',\n  supabase_url: 'https://vxvmgwlrtrhqjuacmdss.supabase.co',\n  hoja_datos_id: '1qXWmguY7LEdKcJPN2aKaWtKEmj9cY_l7SGqDC9-V_ko',\n  panel_url: 'https://meridiano-press.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',\n  modelo_ia: 'claude-sonnet-5-5',\n  modo_demo: true,\n  buzon_demo: 'meridiano.pres@gmail.com',\n} }];\n"
+      },
+      "id": "15224e62-9d2f-4ed9-8a5c-d9afeb991fde",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flujo de los lunes: la fecha de la semana es el lunes de hoy (si se ejecuta otro día, el lunes de esta semana).\n// Para una ejecución manual de prueba, cambiar por: return [{ json: { fecha: '2026-11-02' } }];\nconst ahora = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));\nconst atras = (ahora.getDay() + 6) % 7;                         // 0 si hoy es lunes\nconst lunes = new Date(Date.UTC(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - atras));\nreturn [{ json: { fecha: lunes.toISOString().slice(0, 10) } }];\n"
+      },
+      "id": "6ef738d9-5f73-4021-85b7-fa83e3a882b6",
+      "name": "Fecha del lunes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/rpc/balance_lunes",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_fecha: $json.fecha }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "4abed0b8-a1bb-4c9b-b157-464dd2a67189",
+      "name": "Supabase: balance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        16,
+        -48
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "B6AbUoJdldNmTfNH",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Balance de los lunes: un item por comercial con los HECHOS ya redactados (cifras formateadas). La IA solo puede usar\n// las cifras de este texto, y el mismo texto va en el correo: lo que comenta la IA es comprobable por el comercial.\nconst r = $input.first().json || {};\nif ((r.statusCode || 200) >= 300) {\n  const b = r.body || {};\n  throw new Error('Supabase no ha podido calcular el balance: ' + (b.message || JSON.stringify(b)).slice(0, 300));\n}\nconst miles = n => String(Math.round(Number(n) || 0)).replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.');\nconst eur = n => miles(n) + ' €';\nconst pct = t => (Number(t) * 100).toFixed(1).replace('.', ',') + ' %';\nconst fecha = s => { const [a, m, d] = String(s).slice(0, 10).split('-'); return `${d}/${m}`; };\nconst NOMBRE = { riesgo: 'riesgo', ampliacion: 'ampliación', lead_nuevo: 'lead nuevo', seguimiento: 'seguimiento' };\nreturn (Array.isArray(r.body) ? r.body : []).map(b => {\n  const s = b.semana_anterior || {}, pv = b.prevision || {}, ra = b.riesgo_abiertas || {}, t = pv.tasas_historicas || {};\n  const pend = Object.entries(b.pendientes || {});\n  const totalPend = pend.reduce((a, [, n]) => a + n, 0);\n  const seg = b.seguimientos_debidos || [];\n  const balance = [\n    `Semana del ${fecha(s.desde)} al ${fecha(s.hasta)}: ${s.aceptadas} propuestas aceptadas, ${s.rechazadas} rechazadas, ` +\n      `${s.enviadas} correos enviados y ${s.respuestas} respuestas registradas.`,\n    `Cierres: ${s.ganadas} ganadas y ${s.perdidas} perdidas; en churn, ${s.riesgo_cerradas} cuentas cerradas, ${s.riesgo_recuperadas} recuperadas.`,\n    `Leads nuevos asignados la semana pasada: ${b.leads_nuevos_semana}.`,\n  ];\n  const semana = [\n    `Pendientes de aprobar: ${totalPend}` + (pend.length ? ` (${pend.map(([e, n]) => `${NOMBRE[e] || e} ${n}`).join(', ')})` : '') +\n      `; ${b.nuevas_hoy} preparadas esta mañana. Mañana llegan las cuentas en riesgo de la semana.`,\n    `En seguimiento: ${b.en_seguimiento}; piden un toque esta semana: ${seg.length}.`,\n    ...seg.slice(0, 8).map(x => `  - ${x.razon_social}: ${x.dias} días desde el envío, ${x.toque}`),\n    `Cuentas en riesgo aún abiertas: ${ra.cuentas} (${eur(ra.facturacion_en_riesgo_eur)} de facturación en riesgo).`,\n  ];\n  const prevision = [\n    `${pv.propuestas_abiertas || 0} propuestas abiertas de ampliación y leads por ${eur(pv.importe_propuesto_eur)}; ` +\n      `valor esperado: ${eur(pv.valor_esperado_eur)}.`,\n    `Cálculo: importe propuesto × tasa histórica de éxito (ampliación ${pct(t.ampliacion || 0)}, lead nuevo ${pct(t.lead_nuevo || 0)}).`,\n  ];\n  const hechos = ['BALANCE', ...balance, '', 'ESTA SEMANA', ...semana, '', 'PREVISIÓN', ...prevision].join('\\n');\n  return { json: { id_comercial: b.id_comercial, nombre: b.nombre, correo: b.correo, hechos,\n                   semana: `${fecha(s.desde)}–${fecha(s.hasta)}`, pendientes: totalPend, seguimientos: seg.length } };\n});\n"
+      },
+      "id": "6306d1fd-d9dd-4ae9-82b4-6abe38b37ebd",
+      "name": "Hechos por comercial",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $('Configuración').first().json.modelo_ia, max_tokens: 300, system: \"Eres el asistente comercial de Meridiano. Recibes los hechos de la semana de un comercial. Escribe un comentario de 2 o 3 frases, en español y tuteando, que señale la prioridad de esta semana. Usa solo cifras que aparezcan en los hechos, escritas igual. Sin saludo ni despedida. Devuelve solo el comentario.\", messages: [{ role: 'user', content: $json.hechos }] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "386b4bc2-3633-4759-ab7c-ea37120c5eb8",
+      "name": "Claude: comentario de la semana",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        384,
+        -48
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3vltcNFugHScGkDA",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sensor de Govern para el comentario de la IA: solo cifras que estén en los hechos, máximo 70 palabras.\n// Si no pasa, el correo sale sin comentario (los hechos siempre van).\nconst filas = $('Hechos por comercial').all();\nconst numeros = s => new Set(String(s || '').match(/\\d+(?:[.,]\\d+)*/g) || []);\nreturn $input.all().map((it, i) => {\n  const f = filas[i].json, r = it.json || {};\n  const texto = Array.isArray(r.content) ? r.content.filter(c => c.type === 'text').map(c => c.text).join(' ').trim() : '';\n  const motivos = [];\n  if (!texto) motivos.push('IA no disponible');\n  else {\n    const ctx = numeros(f.hechos);\n    const inventadas = [...numeros(texto)].filter(n => !ctx.has(n));\n    if (inventadas.length) motivos.push(`cifras no trazables [${inventadas.join(', ')}]`);\n    const palabras = texto.split(/\\s+/).filter(Boolean).length;\n    if (palabras > 70) motivos.push(`${palabras} palabras`);\n  }\n  return { json: { ...f, comentario: motivos.length ? '' : texto, comentario_descartado: motivos.join('; ') } };\n});\n"
+      },
+      "id": "646f3751-67f6-40de-b23c-266b91826f31",
+      "name": "Validador del comentario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Correo de los lunes a cada comercial: comentario de la IA (si pasó el validador) + hechos + enlace al panel.\nconst panel = $('Configuración').first().json.panel_url;\nreturn $input.all().map(it => {\n  const f = it.json;\n  const nombre = String(f.nombre || '').split(' ')[0];\n  return { json: { ...f,\n    asunto: `Meridiano · tu semana: ${f.pendientes} propuestas por aprobar y ${f.seguimientos} seguimientos`,\n    texto: `Hola, ${nombre}:\\n\\n` + (f.comentario ? f.comentario + '\\n\\n' : '') + f.hechos +\n      `\\n\\nTodo se aprueba, corrige o rechaza en el panel:\\n${panel}\\n\\n` +\n      `Correo interno. No se ha enviado nada a ningún anunciante.` +\n      (f.comentario ? '\\n(El comentario inicial lo redacta la IA solo con las cifras de este correo.)' : ''),\n  } };\n});\n"
+      },
+      "id": "4a536ce1-9069-4979-9442-627fee971c92",
+      "name": "Redactar correo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($json.correo) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($json.correo) + '] ' : '') + ($json.asunto) }}",
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
+      },
+      "id": "4e742d4b-bb8d-4980-9405-abb754be175c",
+      "name": "Correo de los lunes al comercial",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        912,
+        -48
+      ],
+      "webhookId": "0b68c97c-4c5d-48a2-a8aa-7d22b4607378",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4U0WniibJji5dlfS",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resumen semanal para DIRECCIÓN: todas las acciones de la semana anterior, por comercial y en total, con lo pendiente,\n// las cuentas en riesgo abiertas y la previsión. Mismos datos que reciben los comerciales (balance_lunes), sin IA:\n// es un informe de hechos para supervisar, no una recomendación.\nconst r = $('Supabase: balance').first().json || {};\nconst filas = Array.isArray(r.body) ? r.body : [];\nconst panel = $('Configuración').first().json.panel_url;\nconst miles = n => String(Math.round(Number(n) || 0)).replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.');\nconst eur = n => miles(n) + ' €';\nconst fecha = s => { const [a, m, d] = String(s || '').slice(0, 10).split('-'); return `${d}/${m}`; };\nconst suma = f => filas.reduce((a, b) => a + (Number(f(b)) || 0), 0);\nconst sa = b => b.semana_anterior || {};\nconst pend = b => Object.values(b.pendientes || {}).reduce((a, n) => a + n, 0);\nconst s0 = sa(filas[0] || {});\nconst linea = (nombre, f) =>\n  `${nombre}: ${f.aceptadas} aceptadas, ${f.rechazadas} rechazadas, ${f.enviadas} enviadas, ${f.respuestas} respuestas; ` +\n  `${f.ganadas} ganadas y ${f.perdidas} perdidas; churn: ${f.riesgo_cerradas} cerradas, ${f.riesgo_recuperadas} recuperadas.`;\nconst total = {};\nfor (const k of ['aceptadas', 'rechazadas', 'enviadas', 'respuestas', 'ganadas', 'perdidas', 'riesgo_cerradas', 'riesgo_recuperadas'])\n  total[k] = suma(b => sa(b)[k]);\nconst texto = [\n  `Resumen comercial de la semana del ${fecha(s0.desde)} al ${fecha(s0.hasta)}.`, '',\n  'ACCIONES DE LA SEMANA',\n  linea('Equipo', total),\n  ...filas.map(b => '  - ' + linea(b.nombre, sa(b))), '',\n  'ESTA SEMANA',\n  `Pendientes de aprobar: ${suma(pend)} · en seguimiento: ${suma(b => b.en_seguimiento)} · ` +\n    `piden un toque: ${suma(b => (b.seguimientos_debidos || []).length)} · leads nuevos la semana pasada: ${suma(b => b.leads_nuevos_semana)}.`,\n  ...filas.map(b => `  - ${b.nombre}: ${pend(b)} pendientes, ${b.en_seguimiento} en seguimiento, ` +\n    `${(b.seguimientos_debidos || []).length} toques, ${(b.riesgo_abiertas || {}).cuentas || 0} cuentas en riesgo abiertas`),\n  `Cuentas en riesgo abiertas: ${suma(b => (b.riesgo_abiertas || {}).cuentas)} ` +\n    `(${eur(suma(b => (b.riesgo_abiertas || {}).facturacion_en_riesgo_eur))} de facturación en riesgo).`, '',\n  'PREVISIÓN',\n  `${suma(b => (b.prevision || {}).propuestas_abiertas)} propuestas abiertas de ampliación y leads por ` +\n    `${eur(suma(b => (b.prevision || {}).importe_propuesto_eur))}; valor esperado: ${eur(suma(b => (b.prevision || {}).valor_esperado_eur))} ` +\n    '(importe × tasa histórica de éxito por origen).', '',\n  `Detalle, alertas e indicadores en el panel (vista de Dirección):\\n${panel}`,\n].join('\\n');\nreturn [{ json: { asunto: `Meridiano · resumen comercial de la semana del ${fecha(s0.desde)}: ${total.aceptadas} aceptadas, ${total.ganadas} ganadas`,\n                  texto, comerciales: filas.length } }];\n"
+      },
+      "id": "1686a34c-959c-48e1-b534-6ae84ced03a7",
+      "name": "Resumen para dirección",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($('Configuración').first().json.correo_direccion) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($('Configuración').first().json.correo_direccion) + '] ' : '') + ($json.asunto) }}",
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
+      },
+      "id": "7ae5ded3-5180-48e0-920e-62bc8c775e93",
+      "name": "Correo de los lunes a dirección",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1168,
+        160
+      ],
+      "webhookId": "7963b2a1-3a71-4c8b-b64b-544056da957d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4U0WniibJji5dlfS",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/seguimientos_sin_atender?select=*&order=comercial_asignado,dias_vencido.desc",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Supabase: seguimientos sin atender",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        368,
+        160
+      ],
+      "executeOnce": true,
+      "id": "996f770e-2f0e-4ab5-8ac9-d3b7c98d9f93",
+      "credentials": {
+        "supabaseApi": {
+          "id": "B6AbUoJdldNmTfNH",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/kpi_toques_por_grupo?select=*",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Supabase: KPI de toques",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        160
+      ],
+      "executeOnce": true,
+      "id": "fd41d39b-83fd-4f6c-9b5c-9356406f4f4c",
+      "credentials": {
+        "supabaseApi": {
+          "id": "B6AbUoJdldNmTfNH",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// H6 · Escalado a dirección en el resumen de los lunes: seguimientos cuyo toque lleva 7 días vencido sin respuesta del\n// cliente ni toque registrado (vista seguimientos_sin_atender; el grupo de control del piloto queda fuera) y el KPI de\n// seguimientos al día por grupo del piloto. Se añade al resumen de dirección; si Supabase falla, se dice en el correo.\nconst base = $('Resumen para dirección').first().json || {};\nconst leer = nombre => {\n  const n = $(nombre);\n  const r = (n.isExecuted && n.first().json) || {};\n  return r.statusCode >= 200 && r.statusCode < 300 && Array.isArray(r.body) ? r.body : null;\n};\nconst sin = leer('Supabase: seguimientos sin atender');\nconst kpi = leer('Supabase: KPI de toques');\nconst dudosos = (() => { try { return leer('Supabase: envíos sin confirmar'); } catch (e) { return null; } })();\nconst fecha = s => { const [a, m, d] = String(s || '').slice(0, 10).split('-'); return `${d}/${m}`; };\nconst NOMBRE = { riesgo: 'riesgo', ampliacion: 'ampliación', lead_nuevo: 'lead nuevo', seguimiento: 'seguimiento' };\n\nconst lineas = ['', 'ESCALADO: SEGUIMIENTOS SIN ATENDER (toque vencido hace 7 días o más, sin actividad registrada)'];\nif (!sin) lineas.push('No se ha podido consultar (Supabase no ha respondido). Revíselo en el panel.');\nelse if (!sin.length) lineas.push('Ninguno: todos los toques debidos están atendidos.');\nelse {\n  const porCom = {};\n  for (const s of sin) (porCom[s.comercial_nombre || s.comercial_asignado] ||= []).push(s);\n  for (const [com, l] of Object.entries(porCom)) {\n    lineas.push(`${com}: ${l.length}`);\n    for (const s of l.slice(0, 10))\n      lineas.push(s.fase === 'inicio'\n        ? `  - ${s.razon_social} (${NOMBRE[s.etiqueta] || s.etiqueta}, llamada): aprobada el ${fecha(s.dia_envio)} y aún sin ` +\n          `ninguna llamada registrada (${s.dias_vencido} días de retraso)`\n        : `  - ${s.razon_social} (${NOMBRE[s.etiqueta] || s.etiqueta}, ${s.canal}): toque del día ${s.toque_debido} ` +\n          `vencido hace ${s.dias_vencido} días; enviada el ${fecha(s.enviada_en)}` +\n          (s.ultima_actividad ? `, última actividad el ${fecha(s.ultima_actividad)}` : ', sin actividad desde el envío'));\n    if (l.length > 10) lineas.push(`  … y ${l.length - 10} más en el panel`);\n  }\n}\nif (dudosos && dudosos.length) {\n  lineas.push('', 'ENVÍOS SIN CONFIRMAR (Gmail no confirmó ni rechazó; comprobar Enviados y liberar con liberar_envio)');\n  for (const d of dudosos) lineas.push(`  - Propuesta ${d.id} · ${d.razon_social} · reservada el ${fecha(d.envio_reservado_en)}`);\n}\nif (kpi && kpi.length) {\n  lineas.push('', 'SEGUIMIENTOS AL DÍA POR GRUPO DEL PILOTO (propuestas con algún toque debido)');\n  const grupos = {};\n  for (const k of kpi) { const g = (grupos[k.grupo] ||= { d: 0, a: 0 }); g.d += Number(k.con_toque_debido) || 0; g.a += Number(k.al_dia) || 0; }\n  for (const [g, v] of Object.entries(grupos))\n    lineas.push(`  - ${g}: ${v.a} de ${v.d} al día (${v.d ? (100 * v.a / v.d).toFixed(1).replace('.', ',') : '0,0'} %)`);\n  lineas.push('  El grupo de control no recibe avisos: su porcentaje es la referencia sin el sistema.');\n}\nconst n = sin ? sin.length : null;\nreturn [{ json: { ...base,\n  asunto: base.asunto + (n ? ` · ${n} seguimiento${n === 1 ? '' : 's'} sin atender` : ''),\n  texto: String(base.texto || '').includes('\\n\\nDetalle, alertas e indicadores')\n    ? String(base.texto).replace('\\n\\nDetalle, alertas e indicadores', lineas.join('\\n') + '\\n\\nDetalle, alertas e indicadores')\n    : String(base.texto || '') + '\\n' + lineas.join('\\n'),\n  seguimientos_sin_atender: n,\n} }];\n"
+      },
+      "name": "Escalado a dirección",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        160
+      ],
+      "id": "ded4b0c5-47ce-4fda-88f8-a9ea02c12e9b"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/envios_sin_confirmar?select=*&order=envio_reservado_en",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "name": "Supabase: envíos sin confirmar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        160
+      ],
+      "executeOnce": true,
+      "id": "f0fb3ed4-1b6a-4d21-aa33-a32cb8182117",
+      "credentials": {
+        "supabaseApi": {
+          "id": "B6AbUoJdldNmTfNH",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Lunes 8:15": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar a mano": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Fecha del lunes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fecha del lunes": {
+      "main": [
+        [
+          {
+            "node": "Supabase: balance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: balance": {
+      "main": [
+        [
+          {
+            "node": "Resumen para dirección",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hechos por comercial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hechos por comercial": {
+      "main": [
+        [
+          {
+            "node": "Claude: comentario de la semana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude: comentario de la semana": {
+      "main": [
+        [
+          {
+            "node": "Validador del comentario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validador del comentario": {
+      "main": [
+        [
+          {
+            "node": "Redactar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar correo": {
+      "main": [
+        [
+          {
+            "node": "Correo de los lunes al comercial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen para dirección": {
+      "main": [
+        [
+          {
+            "node": "Supabase: seguimientos sin atender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: seguimientos sin atender": {
+      "main": [
+        [
+          {
+            "node": "Supabase: KPI de toques",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: KPI de toques": {
+      "main": [
+        [
+          {
+            "node": "Supabase: envíos sin confirmar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalado a dirección": {
+      "main": [
+        [
+          {
+            "node": "Correo de los lunes a dirección",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: envíos sin confirmar": {
+      "main": [
+        [
+          {
+            "node": "Escalado a dirección",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "B0zzLz9gsHI1Azo2"
+  },
+  "versionId": "6d01db43-632b-453e-95f0-5575fa481ba4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "511d2cc10dcf7deffcad20814d19544b6071fc4323457c2da7bea4f9cc84ba26"
+  },
+  "nodeGroups": [],
+  "id": "qbKgxP2AFqdYk4xg",
+  "tags": []
+}
