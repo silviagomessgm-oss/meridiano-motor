@@ -389,3 +389,48 @@ def test_w9_aviso_de_error():
     r = correr("w9_aviso_error.js", {"nodos": {"Error en un flujo": [e], "Configuración": [{"correo_direccion": "d@m.com", "correo_datos": "x@m.com"}]}})[0]
     assert r["para"] == "d@m.com,x@m.com" and "ERROR en Meridiano · W1" in r["asunto"]
     assert "GitHub: lanzar motor" in r["texto"] and "401 Bad credentials" in r["texto"] and "plan anterior" in r["texto"]
+
+
+# ------------------------------------------------------------------ 2.ª auditoría del backlog · W0, comentario de W6, aprobadas con aviso
+def _hoja(tablas):
+    return [{"valueRanges": [{"range": f"{t}!A1:Z", "values": v} for t, v in tablas.items()]}]
+
+
+def test_w0_se_detiene_si_falta_pestana_columna_o_supera_5_por_ciento():
+    r = correr("w0_preparar_tablas.js", {"nodos": {"Google Sheets: leer pestañas": _hoja({"dim_comercial": [["id_comercial", "nombre", "correo"], ["COM-01", "M", "m@x"]]})}})
+    assert r[0]["abortar"] is True and any("no está la pestaña" in f for f in r[0]["fatales"])
+    falta_col = {"dim_comercial": [["id_comercial", "nombre"], ["COM-01", "M"]]}
+    r = correr("w0_preparar_tablas.js", {"nodos": {"Google Sheets: leer pestañas": _hoja(falta_col)}})
+    assert any("faltan las columnas correo" in f for f in r[0]["fatales"])
+    malas = [["id_comercial", "nombre", "correo"]] + [["", "sin id", "x@x"]] * 2 + [[f"COM-{i}", "N", "n@x"] for i in range(10)]
+    r = correr("w0_preparar_tablas.js", {"nodos": {"Google Sheets: leer pestañas": _hoja({"dim_comercial": malas})}})
+    assert any("dim_comercial: 2 de 12 filas con errores" in f for f in r[0]["fatales"])
+
+
+def test_w6_validador_del_comentario_solo_cifras_de_los_hechos():
+    """Código desplegado de W6 (n8n/desplegados): el comentario de la IA solo puede usar cifras del balance."""
+    import tempfile
+    w = json.load(open(os.path.join(RAIZ, "n8n", "desplegados", "W6_balance_lunes.json")))
+    codigo = next(n for n in w["nodes"] if n["name"] == "Validador del comentario")["parameters"]["jsCode"]
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, dir=os.path.join(RAIZ, "n8n", "codigo")) as f:
+        f.write(codigo); ruta = f.name
+    try:
+        hechos = [{"hechos": "Pendientes de aprobar: 5. En seguimiento: 3.", "nombre": "Martina"}]
+        ia = lambda t: [{"content": [{"type": "text", "text": t}]}]
+        ok = correr(os.path.basename(ruta), {"input": ia("Tienes 5 pendientes y 3 en seguimiento: empieza por las pendientes."),
+                                             "nodos": {"Hechos por comercial": hechos}})[0]
+        assert ok["comentario"].startswith("Tienes 5") and ok["comentario_descartado"] == ""
+        mal = correr(os.path.basename(ruta), {"input": ia("Tienes 7 pendientes."), "nodos": {"Hechos por comercial": hechos}})[0]
+        assert mal["comentario"] == "" and "7" in mal["comentario_descartado"]
+    finally:
+        os.remove(ruta)
+
+
+def test_w6_aprobadas_con_aviso_en_el_resumen():
+    base = {"asunto": "Resumen", "texto": "R.\n\nDetalle, alertas e indicadores"}
+    av = {"statusCode": 200, "body": [{"comercial_nombre": "Martina", "razon_social": "Ortopedia Sol", "avisos": ["insinúa el riesgo"],
+                                        "aprobada_en": "2026-11-20T10:00:00Z"}]}
+    vac = {"statusCode": 200, "body": []}
+    r = correr("w6_escalado.js", {"nodos": {"Resumen para dirección": [base], "Supabase: seguimientos sin atender": [vac],
+                                            "Supabase: KPI de toques": [vac], "Supabase: aprobadas con aviso": [av]}})[0]["texto"]
+    assert "APROBADAS CON AVISO" in r and "Martina · Ortopedia Sol · insinúa el riesgo · aprobada el 20/11" in r

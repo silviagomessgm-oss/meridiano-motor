@@ -29,6 +29,7 @@ def db():
     cur.execute("create schema if not exists supabase_functions; create or replace function supabase_functions.http_request() "
                 "returns trigger language plpgsql as $$ begin return null; end $$")
     cur.execute(open(os.path.join(RAIZ, "supabase", "esquema_desplegado.sql")).read())
+    cur.execute(open(os.path.join(RAIZ, "supabase", "backlog2.sql")).read())          # 2.ª auditoría del backlog
     cur.execute("""
       insert into dim_comercial values ('COM-01','Martina','m@meridiano.com'), ('COM-02','Juan','j@meridiano.com');
       insert into perfiles values ('m@meridiano.com','comercial','COM-01'), ('j@meridiano.com','comercial','COM-02'),
@@ -413,3 +414,39 @@ def test_sorteo_del_piloto_reproducible(db):
     r = [x[0] for x in (db.execute("select sorteo_piloto(i) from generate_series(1, 400) i") or db.fetchall())]
     assert r == [x[0] for x in (db.execute("select sorteo_piloto(i) from generate_series(1, 400) i") or db.fetchall())]
     assert 0.40 < r.count("tratamiento") / len(r) < 0.60                                                  # en torno al 50 %
+
+
+# ------------------------------------------------------------------ 2.ª auditoría del backlog
+def test_lead_que_ya_es_cliente_no_recibe_propuesta_de_lead(db):
+    dominio = uno(db, "select split_part(email, '@', 2) from contactos where id_cliente = 'CLI-1' limit 1")[0]
+    ya = uno(db, f"""select alta_lead_web('{{"razon_social": "Otra marca", "nombre": "Eva", "email": "eva@{dominio}",
+                     "acepta_comercial": true, "texto_consentimiento": "Acepto"}}'::jsonb)""")[0]
+    nuevo = uno(db, """select alta_lead_web('{"razon_social": "Clínica Nueva", "nombre": "Ana", "email": "ana@gmail.com",
+                       "acepta_comercial": true, "texto_consentimiento": "Acepto"}'::jsonb)""")[0]
+    razon = uno(db, "select razon_social from dim_clientes where id_cliente = 'CLI-2'")[0]
+    igual = uno(db, f"""select alta_lead_web('{{"razon_social": "{razon.upper()}, S.L.", "nombre": "Luis", "email": "luis@otro.example",
+                       "acepta_comercial": true, "texto_consentimiento": "Acepto"}}'::jsonb)""")[0]
+    db.execute("select count(*) from preparar_lunes('2026-11-23')")
+    assert uno(db, "select count(*) from propuestas where id_lead in (%s, %s)", ya, igual)[0] == 0          # no reciben propuesta de lead
+    assert uno(db, "select estado, id_cliente_convertido from leads where id_lead = %s", ya) == ("descartado", "CLI-1")
+    assert uno(db, "select id_cliente_convertido from leads where id_lead = %s", igual) == ("CLI-2",)
+    assert uno(db, "select datos ->> 'id_cliente' from eventos_lead where id_lead = %s and accion = 'ya_es_cliente'", ya) == ("CLI-1",)
+    assert uno(db, "select count(*) from propuestas where id_lead = %s", nuevo)[0] == 1                      # gmail no cuenta como dominio
+
+
+def test_avisos_de_toque_a_los_4_12_y_25_dias(db):
+    accion(db, "CLI-1", "aprobar"); accion(db, "CLI-1", "registrar_envio", "n8n", {"ok": True, "id_mensaje": "m"}); p = pid(db, "CLI-1")
+    def toque(dias):
+        db.execute("update propuestas set enviada_en = now() - make_interval(days => %s) where id=%s", (dias, p))
+        r = uno(db, "select toque from seguimientos_debidos where id=%s", p); return r[0] if r else None
+    assert [toque(d) for d in (3, 4, 13, 26)] == [None, "primer toque", "segundo toque", "último toque o cierre"]
+    db.execute("update propuestas set ultima_respuesta_en = now() where id=%s", (p,))
+    assert toque(13) is None                                                     # con respuesta del cliente, no hay aviso
+    db.execute("update propuestas set ultima_respuesta_en = null, grupo_piloto = 'control' where id=%s", (p,))
+    assert toque(13) is None                                                     # el grupo control_avisos no recibe avisos
+
+
+def test_aprobadas_con_aviso_llegan_a_direccion(db):
+    accion(db, "CLI-1", "guardar_material", datos={"material": "Estimada Laura: no queremos perderle."})
+    accion(db, "CLI-1", "aprobar")
+    assert uno(db, "select razon_social, avisos from aprobadas_con_aviso")[1] == ["insinúa el riesgo"]
