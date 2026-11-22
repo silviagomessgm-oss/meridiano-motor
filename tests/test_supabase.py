@@ -21,6 +21,7 @@ def db():
     cur.execute(open(os.path.join(RAIZ, "supabase", "schema.sql")).read())
     cur.execute(open(os.path.join(RAIZ, "supabase", "bajas.sql")).read())             # H2: baja y lista de exclusión
     cur.execute(open(os.path.join(RAIZ, "supabase", "envios.sql")).read())            # H1: envío idempotente
+    cur.execute(open(os.path.join(RAIZ, "supabase", "controles.sql")).read())         # H7 y H8
     cur.execute("""
       insert into dim_comercial values ('COM-01','Martina','m@meridiano.com'), ('COM-02','Juan','j@meridiano.com');
       insert into perfiles values ('m@meridiano.com','comercial','COM-01'), ('j@meridiano.com','comercial','COM-02'),
@@ -259,3 +260,24 @@ def test_reserva_sin_confirmar_solo_la_libera_direccion(db):
     db.execute("reset role")
     assert uno(db, "select count(*) from envios_pendientes")[0] == 1
     assert uno(db, "select accion from eventos_propuesta where propuesta_id=%s order by id desc limit 1", p) == ("liberar_envio",)
+
+
+# ------------------------------------------------------------------ H7 · carga de datos válida · H8 · interlocutor por llamada
+def test_ultima_carga_apta_solo_si_w0_termino_bien_y_es_reciente(db):
+    assert uno(db, "select ultima_carga()")[0] == {"apta": False, "motivo": "no hay ninguna carga de datos registrada"}
+    db.execute("insert into ejecuciones (fecha, origen, estado, detalle) values (now() - interval '2 days', 'n8n', 'carga_ok', '{\"flujo\": \"W0\"}')")
+    assert uno(db, "select ultima_carga() ->> 'apta'")[0] == "true"
+    db.execute("insert into ejecuciones (origen, estado, detalle) values ('n8n', 'carga_detenida', '{\"flujo\": \"W0\"}')")
+    r = uno(db, "select ultima_carga()")[0]
+    assert r["apta"] is False and "carga_detenida" in r["motivo"]
+    db.execute("insert into ejecuciones (origen, estado, detalle) values ('motor', 'ok', '{\"flujo\": \"W1\"}')")   # otros flujos no cuentan
+    assert uno(db, "select ultima_carga() ->> 'estado'")[0] == "carga_detenida"
+    db.execute("delete from ejecuciones; insert into ejecuciones (fecha, origen, estado, detalle) values (now() - interval '9 days', 'n8n', 'carga_con_avisos', '{\"flujo\": \"W0\"}')")
+    r = uno(db, "select ultima_carga()")[0]
+    assert r["apta"] is False and "8 días" in r["motivo"]
+
+
+def test_cambio_de_interlocutor_va_por_llamada(db):
+    db.execute("""insert into propuestas (fecha_corte, id_cliente, etiqueta, razon_social, comercial_asignado, accion_id, asunto_email)
+                  values ('2026-09-01', 'CLI-2', 'riesgo', 'Viajes Oro', 'COM-02', 'reunion_nuevo_interlocutor', 'Reunión') returning canal""")
+    assert db.fetchone()[0] == "llamada"

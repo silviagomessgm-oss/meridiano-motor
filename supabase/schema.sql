@@ -372,7 +372,7 @@ end $$;
 -- Al publicar: canal según la acción (la reactivación es una llamada) y contacto principal de la empresa
 create or replace function completar_propuesta() returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if new.accion_id = 'llamada_reactivacion' then new.canal := 'llamada'; end if;
+  if new.accion_id in ('llamada_reactivacion', 'reunion_nuevo_interlocutor') then new.canal := 'llamada'; end if;   -- H8
   if new.id_contacto is null then
     select id_contacto into new.id_contacto from contactos
     where (contactos.id_cliente = new.id_cliente or contactos.id_lead = new.id_lead)

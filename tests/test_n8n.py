@@ -58,7 +58,7 @@ def test_validador_acepta_texto_trazable():
 @pytest.mark.parametrize("texto,motivo", [
     ("Tras sus 5 campañas le proponemos una reunión.", "cifras no trazables [5]"),
     ("Le ofrecemos un descuento especial en su próxima campaña.", "condición económica"),
-    ("Hemos detectado un riesgo en su cuenta.", "menciona el riesgo"),
+    ("Hemos detectado un riesgo en su cuenta.", "insinúa el riesgo"),
     ("palabra " * 201, "201 palabras"),
 ])
 def test_validador_descarta_y_conserva_plantilla(texto, motivo):
@@ -282,3 +282,39 @@ def test_w7_respuesta_cortada_por_longitud():
     f = _validar({"statusCode": 200, "body": {"stop_reason": "max_tokens", "usage": {"output_tokens": 8000},
                   "content": [{"type": "thinking", "thinking": "..."}, {"type": "text", "text": "```json\n{\"veredicto\": \"apro"}]}})
     assert f["estado"] == "formato_invalido" and "cortada" in f["error"] and "8000" in f["error"]
+
+
+# ------------------------------------------------------------------ H3 · validador · H7 · puerta de datos
+def _validar_w1(texto):
+    prop = {"fecha_corte": "2026-09-01", "id_cliente": "CLI-1", "contexto_ia": "3 campañas, CTR 0,8", "material_cuerpo": "plantilla"}
+    return correr("w1_validador.js", {"input": [{"content": [{"type": "text", "text": texto}]}],
+                                      "nodos": {"Separar propuestas": [prop]}})[0]
+
+
+def test_validador_rechaza_insinuar_el_riesgo():
+    assert _validar_w1("Estimada Laura: le resumo sus 3 campañas, con un CTR de 0,8. ¿Hablamos?")["valido"] is True
+    for t in ["Hemos notado que ha reducido su actividad.", "No queremos perderle como cliente.",
+              "Nos preocupa la caída de su inversión.", "Su cuenta está inactiva.", "Tiene facturas pendientes con nosotros."]:
+        r = _validar_w1(t)
+        assert r["valido"] is False and "insinúa el riesgo" in r["fuente_material"], t
+
+
+def test_w1_puerta_de_datos():
+    fc = {"Fecha de corte": [{"fecha_corte": "2026-09-01"}], "Configuración": [{"correo_direccion": "d@m.com", "correo_datos": "x@m.com"}]}
+    ok = {"statusCode": 200, "body": {"apta": True, "estado": "carga_ok"}}
+    ko = {"statusCode": 200, "body": {"apta": False, "estado": "carga_detenida", "motivo": "la última carga de datos terminó en carga_detenida",
+                                      "fecha": "2026-11-16T21:00:00Z"}}
+    assert correr("w_datos_al_dia.js", {"input": [ok], "nodos": fc}) == [{"fecha_corte": "2026-09-01"}]
+    assert correr("w_datos_no_aptos.js", {"input": [ok], "nodos": fc}) == []
+    assert correr("w_datos_al_dia.js", {"input": [ko], "nodos": fc}) == []
+    r = correr("w_datos_no_aptos.js", {"input": [ko], "nodos": fc})[0]
+    assert r["para"] == "d@m.com,x@m.com" and "carga_detenida" in r["texto"] and r["registro"]["estado"] == "detenido_por_datos"
+    caida = {"statusCode": 503, "body": {"message": "down"}}                                   # Supabase caído: tampoco se sigue
+    assert correr("w_datos_al_dia.js", {"input": [caida], "nodos": fc}) == []
+    assert "503" in correr("w_datos_no_aptos.js", {"input": [caida], "nodos": fc})[0]["texto"]
+
+
+def test_w1_lanza_el_motor_solo_tras_la_puerta():
+    w = json.load(open(os.path.join(RAIZ, "n8n", "W1_ciclo_semanal.json")))
+    sig = {k: [d["node"] for d in v["main"][0]] for k, v in w["connections"].items()}
+    assert sig["Fecha de corte"] == ["Supabase: estado de la carga"] and sig["Datos al día"] == ["GitHub: lanzar motor"]

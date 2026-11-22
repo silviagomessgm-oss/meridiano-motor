@@ -67,6 +67,134 @@
       }
     },
     {
+      "id": "5db6b21e-abb2-5b91-b572-8f45c8208808",
+      "name": "Supabase: estado de la carga",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/rpc/ultima_carga",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e3158ac8-8e83-525a-ad07-eb486a542aac",
+      "name": "Datos al día",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// H7 · Puerta de datos: solo se sigue si la última carga de W0 terminó bien hace menos de 8 días (ultima_carga() en Supabase).\n// Si Supabase no responde, tampoco se sigue: mejor no generar propuestas que generarlas con datos viejos.\nconst r = $input.first().json || {};\nconst c = (r.body && typeof r.body === 'object') ? r.body : {};\nconst ok = r.statusCode >= 200 && r.statusCode < 300 && c.apta === true;\nreturn ok ? $('Fecha de corte').all() : [];\n"
+      }
+    },
+    {
+      "id": "b3464f6e-8199-5602-817c-3b859ec62f18",
+      "name": "Datos no aptos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        450
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// H7 · Si la carga de datos no es válida: aviso a dirección y al responsable de datos, y registro en ejecuciones.\nconst r = $input.first().json || {};\nconst c = (r.body && typeof r.body === 'object') ? r.body : {};\nif (r.statusCode >= 200 && r.statusCode < 300 && c.apta === true) return [];\nconst cfg = $('Configuración').first().json;\nconst flujo = (typeof $workflow !== 'undefined' && $workflow.name) || 'Meridiano';\nconst motivo = c.motivo || `no se ha podido consultar el estado de la carga (Supabase: ${r.statusCode || 'sin respuesta'})`;\nreturn [{ json: {\n  para: [cfg.correo_direccion, cfg.correo_datos].filter(Boolean).join(','),\n  asunto: 'Meridiano · ciclo detenido: los datos no están al día',\n  texto: `${flujo} no ha generado propuestas porque ${motivo}.\\n\\n` +\n    (c.fecha ? `Última carga registrada: ${String(c.fecha).slice(0, 16).replace('T', ' ')} (${c.estado}).\\n\\n` : '') +\n    'Revise la hoja de datos y lance W0 («Cargar ahora»); después vuelva a ejecutar este flujo a mano. ' +\n    'El panel conserva el plan de la semana anterior.',\n  registro: { origen: 'n8n', estado: 'detenido_por_datos', detalle: { flujo: flujo, motivo, ultima_carga: c } },\n} }];\n"
+      }
+    },
+    {
+      "id": "0fa16e23-2f15-5407-9866-a5be0ff07973",
+      "name": "Aviso: datos no al día",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        450
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($json.para) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($json.para) + '] ' : '') + ($json.asunto) }}",
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "c031b816-2ea3-5bd9-a53d-23989ee7c969",
+      "name": "Supabase: registrar ciclo detenido",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/ejecuciones",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.registro) }}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
       "id": "78c99272-74bc-5228-b2e2-524c5fffde1a",
       "name": "GitHub: lanzar motor",
       "type": "n8n-nodes-base.httpRequest",
@@ -236,7 +364,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Sensor computacional de Govern (equivalente a propuestas.validar_llm, con dos reglas más):\n//  1. toda cifra del borrador debe aparecer en el contexto enviado a la IA;\n//  2. ninguna condición económica (porcentajes, descuento, rebaja, gratis);\n//  3. no menciona el riesgo de abandono;   4. máximo 200 palabras.\n// Si falla cualquier regla o la IA no responde, se conserva la plantilla del motor y se anota el motivo.\nconst propuestas = $('Separar propuestas').all();\nconst numeros = s => new Set(String(s || '').match(/\\d+(?:[.,]\\d+)?/g) || []);\nreturn $input.all().map((it, i) => {\n  const p = propuestas[i].json;\n  const r = it.json || {};\n  const texto = Array.isArray(r.content)\n    ? r.content.filter(c => c.type === 'text').map(c => c.text).join('\\n').trim() : '';\n  const motivos = [];\n  if (!texto) motivos.push('IA no disponible' + (r.error ? ` (${String(r.error.message || r.error).slice(0, 80)})` : ''));\n  else {\n    const ctx = numeros(p.contexto_ia);\n    const inventadas = [...numeros(texto)].filter(n => !ctx.has(n)).sort();\n    if (inventadas.length) motivos.push(`cifras no trazables [${inventadas.join(', ')}]`);\n    if (/\\d+\\s*%|descuento|rebaja|gratis/i.test(texto)) motivos.push('condición económica');\n    if (/riesgo|abandon/i.test(texto)) motivos.push('menciona el riesgo');\n    const palabras = texto.split(/\\s+/).filter(Boolean).length;\n    if (palabras > 200) motivos.push(`${palabras} palabras`);\n  }\n  const ok = motivos.length === 0;\n  return { json: {\n    fecha_corte: p.fecha_corte, id_cliente: p.id_cliente, razon_social: p.razon_social,\n    comercial_asignado: p.comercial_asignado, comercial_nombre: p.comercial_nombre, correo_comercial: p.correo_comercial,\n    material_cuerpo: ok ? texto : p.material_cuerpo,\n    fuente_material: ok ? 'llm' : `plantilla (IA descartada: ${motivos.join('; ')})`,\n    valido: ok,\n  } };\n});\n"
+        "jsCode": "// Sensor computacional de Govern (equivalente a propuestas.validar_llm, con dos reglas más):\n//  1. toda cifra del borrador debe aparecer en el contexto enviado a la IA;\n//  2. ninguna condición económica (porcentajes, descuento, rebaja, gratis);\n//  3. no menciona ni insinúa el riesgo de abandono (lista ampliada tras la auditoría, H3);   4. máximo 200 palabras.\n// Si falla cualquier regla o la IA no responde, se conserva la plantilla del motor y se anota el motivo.\nconst propuestas = $('Separar propuestas').all();\n// H3: el cliente no debe saber que el sistema le considera en riesgo. Se rechaza tanto la mención directa como\n// las fórmulas que la insinúan («hemos notado que ha reducido…», «no queremos perderle»).\nconst RIESGO = [\n  /\\briesgo/i, /abandon/i, /\\bchurn\\b/i, /\\bfuga\\b/i, /\\bperder(le|les|la|lo)?\\b/i, /\\bdejar de (anunciar|invertir|trabajar|contar)/i,\n  /\\bhemos (notado|detectado|observado|visto)\\b/i, /\\bnos preocupa/i, /\\bpreocupaci[oó]n\\b/i, /\\binactiv/i,\n  /\\b(ca[ií]da|descenso|bajada|disminuci[oó]n) (de|en) (su )?(inversi[oó]n|actividad|campañas)/i, /\\bprobabilidad\\b/i,\n  /\\bimpago/i, /\\bmoros/i, /\\bfacturas? (pendientes?|vencidas?|impagadas?)/i,\n];\nconst numeros = s => new Set(String(s || '').match(/\\d+(?:[.,]\\d+)?/g) || []);\nreturn $input.all().map((it, i) => {\n  const p = propuestas[i].json;\n  const r = it.json || {};\n  const texto = Array.isArray(r.content)\n    ? r.content.filter(c => c.type === 'text').map(c => c.text).join('\\n').trim() : '';\n  const motivos = [];\n  if (!texto) motivos.push('IA no disponible' + (r.error ? ` (${String(r.error.message || r.error).slice(0, 80)})` : ''));\n  else {\n    const ctx = numeros(p.contexto_ia);\n    const inventadas = [...numeros(texto)].filter(n => !ctx.has(n)).sort();\n    if (inventadas.length) motivos.push(`cifras no trazables [${inventadas.join(', ')}]`);\n    if (/\\d+\\s*%|descuento|rebaja|gratis/i.test(texto)) motivos.push('condición económica');\n    const insinua = RIESGO.filter(r => r.test(texto)).map(r => (texto.match(r) || [''])[0].toLowerCase());\n    if (insinua.length) motivos.push(`menciona o insinúa el riesgo [${insinua.join(', ')}]`);\n    const palabras = texto.split(/\\s+/).filter(Boolean).length;\n    if (palabras > 200) motivos.push(`${palabras} palabras`);\n  }\n  const ok = motivos.length === 0;\n  return { json: {\n    fecha_corte: p.fecha_corte, id_cliente: p.id_cliente, razon_social: p.razon_social,\n    comercial_asignado: p.comercial_asignado, comercial_nombre: p.comercial_nombre, correo_comercial: p.correo_comercial,\n    material_cuerpo: ok ? texto : p.material_cuerpo,\n    fuente_material: ok ? 'llm' : `plantilla (IA descartada: ${motivos.join('; ')})`,\n    valido: ok,\n  } };\n});\n"
       }
     },
     {
@@ -431,6 +559,49 @@
       ]
     },
     "Fecha de corte": {
+      "main": [
+        [
+          {
+            "node": "Supabase: estado de la carga",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: estado de la carga": {
+      "main": [
+        [
+          {
+            "node": "Datos al día",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Datos no aptos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos no aptos": {
+      "main": [
+        [
+          {
+            "node": "Aviso: datos no al día",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase: registrar ciclo detenido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos al día": {
       "main": [
         [
           {
