@@ -2,7 +2,7 @@
 import json, os, subprocess, tempfile, shutil
 import pytest
 RAIZ = os.path.join(os.path.dirname(__file__), ".."); N8N = os.path.join(RAIZ, "n8n")
-FLUJOS = ["W0_carga_semanal", "W1_ciclo_semanal", "W2_alertas_cierre", "W3_recordatorio_semanal", "W5_envio_al_aceptar"]
+FLUJOS = ["W0_carga_semanal", "W1_ciclo_semanal", "W2_alertas_cierre", "W3_recordatorio_semanal", "W5_envio_al_aceptar", "W7_auditor"]
 pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="requiere node")
 
 
@@ -147,3 +147,69 @@ def test_w5_registra_envio_correcto_error_y_bloqueo():
     assert r[0]["p_datos"] == {"ok": True, "id_mensaje": "msg-1"} and r[0]["p_accion"] == "registrar_envio" and r[0]["p_usuario"] == "n8n"
     assert r[1]["p_datos"]["ok"] is False and "Quota" in r[1]["p_datos"]["error"]
     assert r[2]["p_propuesta_id"] == 9 and "ficticio" in r[2]["p_datos"]["error"]
+
+
+# ------------------------------------------------------------------ W7 · auditor
+import base64
+def _gh(texto, sha="abc1234def"):
+    return {"statusCode": 200, "body": {"content": base64.b64encode(texto.encode()).decode(), "sha": sha}}
+RUBRICA = "# R\n\n## Mensaje de sistema\n\n" + "Eres un auditor. " * 20 + "\n\n## Uso manual\n\nNo enviar esto."
+PAR = {"tipo": "prueba", "modelo": "claude-fable-5-1", "paquete": "auditoria/paquete_prueba.md", "rubrica": "auditoria/rubrica_diseno.md"}
+PREP = {"tipo": "prueba", "modelo": "claude-fable-5-1", "paquete_ruta": "a.md", "paquete_sha": "s1", "rubrica_ruta": "r.md", "rubrica_sha": "s2"}
+BUENO = {"veredicto": "rechazado", "resumen": "El envío no tiene aprobación humana.",
+         "hallazgos": [{"id": "H1", "nodo": "N2", "criterio": "C5", "hallazgo": "Envía sin aprobación", "evidencia": "N2 · Dentro",
+                        "severidad": "alta", "correccion_propuesta": "Añadir aprobación del comercial"},
+                       {"id": "H2", "nodo": "N1", "criterio": "C3", "hallazgo": "Criterio no verificable", "evidencia": "N1 · Criterios",
+                        "severidad": "media", "correccion_propuesta": "Definir criterios con sí o no"}],
+         "puntos_fuertes": ["Proceso corto"]}
+
+
+def test_w7_parametros_y_preparar():
+    p = correr("w7_parametros.js", {"input": [{}], "nodos": {"Configuración": [{"github_repo": "u/meridiano-motor", "github_rama": "main"}]}})[0]
+    assert p["paquete"] == "auditoria/paquete_prueba.md" and p["repo"] == "u/meridiano-motor" and p["modelo"] == "claude-fable-5-1"
+    r = correr("w7_preparar.js", {"input": [{}], "nodos": {"Parámetros de la auditoría": [PAR],
+                                  "GitHub: leer paquete": [_gh("# Paquete con ñ y acentos")], "GitHub: leer rúbrica": [_gh(RUBRICA, "r9")]}})[0]
+    assert r["paquete"] == "# Paquete con ñ y acentos" and r["rubrica_sha"] == "r9"
+    assert r["sistema"].startswith("Eres un auditor.") and "Uso manual" not in r["sistema"]
+
+
+def test_w7_preparar_falla_si_github_no_encuentra_el_archivo():
+    import tempfile as _t
+    d = {"input": [{}], "nodos": {"Parámetros de la auditoría": [PAR],
+         "GitHub: leer paquete": [{"statusCode": 404, "body": {"message": "Not Found"}}], "GitHub: leer rúbrica": [_gh(RUBRICA)]}}
+    f = _t.NamedTemporaryFile("w", suffix=".json", delete=False); json.dump(d, f); f.close()
+    r = subprocess.run(["node", os.path.join(RAIZ, "tests", "n8n_harness.js"), os.path.join(N8N, "codigo", "w7_preparar.js"), f.name],
+                       capture_output=True, text=True)
+    assert r.returncode != 0 and "auditoria/paquete_prueba.md" in r.stderr and "404" in r.stderr
+
+
+def _validar(respuesta):
+    return correr("w7_validar.js", {"input": [respuesta], "nodos": {"Preparar la petición": [PREP]}})[0]
+
+
+def test_w7_validar_respuesta_correcta_con_vallas_de_codigo():
+    texto = "```json\n" + json.dumps(BUENO, ensure_ascii=False) + "\n```"
+    f = _validar({"statusCode": 200, "body": {"content": [{"type": "text", "text": texto}], "usage": {"input_tokens": 900, "output_tokens": 300}}})
+    assert f["estado"] == "ok" and f["veredicto"] == "rechazado" and (f["n_altas"], f["n_medias"], f["n_bajas"]) == (1, 1, 0)
+    assert f["tokens_entrada"] == 900 and f["avisos"] == [] and f["paquete_sha"] == "s1"
+
+
+def test_w7_validar_formato_invalido_y_error():
+    malo = dict(BUENO, veredicto="ok", hallazgos=[{"id": "H1", "severidad": "grave"}])
+    f = _validar({"statusCode": 200, "body": {"content": [{"type": "text", "text": json.dumps(malo)}]}})
+    assert f["estado"] == "formato_invalido" and "veredicto" in f["error"] and "faltan" in f["error"] and f["respuesta_bruta"]
+    f = _validar({"statusCode": 200, "body": {"content": [{"type": "text", "text": "No puedo responder en JSON."}]}})
+    assert f["estado"] == "formato_invalido" and "JSON" in f["error"]
+    f = _validar({"statusCode": 404, "body": {"error": {"message": "model: claude-xyz not found"}}})
+    assert f["estado"] == "error" and "not found" in f["error"] and f["veredicto"] is None
+
+
+def test_w7_aviso_de_coherencia_y_correo():
+    incoherente = dict(BUENO, veredicto="aprobado")
+    f = _validar({"statusCode": 200, "body": {"content": [{"type": "text", "text": json.dumps(incoherente)}]}})
+    assert f["estado"] == "ok" and f["avisos"]
+    c = correr("w7_correo.js", {"input": [{}], "nodos": {"Validar respuesta del auditor": [f]}})[0]
+    assert "aprobado (1 altas, 1 medias, 0 bajas)" in c["asunto"] and "[ALTA] H1" in c["texto"] and "AVISOS DE COHERENCIA" in c["texto"]
+    e = _validar({"statusCode": 500, "body": {"error": {"message": "overloaded"}}})
+    c = correr("w7_correo.js", {"input": [{}], "nodos": {"Validar respuesta del auditor": [e]}})[0]
+    assert "no respondió" in c["asunto"] and "overloaded" in c["texto"]

@@ -1,0 +1,382 @@
+{
+  "name": "Meridiano · W7 Auditor (pasos 05 y 08 FORGEN)",
+  "nodes": [
+    {
+      "id": "9e522017-1135-5f62-8e22-1b74b9870727",
+      "name": "Lanzar auditoría",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "3c89f6ed-bb0a-5548-b228-c66c6f9dd512",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// EDITAR UNA VEZ tras importar: valores del despliegue que NO son secretos.\n// Las claves privadas (GitHub, Claude, clave de servicio de Supabase, Gmail) van en credenciales de n8n, nunca aquí.\nreturn [{ json: {\n  github_repo: 'TU-USUARIO/meridiano-motor',                    // repositorio donde corre el motor (GitHub Actions)\n  github_rama: 'main',\n  supabase_url: 'https://xxxxxxxx.supabase.co',\n  hoja_datos_id: 'ID-de-la-hoja-de-Google-Sheets',               // lo que va entre /d/ y /edit en la URL de la hoja\n  panel_url: 'https://meridiano-panel.lovable.app',\n  correo_direccion: 'direccion@meridiano.com',\n  correo_datos: 'datos@meridiano.com',                           // responsable de la hoja de datos (avisos de la carga)\n  modelo_ia: 'claude-sonnet-5-5',\n  // MODO DEMO (datos ficticios): todos los correos van al buzón de pruebas, con el destinatario real en el asunto.\n  // Los correos salen de la cuenta de Gmail conectada en n8n; el buzón de pruebas puede ser esa misma cuenta (con alias +demo).\n  modo_demo: true,\n  buzon_demo: 'TU-CUENTA+demo@gmail.com',\n} }];\n"
+      }
+    },
+    {
+      "id": "6513de7d-4ad0-5662-b04c-d59d66e6f12d",
+      "name": "Parámetros de la auditoría",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// EDITAR ANTES DE LANZAR: qué se audita y con qué modelo.\n//  · tipo 'prueba'  → paquete corto con fallos puestos a propósito: comprueba que el flujo funciona. No es la auditoría.\n//  · tipo 'diseno'  → paso 05 de FORGEN: especificaciones de los 9 nodos.\n//  · tipo 'backlog' → paso 08 de FORGEN: backlog y solución desplegada (paquete pendiente de preparar).\n// El modelo auditor debe ser DISTINTO y MÁS CAPAZ que el que generó el diseño (Claude Opus).\nconst tipo = 'prueba';\nconst modelo_auditor = 'claude-fable-5-1';\n\nconst ARCHIVOS = {\n  prueba:  { paquete: 'auditoria/paquete_prueba.md',  rubrica: 'auditoria/rubrica_diseno.md' },\n  diseno:  { paquete: 'auditoria/paquete_diseno.md',  rubrica: 'auditoria/rubrica_diseno.md' },\n  backlog: { paquete: 'auditoria/paquete_backlog.md', rubrica: 'auditoria/rubrica_backlog.md' },\n};\nif (!ARCHIVOS[tipo]) throw new Error(`tipo «${tipo}» no válido: usa prueba, diseno o backlog`);\nconst cfg = $('Configuración').first().json;\nreturn [{ json: { tipo, modelo: modelo_auditor, ...ARCHIVOS[tipo], repo: cfg.github_repo, rama: cfg.github_rama || 'main' } }];\n"
+      }
+    },
+    {
+      "id": "a1ab9a8b-bd95-53cd-87e3-0abf4d2a474e",
+      "name": "GitHub: leer paquete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        540,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $('Parámetros de la auditoría').first().json.repo }}/contents/{{ $('Parámetros de la auditoría').first().json.paquete }}?ref={{ $('Parámetros de la auditoría').first().json.rama }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi"
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "github",
+          "name": "GitHub account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "7b4f402f-1bfe-5c98-9e3d-34487c5514dd",
+      "name": "GitHub: leer rúbrica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $('Parámetros de la auditoría').first().json.repo }}/contents/{{ $('Parámetros de la auditoría').first().json.rubrica }}?ref={{ $('Parámetros de la auditoría').first().json.rama }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi"
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "github",
+          "name": "GitHub account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "0b19220a-cbf4-5fe6-9bce-f29376e57c40",
+      "name": "Preparar la petición",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Junta el paquete y la rúbrica leídos de GitHub (con su versión: el sha del archivo) en la petición al auditor.\n// Del archivo de rúbrica solo se usa la sección «## Mensaje de sistema».\nconst par = $('Parámetros de la auditoría').first().json;\nfunction leer(nodo, ruta) {\n  const r = $(nodo).first().json || {};\n  if ((r.statusCode || 200) >= 300 || !r.body || !r.body.content) {\n    const msg = (r.body && r.body.message) || JSON.stringify(r.body || r).slice(0, 200);\n    throw new Error(`No se ha podido leer ${ruta} de GitHub (${r.statusCode || '?'}): ${msg}`);\n  }\n  return { texto: Buffer.from(r.body.content, 'base64').toString('utf8'), sha: r.body.sha };\n}\nconst paquete = leer('GitHub: leer paquete', par.paquete);\nconst rubrica = leer('GitHub: leer rúbrica', par.rubrica);\nconst m = rubrica.texto.match(/## Mensaje de sistema\\s*\\n([\\s\\S]*?)(?=\\n## |\\s*$)/);\nif (!m || m[1].trim().length < 200) throw new Error(`La rúbrica ${par.rubrica} no tiene la sección «## Mensaje de sistema»`);\nreturn [{ json: {\n  tipo: par.tipo, modelo: par.modelo,\n  paquete_ruta: par.paquete, paquete_sha: paquete.sha, rubrica_ruta: par.rubrica, rubrica_sha: rubrica.sha,\n  sistema: m[1].trim(), paquete: paquete.texto,\n} }];\n"
+      }
+    },
+    {
+      "id": "6174bec3-d9bb-550c-9645-da9d6438e1fa",
+      "name": "Claude: modelo auditor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "options": {
+          "timeout": 300000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.modelo, max_tokens: 8000, system: $json.sistema, messages: [{ role: 'user', content: $json.paquete }] }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anthropic",
+          "name": "Anthropic API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 10000,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "2e6f6a64-f31e-58d6-bb19-c26d4cd9e39b",
+      "name": "Validar respuesta del auditor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Sensor de Govern sobre la respuesta del auditor: debe ser el JSON pedido por la rúbrica. Se guarda SIEMPRE una fila\n// (también si falla), con la respuesta tal cual, para que la evidencia no dependa de que el formato sea correcto.\nconst p = $('Preparar la petición').first().json;\nconst r = $input.first().json || {};\nconst VEREDICTOS = ['aprobado', 'aprobado con cambios', 'rechazado'];\nconst SEV = ['alta', 'media', 'baja'];\nconst CAMPOS = ['id', 'nodo', 'criterio', 'hallazgo', 'evidencia', 'severidad', 'correccion_propuesta'];\nconst fila = {\n  tipo: p.tipo, modelo: p.modelo, paquete_ruta: p.paquete_ruta, paquete_sha: p.paquete_sha,\n  rubrica_ruta: p.rubrica_ruta, rubrica_sha: p.rubrica_sha,\n  estado: 'error', veredicto: null, resumen: null, hallazgos: [], puntos_fuertes: [],\n  n_altas: 0, n_medias: 0, n_bajas: 0, avisos: [], error: null, respuesta_bruta: null,\n  tokens_entrada: null, tokens_salida: null,\n};\nconst b = r.body || {};\nif ((r.statusCode || 0) >= 300 || !Array.isArray(b.content)) {\n  const e = b.error || {};\n  fila.error = `El modelo auditor no respondió (${r.statusCode || 'sin respuesta'}): ${e.message || JSON.stringify(b).slice(0, 300)}`;\n  return [{ json: fila }];\n}\nfila.tokens_entrada = (b.usage || {}).input_tokens ?? null;\nfila.tokens_salida = (b.usage || {}).output_tokens ?? null;\nconst texto = b.content.filter(c => c.type === 'text').map(c => c.text).join('\\n').trim();\nfila.respuesta_bruta = texto.slice(0, 100000);\nconst errores = [];\nlet j = null;\ntry {\n  const ini = texto.indexOf('{'), fin = texto.lastIndexOf('}');\n  j = JSON.parse(texto.slice(ini, fin + 1));\n} catch (e) { errores.push('la respuesta no es un JSON válido'); }\nif (j) {\n  if (!VEREDICTOS.includes(j.veredicto)) errores.push(`veredicto «${j.veredicto}» no válido`);\n  if (typeof j.resumen !== 'string' || !j.resumen.trim()) errores.push('falta el resumen');\n  if (!Array.isArray(j.hallazgos)) errores.push('hallazgos no es una lista');\n  else {\n    if (j.hallazgos.length > 12) errores.push(`${j.hallazgos.length} hallazgos (máximo 12)`);\n    j.hallazgos.forEach((h, i) => {\n      const faltan = CAMPOS.filter(c => typeof (h || {})[c] !== 'string' || !h[c].trim());\n      if (faltan.length) errores.push(`hallazgo ${i + 1}: faltan ${faltan.join(', ')}`);\n      else if (!SEV.includes(h.severidad)) errores.push(`hallazgo ${i + 1}: severidad «${h.severidad}» no válida`);\n    });\n  }\n  if (j.puntos_fuertes !== undefined && !Array.isArray(j.puntos_fuertes)) errores.push('puntos_fuertes no es una lista');\n}\nif (errores.length) {\n  fila.estado = 'formato_invalido';\n  fila.error = errores.slice(0, 10).join('; ');\n  return [{ json: fila }];\n}\nconst cuenta = s => j.hallazgos.filter(h => h.severidad === s).length;\nObject.assign(fila, {\n  estado: 'ok', veredicto: j.veredicto, resumen: j.resumen.trim(), hallazgos: j.hallazgos,\n  puntos_fuertes: (j.puntos_fuertes || []).slice(0, 3), n_altas: cuenta('alta'), n_medias: cuenta('media'), n_bajas: cuenta('baja'),\n});\n// Coherencia con la rúbrica (aviso, no invalida: queda registrado para revisarlo)\nif (fila.veredicto === 'aprobado' && (fila.n_altas || fila.n_medias)) fila.avisos.push('veredicto «aprobado» con hallazgos altos o medios');\nif (fila.veredicto === 'rechazado' && !fila.n_altas) fila.avisos.push('veredicto «rechazado» sin hallazgos altos');\nreturn [{ json: fila }];\n"
+      }
+    },
+    {
+      "id": "ed62acd9-06fd-5ec9-b6d9-debf377e4fb8",
+      "name": "Supabase: guardar auditoría",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/auditorias",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "7ee60d98-1d69-542d-99ab-ba574ef42654",
+      "name": "Redactar resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Resumen por correo de la ejecución del auditor (la evidencia completa queda en la tabla auditorias de Supabase).\nconst f = $('Validar respuesta del auditor').first().json;\nconst NOMBRE = { prueba: 'PRUEBA del flujo', diseno: 'auditoría del diseño (paso 05)', backlog: 'auditoría del backlog (paso 08)' };\nconst cab = [`Tipo: ${NOMBRE[f.tipo] || f.tipo}`, `Modelo auditor: ${f.modelo}`,\n  `Paquete: ${f.paquete_ruta} (versión ${String(f.paquete_sha || '').slice(0, 7)})`,\n  `Rúbrica: ${f.rubrica_ruta} (versión ${String(f.rubrica_sha || '').slice(0, 7)})`];\nlet asunto, cuerpo;\nif (f.estado !== 'ok') {\n  asunto = `Meridiano · auditor: ${f.estado === 'error' ? 'el modelo no respondió' : 'respuesta con formato no válido'}`;\n  cuerpo = [...cab, '', `Estado: ${f.estado}`, `Detalle: ${f.error}`, '',\n    'La ejecución ha quedado registrada en la tabla auditorias con la respuesta tal cual.'].join('\\n');\n} else {\n  asunto = `Meridiano · auditor: ${f.veredicto} (${f.n_altas} altas, ${f.n_medias} medias, ${f.n_bajas} bajas)`;\n  const h = f.hallazgos.map(x => `- [${x.severidad.toUpperCase()}] ${x.id} · ${x.nodo} · ${x.criterio}: ${x.hallazgo}\\n    Corrección: ${x.correccion_propuesta}`);\n  cuerpo = [...cab, '', `VEREDICTO: ${f.veredicto.toUpperCase()}`, f.resumen, '', 'HALLAZGOS', ...(h.length ? h : ['(ninguno)']),\n    ...(f.puntos_fuertes.length ? ['', 'PUNTOS FUERTES', ...f.puntos_fuertes.map(x => `- ${x}`)] : []),\n    ...(f.avisos.length ? ['', 'AVISOS DE COHERENCIA', ...f.avisos.map(x => `- ${x}`)] : []),\n    '', `Tokens: ${f.tokens_entrada} de entrada, ${f.tokens_salida} de salida. Detalle completo en la tabla auditorias.`].join('\\n');\n}\nreturn [{ json: { asunto, texto: cuerpo } }];\n"
+      }
+    },
+    {
+      "id": "0c1e8768-5d5c-56e1-8b4a-fe5c1e59cf94",
+      "name": "Resumen de la auditoría",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1620,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuración').first().json.modo_demo ? $('Configuración').first().json.buzon_demo : ($('Configuración').first().json.correo_direccion) }}",
+        "subject": "={{ ($('Configuración').first().json.modo_demo ? '[DEMO → ' + ($('Configuración').first().json.correo_direccion) + '] ' : '') + ($json.asunto) }}",
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Meridiano · Plan comercial"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Lanzar auditoría": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Parámetros de la auditoría",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parámetros de la auditoría": {
+      "main": [
+        [
+          {
+            "node": "GitHub: leer paquete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: leer paquete": {
+      "main": [
+        [
+          {
+            "node": "GitHub: leer rúbrica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: leer rúbrica": {
+      "main": [
+        [
+          {
+            "node": "Preparar la petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar la petición": {
+      "main": [
+        [
+          {
+            "node": "Claude: modelo auditor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude: modelo auditor": {
+      "main": [
+        [
+          {
+            "node": "Validar respuesta del auditor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar respuesta del auditor": {
+      "main": [
+        [
+          {
+            "node": "Supabase: guardar auditoría",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Redactar resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar resumen": {
+      "main": [
+        [
+          {
+            "node": "Resumen de la auditoría",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Madrid"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

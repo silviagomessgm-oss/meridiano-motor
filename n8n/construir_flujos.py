@@ -8,6 +8,8 @@ Genera los flujos de n8n de Meridiano (JSON importables: Workflows → Import fr
   W2_alertas_cierre.json       · webhook de base de datos de Supabase al registrarse un evento → si es un cierre que lo requiere,
                                  alerta a dirección. (El panel escribe directamente en Supabase con accion_panel(), que deja la traza.)
   W3_recordatorio_semanal.json · lunes: tareas sin cerrar del plan vigente → recordatorio a cada comercial
+  W7_auditor.json              · a mano: lee de GitHub el paquete y la rúbrica → modelo auditor (Claude, distinto y más capaz
+                                 que el generador) → valida el JSON → guarda en Supabase (auditorias) → resumen por correo
 El código JavaScript de los nodos Code está en n8n/codigo/*.js (probado con node en tests/test_n8n.py).
 Credenciales (se crean en n8n y se seleccionan en los nodos tras importar):
   · "GitHub account"            GitHub API   · Access Token = token de GitHub (solo meridiano-motor, Actions: lectura y escritura)
@@ -256,7 +258,34 @@ w3 = flujo("Meridiano · W3 Recordatorio semanal", [
 ], [("Lunes 8:00", "Configuración"), ("Configuración", "Supabase: comerciales"), ("Supabase: comerciales", "Supabase: tareas sin cerrar"),
     ("Supabase: tareas sin cerrar", "Agrupar por comercial"), ("Agrupar por comercial", "Recordatorio al comercial")])
 
+# ------------------------------------------------------------------ W7 · auditor (pasos 05 y 08 de FORGEN)
+GH_CONTENIDO = ("=https://api.github.com/repos/{{ $('Parámetros de la auditoría').first().json.repo }}/contents/"
+                "{{ $('Parámetros de la auditoría').first().json.%s }}?ref={{ $('Parámetros de la auditoría').first().json.rama }}")
+w7 = flujo("Meridiano · W7 Auditor (pasos 05 y 08 FORGEN)", [
+    nodo("Lanzar auditoría", "n8n-nodes-base.manualTrigger", 1, [0, 100], {}),
+    code("Configuración", [180, 100], "configuracion.js"),
+    code("Parámetros de la auditoría", [360, 100], "w7_parametros.js"),
+    http("GitHub: leer paquete", [540, 100], "GET", GH_CONTENIDO % "paquete", "gh", completa=True),
+    http("GitHub: leer rúbrica", [720, 100], "GET", GH_CONTENIDO % "rubrica", "gh", completa=True),
+    code("Preparar la petición", [900, 100], "w7_preparar.js"),
+    http("Claude: modelo auditor", [1080, 100], "POST", "https://api.anthropic.com/v1/messages", "ia",
+         cabeceras={"anthropic-version": "2023-06-01"},
+         cuerpo="={{ JSON.stringify({ model: $json.modelo, max_tokens: 8000, system: $json.sistema, "
+                "messages: [{ role: 'user', content: $json.paquete }] }) }}",
+         opciones={"timeout": 300000}, completa=True, retryOnFail=True, maxTries=2, waitBetweenTries=10000),
+    code("Validar respuesta del auditor", [1260, 100], "w7_validar.js"),
+    http("Supabase: guardar auditoría", [1440, 0], "POST", SB + "/auditorias", "sb",
+         cabeceras={"Prefer": "return=minimal"}, cuerpo="={{ JSON.stringify($json) }}"),
+    code("Redactar resumen", [1440, 200], "w7_correo.js"),
+    correo("Resumen de la auditoría", [1620, 200], "={{ " + CFG + ".correo_direccion }}", "={{ $json.asunto }}", "={{ $json.texto }}"),
+], [("Lanzar auditoría", "Configuración"), ("Configuración", "Parámetros de la auditoría"),
+    ("Parámetros de la auditoría", "GitHub: leer paquete"), ("GitHub: leer paquete", "GitHub: leer rúbrica"),
+    ("GitHub: leer rúbrica", "Preparar la petición"), ("Preparar la petición", "Claude: modelo auditor"),
+    ("Claude: modelo auditor", "Validar respuesta del auditor"),
+    ("Validar respuesta del auditor", "Supabase: guardar auditoría"), ("Validar respuesta del auditor", "Redactar resumen"),
+    ("Redactar resumen", "Resumen de la auditoría")])
+
 if __name__ == "__main__":
-    for nombre, w in [("W0_carga_semanal", w0), ("W1_ciclo_semanal", w1), ("W2_alertas_cierre", w2), ("W5_envio_al_aceptar", w5), ("W3_recordatorio_semanal", w3)]:
+    for nombre, w in [("W0_carga_semanal", w0), ("W1_ciclo_semanal", w1), ("W2_alertas_cierre", w2), ("W5_envio_al_aceptar", w5), ("W3_recordatorio_semanal", w3), ("W7_auditor", w7)]:
         json.dump(w, open(os.path.join(AQUI, nombre + ".json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print(nombre, len(w["nodes"]), "nodos")
