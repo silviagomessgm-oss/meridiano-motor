@@ -9,7 +9,7 @@ import pandas as pd
 
 from .datos import cargar_tablas
 from .etiqueta import UN_ANIO, en, etiquetar, fechas_corte
-from .panel import LIMITE_FIN_W, construir_panel, separar_entrenamiento_prueba
+from .panel import construir_panel, separar_entrenamiento_prueba
 from .variables import VARIABLES
 
 BINARIAS = ["cambio_interlocutor_12m", "reclamacion_sin_resolver_12m"]

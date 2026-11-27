@@ -7,12 +7,12 @@ import pytest
 
 from modelo_churn.datos import cargar_tablas
 from modelo_churn.etiqueta import fechas_corte
-from modelo_churn.panel import LIMITE_FIN_W
+from modelo_churn.panel import limite_fin_w
 from modelo_churn.variables import calcular_variables
 
 TABLAS = Path(__file__).resolve().parents[2] / "tablas"
 DATOS = cargar_tablas(TABLAS)
-CORTES = fechas_corte(DATOS["campanas"], LIMITE_FIN_W)
+CORTES = fechas_corte(DATOS["campanas"], limite_fin_w(DATOS))
 
 
 def _solo_hasta(tablas, T):

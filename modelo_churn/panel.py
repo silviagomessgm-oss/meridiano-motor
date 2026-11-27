@@ -4,14 +4,19 @@ import pandas as pd
 from .etiqueta import etiquetar, fechas_corte
 from .variables import calcular_variables
 
-LIMITE_FIN_W = "2026-09-01"   # W debe terminar antes de esta fecha
 N_CORTES_PRUEBA = 2
 
 
-def construir_panel(tablas, limite_fin_w=LIMITE_FIN_W, regla_anio="W", excluir_nuevos=True):
+def limite_fin_w(tablas):
+    """W debe terminar antes del día 1 del último mes con campañas (con los datos
+    del TFP: 1-sep-2026). Se calcula de los datos para que sirva si se amplían."""
+    return tablas["campanas"]["fecha_emision"].max().to_period("M").to_timestamp()
+
+
+def construir_panel(tablas, limite=None, regla_anio="W", excluir_nuevos=True):
     """excluir_nuevos: fuera los anunciantes con < 1 año desde el alta en T (decisión 21)."""
     filas = []
-    for T in fechas_corte(tablas["campanas"], limite_fin_w):
+    for T in fechas_corte(tablas["campanas"], limite or limite_fin_w(tablas)):
         X = calcular_variables(tablas, T)
         y = etiquetar(tablas["campanas"], tablas["clientes"], T, regla_anio=regla_anio)
         filas.append(X.merge(y, on=["fecha_corte", "id_cliente"], how="inner", validate="1:1"))
