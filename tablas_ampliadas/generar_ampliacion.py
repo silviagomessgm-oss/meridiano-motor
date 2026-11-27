@@ -444,7 +444,27 @@ for clave, eps in episodios.items():                                       # pro
             if env <= FIN_ATRAS:
                 oportunidad(clave, None, "Ampliacion de cartera", rng.choice(no_gan_ampl), env, None, p["comercial"], rng.choice(prods))
 
-# ---------------------------------------------------------------- 8. escritura: originales byte a byte + filas nuevas al final
+# ---------------------------------------------------------------- 7b. facturas originales pendientes a 30-sep-2026
+# Las 61 facturas originales «Pendiente» reflejan el estado a 30-sep-2026. En tablas_ampliadas se actualiza su situación a
+# 27-nov-2026 dentro de fact_facturacion (las cobradas pasan a «Cobrada» con fecha de cobro y días de retraso), con el
+# retraso de cobro habitual. cobros_posteriores.csv deja constancia de qué filas cambian. tablas/ no se toca.
+pend = fac[fac.estado == "Pendiente"].copy()
+filas_cob = []
+for _, f in pend.iterrows():
+    r = float(rng.choice(retrasos)); cobro = f.fecha_vencimiento + pd.Timedelta(days=r)
+    cobro = max(cobro, pd.Timestamp("2026-10-01"))                       # a 30-sep seguía sin cobrar
+    ok = cobro <= HOY
+    filas_cob.append(dict(id_factura=f.id_factura, id_cliente=f.id_cliente, fecha_vencimiento=f.fecha_vencimiento.strftime("%Y-%m-%d"),
+                          fecha_cobro=cobro.strftime("%Y-%m-%d") if ok else "",
+                          dias_retraso=(cobro - f.fecha_vencimiento).days if ok else "",
+                          estado_27nov2026="Cobrada" if ok else "Pendiente"))
+cobros = pd.DataFrame(filas_cob)
+cobros.to_csv(os.path.join(SAL, "cobros_posteriores.csv"), index=False, lineterminator="\n")
+print(f"cobros_posteriores   {len(filas_cob)} facturas originales pendientes a 30-sep-2026 · "
+      f"{sum(f['estado_27nov2026'] == 'Cobrada' for f in filas_cob)} cobradas a 27-nov-2026")
+
+# ---------------------------------------------------------------- 8. escritura: originales + filas nuevas al final
+# Las filas originales se copian tal cual, salvo las facturas pendientes a 30-sep-2026 cobradas antes del 27-nov-2026.
 def fmt(df, cols, fechas):
     df = df[cols].copy()
     for c in fechas: df[c] = pd.to_datetime(df[c]).dt.strftime("%Y-%m-%d")
@@ -462,6 +482,15 @@ for nombre in sorted(os.listdir(ORIG)):
     if not nombre.endswith(".csv"): continue
     t = nombre[:-4]
     original = open(os.path.join(ORIG, nombre), encoding="utf-8").read()
+    if t == "fact_facturacion":
+        cobradas = {r.id_factura: r for r in cobros[cobros.estado_27nov2026 == "Cobrada"].itertuples()}
+        lineas = original.split("\n")
+        for k, l in enumerate(lineas):
+            r = cobradas.get(l.split(",", 1)[0])
+            if r is not None:
+                assert l.endswith(",,,Pendiente"), l
+                lineas[k] = l[: -len(",,,Pendiente")] + f",{r.fecha_cobro},{float(r.dias_retraso)},Cobrada"
+        original = "\n".join(lineas)
     cabecera = original.splitlines()[0].split(",")
     nuevas = ""
     if t in salidas:
@@ -472,21 +501,3 @@ for nombre in sorted(os.listdir(ORIG)):
     with open(os.path.join(SAL, nombre), "w", encoding="utf-8", newline="") as fh:
         fh.write(original if original.endswith("\n") else original + "\n"); fh.write(nuevas)
     print(f"{t:20s} originales {original.count(chr(10)) - 1 + (not original.endswith(chr(10))):5d} · nuevas {nuevas.count(chr(10)):6d}")
-
-# ---------------------------------------------------------------- 9. facturas originales pendientes a 30-sep-2026
-# Las 61 facturas originales «Pendiente» reflejan el estado a 30-sep-2026 y no se modifican. Su situación a 27-nov-2026 va
-# en una tabla aparte (cobros_posteriores.csv), con el mismo retraso de cobro que el resto de facturas del anunciante.
-pend = fac[fac.estado == "Pendiente"].copy()
-filas_cob = []
-for _, f in pend.iterrows():
-    r = float(rng.choice(retrasos)); cobro = f.fecha_vencimiento + pd.Timedelta(days=r)
-    cobro = max(cobro, pd.Timestamp("2026-10-01"))                       # a 30-sep seguía sin cobrar
-    ok = cobro <= HOY
-    filas_cob.append(dict(id_factura=f.id_factura, id_cliente=f.id_cliente, fecha_vencimiento=f.fecha_vencimiento.strftime("%Y-%m-%d"),
-                          fecha_cobro=cobro.strftime("%Y-%m-%d") if ok else "",
-                          dias_retraso=(cobro - f.fecha_vencimiento).days if ok else "",
-                          estado_27nov2026="Cobrada" if ok else "Pendiente"))
-pd.DataFrame(filas_cob).to_csv(os.path.join(SAL, "cobros_posteriores.csv"), index=False, lineterminator="\n")
-print(f"cobros_posteriores   {len(filas_cob)} facturas originales pendientes a 30-sep-2026 · "
-      f"{sum(f['estado_27nov2026'] == 'Cobrada' for f in filas_cob)} cobradas a 27-nov-2026")
-
