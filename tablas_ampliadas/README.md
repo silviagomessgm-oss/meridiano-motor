@@ -2,7 +2,7 @@
 
 Ampliación de los datos sintéticos del TFP para entrenar el modelo de abandono con más historia. **Las tablas originales
 (`tablas/`, oct-2023 → sep-2026) no se modifican**: en cada archivo de esta carpeta, las filas originales están copiadas
-byte a byte al principio y las filas nuevas se añaden al final, con identificadores que continúan la numeración.
+byte a byte al principio (salvo los cobros de 54 facturas, ver «Facturas pendientes») y las filas nuevas se añaden al final, con identificadores que continúan la numeración.
 
 `tablas/` sigue siendo la fuente de la hoja de Google, de los tests y de la demo. Esta carpeta es solo para el modelo.
 
@@ -52,9 +52,10 @@ generación.** La única excepción es la continuación de sep-2026 a nov-2026, 
 
 ### Facturas pendientes
 
-Las 61 facturas originales en estado «Pendiente» reflejan la situación a 30-sep-2026, la fecha de los datos originales, y
-no se modifican. Su situación a 27-nov-2026 está en **`cobros_posteriores.csv`** (54 cobradas y 7 todavía pendientes),
-con el retraso de cobro habitual. Ningún corte con resultado la necesita. Solo hace falta si se puntúa a 27-nov-2026.
+Las 61 facturas originales en estado «Pendiente» reflejan la situación a 30-sep-2026. En `tablas_ampliadas/fact_facturacion.csv`
+**se actualiza su situación a 27-nov-2026**: 54 pasan a «Cobrada», con fecha de cobro y días de retraso, y 7 siguen
+pendientes. Son las únicas filas originales que cambian en esta carpeta; `tablas/` no se toca. `cobros_posteriores.csv`
+deja constancia de esas 61 facturas. Ningún corte con resultado depende de estos cobros.
 
 ## Método
 
