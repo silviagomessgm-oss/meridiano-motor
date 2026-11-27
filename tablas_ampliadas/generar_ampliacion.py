@@ -36,17 +36,18 @@ OBJETIVO_ACTIVOS = {2020: 98, 2021: 110, 2022: 122, 2023: 130}
 P_GRADUAL = 0.70                                       # bajas precedidas de descenso (Léame del caso)
 # Los anunciantes que se dan de baja antes de oct-2023 (antiguos y los 35 sin campañas) tienen su última campaña como muy
 # tarde el 30-jun-2023: así no entran en la población (≤ 540 días sin actividad) de los cortes de evaluación originales.
-ULT_BAJA = pd.Timestamp("2023-06-30")
+ULT_BAJA = pd.Timestamp(os.environ.get("CAL_UB", "2023-06-30"))
+P_EF23 = float(os.environ.get("CAL_EF23", 1.0))  # anunciantes actuales sin compras hasta después de abr-24 que compran por última vez en oct-22–sep-23
 # Señales, calibradas para que su relación con el abandono (etiqueta E2) sea la de los datos originales (ver README).
 # Se pueden sobrescribir con variables de entorno CAL_* solo para recalibrar; los valores por defecto generan los CSV publicados.
 CAL = dict(
-    base_interlocutor=float(os.environ.get("CAL_BI", 0.03)),   # cambios de interlocutor al año, a cualquier anunciante
-    p_interlocutor=float(os.environ.get("CAL_PI", 0.22)),      # probabilidad de un cambio antes de cada episodio de abandono
+    base_interlocutor=float(os.environ.get("CAL_BI", 0.015)),   # cambios de interlocutor al año, a cualquier anunciante
+    p_interlocutor=float(os.environ.get("CAL_PI", 0.30)),      # probabilidad de un cambio antes de cada episodio de abandono
     base_reclamacion=0.04,                                     # reclamaciones al año (resueltas), a cualquier anunciante
-    p_reclamacion=float(os.environ.get("CAL_PR", 0.08)),       # reclamación sin resolver antes de una pérdida definitiva
-    p_ctr=float(os.environ.get("CAL_PC", 0.30)),               # CTR un 40 % más bajo en el año previo a un episodio
+    p_reclamacion=float(os.environ.get("CAL_PR", 0.30)),       # reclamación sin resolver antes de una pérdida definitiva
+    p_ctr=float(os.environ.get("CAL_PC", 0.35)),               # CTR un 40 % más bajo en el año previo a un episodio
     propuestas_mes=0.06,                                       # propuestas de ampliación no ganadas por anunciante y mes
-    propuestas_previas=float(os.environ.get("CAL_PP", 0.4)),   # propuestas perdidas de más en los meses previos a un episodio
+    propuestas_previas=float(os.environ.get("CAL_PP", 0.5)),   # propuestas perdidas de más en los meses previos a un episodio
     ventana_interlocutor=int(os.environ.get("CAL_VI", 60)),    # días antes del corte en que se sitúa el cambio
 )
 
@@ -66,19 +67,24 @@ def nuevo_id(pref):
     return f"{pref}{v:0{ANCHO[pref]}d}"
 
 camp = camp.merge(cli[["id_cliente", "tamano", "categoria"]], on="id_cliente", how="left")
-inicio_camp = camp.groupby("id_campana").fecha_emision.min()
-plantillas = {t: [g for _, g in camp[camp.tamano == t].groupby("id_campana")] for t in cli.tamano.unique()}
-propias = {c: [g for _, g in g0.groupby("id_campana")] for c, g0 in camp.groupby("id_cliente")}
+# Todo lo que se mide en los datos originales para generar (plantillas, ritmos, frecuencias, calibración) usa solo datos
+# hasta el último corte de entrenamiento (jun-2025): los cortes de prueba (sep-2025 y dic-2025) no intervienen.
+REF = pd.Timestamp("2025-06-30")
+camp_ref = camp[camp.fecha_emision <= REF]
+plantillas = {t: [g for _, g in camp_ref[camp_ref.tamano == t].groupby("id_campana")] for t in cli.tamano.unique()}
+propias = {c: [g for _, g in g0.groupby("id_campana")] for c, g0 in camp_ref.groupby("id_cliente")}
 
 # Ritmo anual de campañas por anunciante actual (campañas / años entre su primera y última campaña, mínimo 1 año)
 def ritmo(g):
     ini = g.groupby("id_campana").fecha_emision.min()
     años = max(1.0, (ini.max() - ini.min()).days / 365.25 + 0.5)
     return len(ini) / años
-ritmo_cli = camp.groupby("id_cliente").apply(ritmo, include_groups=False)
+ritmo_cli = camp_ref.groupby("id_cliente").apply(ritmo, include_groups=False)
 ritmos_tam = {t: ritmo_cli[ritmo_cli.index.isin(cli[cli.tamano == t].id_cliente)].values for t in cli.tamano.unique()}
+tam_cli = cli.set_index("id_cliente").tamano
+ritmo_de = lambda idc: ritmo_cli[idc] if idc in ritmo_cli.index else float(np.median(ritmos_tam[tam_cli[idc]]))
 # Estacionalidad: meses de inicio de campaña por sector y por anunciante
-mes_inicio = camp.groupby("id_campana").agg(c=("id_cliente", "first"), cat=("categoria", "first"), f=("fecha_emision", "min"))
+mes_inicio = camp_ref.groupby("id_campana").agg(c=("id_cliente", "first"), cat=("categoria", "first"), f=("fecha_emision", "min"))
 mes_inicio["m"] = mes_inicio.f.dt.month
 est_sector = {k: (g.m.value_counts().reindex(range(1, 13), fill_value=0) + 1).values for k, g in mes_inicio.groupby("cat")}
 est_cli = {k: g.m.value_counts().reindex(range(1, 13), fill_value=0).values for k, g in mes_inicio.groupby("c")}
@@ -142,10 +148,17 @@ for _, c in cli[(cli.fecha_alta < "2023-10-01") & cli.id_cliente.isin(primera_or
     desde = max(c.fecha_alta, INICIO); hasta = FIN_ATRAS
     baja = None
     # Quien no compra hasta bien entrado el periodo original se trata como un anunciante que se fue y volvió (reactivación)
-    if primera_orig[c.id_cliente] > pd.Timestamp("2024-03-31") and rng.random() < 0.85 and desde < pd.Timestamp("2023-03-31"):
+    ef23 = False
+    if primera_orig[c.id_cliente] > pd.Timestamp("2024-04-30") and desde < pd.Timestamp("2022-10-01") and rng.random() < P_EF23:
+        # Compra por última vez entre oct-22 y sep-23 y no vuelve hasta después de abr-24 (calibrado para que el abandono de
+        # los cortes de 2023 ronde el 50 %, como en el resto)
+        ef23 = True
+        baja = pd.Timestamp("2022-11-01") + pd.Timedelta(days=int(rng.integers(0, 334)))
+        hasta = baja
+    elif primera_orig[c.id_cliente] > pd.Timestamp("2024-03-31") and rng.random() < 0.85 and desde < pd.Timestamp("2023-03-31"):
         baja = desde + pd.Timedelta(days=int(rng.integers(120, max(121, (pd.Timestamp("2023-06-30") - desde).days))))
         hasta = min(baja, FIN_ATRAS)
-    lam = ritmo_cli[c.id_cliente] * rng.normal(1, 0.1)
+    lam = ritmo_de(c.id_cliente) * rng.normal(1, 0.1)
     gradual = rng.random() < P_GRADUAL
     for d in inicios(c.id_cliente, c.categoria, lam, desde, hasta):
         if rng.random() < 0.10: continue                                    # pausas puntuales
@@ -153,6 +166,9 @@ for _, c in cli[(cli.fecha_alta < "2023-10-01") & cli.id_cliente.isin(primera_or
         if decl and rng.random() < 0.5: continue
         emitir_campana(c.id_cliente, c.comercial_asignado, c.tamano, d, propias.get(c.id_cliente),
                        0.6 if decl else 1.0, 0.7 if decl else 1.0, limite=hasta, minimo=c.fecha_alta)
+    if ef23 and not any(f["id_cliente"] == c.id_cliente and f["fecha_emision"] >= pd.Timestamp("2022-10-01") for f in filas_camp[-40:]):
+        d = pd.Timestamp("2022-10-01") + pd.Timedelta(days=int(rng.integers(0, max(1, (baja - pd.Timestamp("2022-10-01")).days))))
+        emitir_campana(c.id_cliente, c.comercial_asignado, c.tamano, d, propias.get(c.id_cliente), limite=hasta, minimo=c.fecha_alta)
     perfil[c.id_cliente] = dict(desde=desde, hasta=hasta, baja=baja, gradual=gradual, nuevo=False,
                                 comercial=c.comercial_asignado, tam=c.tamano, en_originales=True)
 
@@ -222,7 +238,7 @@ for _, c in cli[cli.id_cliente.isin(ult.index)].iterrows():
     g = camp[camp.id_cliente == c.id_cliente]
     f6 = g[g.fecha_emision > "2026-03-01"].importe_eur.sum(); f6p = g[(g.fecha_emision > "2025-09-01") & (g.fecha_emision <= "2026-03-01")].importe_eur.sum()
     tend = min(1.5, f6 / f6p) if f6p > 0 else (1.0 if f6 > 0 else 0.4)
-    for d in inicios(c.id_cliente, c.categoria, ritmo_cli[c.id_cliente] * tend, inicio_adelante, HOY):
+    for d in inicios(c.id_cliente, c.categoria, ritmo_de(c.id_cliente) * tend, inicio_adelante, HOY):
         emitir_campana(c.id_cliente, c.comercial_asignado, c.tamano, d, propias.get(c.id_cliente), limite=HOY)
     perfil[c.id_cliente + "+"] = dict(desde=pd.Timestamp("2026-10-01"), hasta=HOY, baja=None, gradual=False, nuevo=False,
                                       comercial=c.comercial_asignado, tam=c.tamano, real=c.id_cliente, en_originales=True)
@@ -230,7 +246,7 @@ for _ in range(5):                                                         # alt
     t = plant_cli.iloc[i_pl % len(plant_cli)]; i_pl += 1
     alta = pd.Timestamp("2026-09-05") + pd.Timedelta(days=int(rng.integers(0, 70)))
     idc = nuevo_id("C")
-    emitir_campana(idc, t.comercial_asignado, t.tamano, alta + pd.Timedelta(days=int(rng.integers(5, 15))), limite=HOY)
+    emitir_campana(idc, t.comercial_asignado, t.tamano, max(alta + pd.Timedelta(days=int(rng.integers(5, 15))), pd.Timestamp("2026-10-01")), limite=HOY)
     nuevos_cli.append(dict(id_cliente=idc, plantilla=t.id_cliente, alta=alta, categoria=t.categoria, tamano=t.tamano,
                            comercial=t.comercial_asignado, canal=t.canal_captacion, provincia=t.provincia))
     perfil[idc] = dict(desde=alta, hasta=HOY, baja=None, gradual=False, nuevo=True, comercial=t.comercial_asignado, tam=t.tamano,
@@ -270,8 +286,9 @@ for n in nuevos_cli:                                                       # el 
                               principal=(k == 1), ficticio=True))
 
 # ---------------------------------------------------------------- 5. facturas (una por orden)
-cond_cli = fac.merge(camp[["id_orden", "id_cliente"]], on="id_orden").groupby("id_cliente_x").condiciones_pago_dias.agg(lambda s: s.mode().iloc[0])
-retrasos = fac.dias_retraso.dropna().values
+fac_ref = fac[fac.fecha_emision <= REF]
+cond_cli = fac_ref.merge(camp[["id_orden", "id_cliente"]], on="id_orden").groupby("id_cliente_x").condiciones_pago_dias.agg(lambda s: s.mode().iloc[0])
+retrasos = fac_ref.dias_retraso.dropna().values
 filas_fac = []
 for _, o in C.sort_values("fecha_emision").iterrows():
     em = o.fecha_emision + pd.Timedelta(days=int(rng.integers(1, 12)))
@@ -288,11 +305,12 @@ for _, o in C.sort_values("fecha_emision").iterrows():
                           estado="Pendiente" if pend else "Cobrada"))
 
 # ---------------------------------------------------------------- 6. interacciones
+inter = inter[inter.fecha <= REF]                                      # solo hasta el último corte de entrenamiento
 normales = inter[~inter.tipo.isin(["Cambio de interlocutor", "Reclamacion"])][["tipo", "canal", "resultado"]].values
 salientes_sin = inter[(inter.resultado == "Sin respuesta")][["tipo", "canal", "resultado"]].values
 interloc = inter[inter.tipo == "Cambio de interlocutor"][["tipo", "canal", "resultado"]].values
 reclam = inter[inter.tipo == "Reclamacion"][["canal"]].values
-TASA_MES = 1.45 * len(inter) / (inter.id_cliente.nunique() * 36)     # calibrado: ≈ 1,9 interacciones por cliente activo y mes, como en los datos originales
+TASA_MES = 1.23 * len(inter) / (inter.id_cliente.nunique() * 21)     # calibrado: ≈ 1,9 interacciones por cliente activo y mes, como en los datos originales
 # Episodios de abandono: cortes trimestrales en los que la etiqueta E2 de producción (evaluacion/src/etiqueta_e2.py) marca
 # abandono y el corte anterior no. Se calculan sobre las campañas ya generadas, con la población de producción.
 sys.path.insert(0, os.path.join(RAIZ, "evaluacion", "src"))
@@ -301,9 +319,11 @@ fact_todo = pd.concat([camp[["id_cliente", "id_campana", "fecha_emision", "impor
                        C[["id_cliente", "id_campana", "fecha_emision", "importe_eur"]]]).assign(fe=lambda d: d.fecha_emision)
 ini_todo = fact_todo.sort_values("fe").groupby("id_campana").agg(id_cliente=("id_cliente", "first"), fe=("fe", "min")).reset_index()
 episodios, previo = {}, {}
+# Población de modelo_churn/etiqueta.py: campaña en los 12 meses anteriores al corte y al menos un año desde el alta.
+alta_de = pd.concat([cli.set_index("id_cliente").fecha_alta, pd.Series({n["id_cliente"]: n["alta"] for n in nuevos_cli})])
 for T in pd.date_range("2020-06-30", "2024-09-30", freq="QE"):
-    ult_c = fact_todo[fact_todo.fe <= T].groupby("id_cliente").fe.max()
-    pob = ult_c[(T - ult_c).dt.days <= 540].index.values
+    pob = fact_todo[(fact_todo.fe > T - pd.Timedelta(days=365)) & (fact_todo.fe <= T)].id_cliente.unique()
+    pob = np.array([c for c in pob if alta_de[c] <= T - pd.Timedelta(days=365)])
     e = etiqueta_e2(fact_todo, ini_todo, T, 210, 0.5, pob)
     ult_total = fact_todo.groupby("id_cliente").fe.max()
     for idc, tipo in zip(e.id_cliente, e.tipo_e2):
@@ -324,7 +344,7 @@ for clave, eps in episodios.items():
 # El CTR relativo se mide frente a la mediana del producto: se reajusta la parte añadida para que esa mediana siga siendo la
 # de los datos originales y no cambie la señal en los cortes originales.
 ctr = lambda d: (d.clics / d.impresiones)[d.impresiones > 0].groupby(d.id_producto[d.impresiones > 0]).median()
-ajuste = (ctr(camp) / ctr(C)).reindex(C.id_producto).fillna(1.0).values
+ajuste = (ctr(camp_ref) / ctr(C)).reindex(C.id_producto).fillna(1.0).values
 C["clics"] = np.minimum((C.clics * ajuste).round(), C.impresiones).astype(int)
 
 filas_int = []
@@ -366,9 +386,10 @@ for clave, p in perfil.items():
             if d <= FIN_ATRAS: interaccion(idc, d, salientes_sin[rng.integers(len(salientes_sin))], p["comercial"])
 
 # ---------------------------------------------------------------- 7. oportunidades
-bolsa = {k: g[["importe_propuesto_eur", "n_toques_seguimiento", "dias_hasta_cierre"]].values for k, g in opo.groupby(["origen", "desenlace"])}
-no_gan_ampl = opo[(opo.origen == "Ampliacion de cartera") & (opo.desenlace != "Ganada")].desenlace.values
-no_gan_lead = opo[(opo.origen == "Lead nuevo") & (opo.desenlace != "Ganada")].desenlace.values
+opo_ref = opo[opo.fecha_envio <= REF]
+bolsa = {k: g[["importe_propuesto_eur", "n_toques_seguimiento", "dias_hasta_cierre"]].values for k, g in opo_ref.groupby(["origen", "desenlace"])}
+no_gan_ampl = opo_ref[(opo_ref.origen == "Ampliacion de cartera") & (opo.desenlace != "Ganada")].desenlace.values
+no_gan_lead = opo_ref[(opo_ref.origen == "Lead nuevo") & (opo.desenlace != "Ganada")].desenlace.values
 prods = prod.index.values; coms = com.id_comercial.values
 filas_op = []
 def oportunidad(idc, id_lead, origen, desenlace, envio, id_orden, comercial, producto):
