@@ -38,3 +38,29 @@ def cargar_tablas(carpeta) -> dict:
         hueco = f["fecha_cobro"].isna()
         f.loc[hueco, "fecha_cobro"] = f.loc[hueco, "id_factura"].map(cobros)
     return tablas
+
+
+def fin_de_datos(tablas):
+    """Última fecha con algún hecho registrado (no se puede puntuar después)."""
+    return max(tablas["campanas"]["fecha_orden"].max(), tablas["facturas"]["fecha_emision"].max(),
+               tablas["interacciones"]["fecha"].max(), tablas["oportunidades"]["fecha_envio"].max())
+
+
+def vista_en(tablas, F):
+    """Las tablas tal como existirían si se extrajeran el día F: nada registrado después de F.
+    Un pedido firmado hasta F se conserva aunque su campaña se emita después; un cobro o el cierre de una
+    propuesta posteriores a F todavía no habían ocurrido."""
+    F = pd.Timestamp(F)
+    f = tablas["facturas"][tablas["facturas"]["fecha_emision"] <= F].copy()
+    f.loc[f["fecha_cobro"] > F, "fecha_cobro"] = pd.NaT
+    o = tablas["oportunidades"][tablas["oportunidades"]["fecha_envio"] <= F].copy()
+    abierta = o["fecha_cierre"] > F
+    o.loc[abierta, "fecha_cierre"] = pd.NaT
+    o.loc[abierta, "desenlace"] = None
+    return {
+        "clientes": tablas["clientes"][tablas["clientes"]["fecha_alta"] <= F].copy(),
+        "campanas": tablas["campanas"][tablas["campanas"]["fecha_orden"] <= F].copy(),
+        "facturas": f,
+        "interacciones": tablas["interacciones"][tablas["interacciones"]["fecha"] <= F].copy(),
+        "oportunidades": o,
+    }
