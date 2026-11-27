@@ -10,8 +10,14 @@ from modelo_churn.etiqueta import fechas_corte
 from modelo_churn.panel import limite_fin_w
 from modelo_churn.variables import calcular_variables
 
-TABLAS = Path(__file__).resolve().parents[2] / "tablas"
-DATOS = cargar_tablas(TABLAS)
+RAIZ = Path(__file__).resolve().parents[2]
+# Se comprueba con los datos originales y con los ampliados, en todas las fechas de corte
+# posibles con cada conjunto (incluidas las que caen en la parte generada).
+CONJUNTOS = {nombre: cargar_tablas(RAIZ / nombre)
+             for nombre in ("tablas", "tablas_ampliadas") if (RAIZ / nombre).is_dir()}
+CASOS = [(nombre, T) for nombre, t in CONJUNTOS.items()
+         for T in fechas_corte(t["campanas"], limite_fin_w(t))]
+DATOS = CONJUNTOS["tablas"]
 CORTES = fechas_corte(DATOS["campanas"], limite_fin_w(DATOS))
 
 
@@ -88,11 +94,12 @@ def _con_futuro(tablas, T, seed=0):
     return t
 
 
-@pytest.mark.parametrize("T", CORTES, ids=lambda T: str(T.date()))
-def test_variables_no_cambian_con_datos_posteriores(T):
-    referencia = calcular_variables(_solo_hasta(DATOS, T), T)
-    pd.testing.assert_frame_equal(calcular_variables(DATOS, T), referencia, check_dtype=False)
-    pd.testing.assert_frame_equal(calcular_variables(_con_futuro(DATOS, T), T), referencia, check_dtype=False)
+@pytest.mark.parametrize("conjunto,T", CASOS, ids=[f"{n}-{T.date()}" for n, T in CASOS])
+def test_variables_no_cambian_con_datos_posteriores(conjunto, T):
+    datos = CONJUNTOS[conjunto]
+    referencia = calcular_variables(_solo_hasta(datos, T), T)
+    pd.testing.assert_frame_equal(calcular_variables(datos, T), referencia, check_dtype=False)
+    pd.testing.assert_frame_equal(calcular_variables(_con_futuro(datos, T), T), referencia, check_dtype=False)
 
 
 def test_el_test_detecta_una_fuga():
