@@ -266,103 +266,82 @@ C0317,Caliza Farma S.A.,Farmaceutica OTC,Valencia,Pequena,2022-10-12,47,Jornada 
 C0318,Poniente Farma S.A.,Farmaceutica OTC,Asturias,Pequena,2021-07-05,62,Prospeccion en frio,COM-03,12077,True,2019
 C0319,Gaviota Obra Social,Institucional y fundaciones,Bizkaia,Mediana,2019-07-05,86,Feria del sector,COM-01,51723,True,1974
 C0320,Horizonte Centros,Residencias y centros de dia,Barcelona,Mediana,2017-01-06,116,Prospeccion en frio,COM-02,20038,True,2017
-C0321,Tejo Tanatorio S.L.,Viajes y ocio senior,Madrid,Micro,2015-05-26,136,Formulario web,COM-03,42840,True,1996
-C0322,Ribera Residencial S.L.,Viajes y ocio senior,Madrid,Micro,2016-08-28,121,Agencia de medios,COM-02,23468,True,2006
-C0323,Frontera Mayores S.A.,Viajes y ocio senior,Cantabria,Grande,2019-05-12,88,Recomendacion,COM-03,29767,False,2001
-C0324,Yedra Biotec S.L.,Seguros de decesos y salud,Pontevedra,Mediana,2020-07-23,74,Feria del sector,COM-03,44326,True,2009
-C0325,Ulmo Salud S.L.,Teleasistencia y domotica,Alicante,Mediana,2015-08-13,133,Recomendacion,COM-02,46957,True,1995
-C0326,Marisma Alerta S.L.,Servicios juridicos y herencias,Barcelona,Micro,2020-05-28,76,Feria del sector,COM-01,49713,True,2002
-C0327,Delta Capital S.A.,Servicios juridicos y herencias,Barcelona,Pequena,2019-10-05,83,Formulario web,COM-02,23305,True,2018
-C0328,Iberia Centros S.L.,Farmaceutica OTC,Murcia,Pequena,2019-08-10,85,Prospeccion en frio,COM-01,49936,True,2013
-C0329,Zarza Salud S.A.,Teleasistencia y domotica,Sevilla,Mediana,2020-04-01,77,Formulario web,COM-03,7531,True,1998
-C0330,Yedra Ortopedia S.L.,Ortopedia y ayudas tecnicas,Zaragoza,Pequena,2020-04-22,77,Feria del sector,COM-03,8747,True,2002
-C0331,Zenit Domocare S.L.,Ortopedia y ayudas tecnicas,Gipuzkoa,Pequena,2016-07-06,122,Jornada propia,COM-03,12370,True,2006
-C0332,Islares Ayudas S.L.,Viajes y ocio senior,Gipuzkoa,Mediana,2020-06-22,75,Jornada propia,COM-03,9836,True,2013
-C0333,Caliza Ayudas S.A.,Funerarias,Madrid,Mediana,2018-10-08,95,Formulario web,COM-01,41754,True,2014
-C0334,Olivo Social S.A.,Banca y planes de pension,Granada,Pequena,2019-04-27,89,Recomendacion,COM-01,12518,True,2015
-C0335,Sierra Sonido S.A.,Seguros de decesos y salud,Bizkaia,Mediana,2020-03-18,78,Recomendacion,COM-02,31256,False,2013
-C0336,Norte Funeraria S.L.,Audioprotesis y optica,Barcelona,Pequena,2020-01-31,79,Prospeccion en frio,COM-03,13064,False,2011
-C0337,Cuidar Memorial S.A.,Ortopedia y ayudas tecnicas,A Coruna,Micro,2018-08-02,97,Recomendacion,COM-03,46746,True,2006
-C0338,Levante Ortopedia S.A.,Seguros de decesos y salud,Madrid,Pequena,2020-10-27,71,Formulario web,COM-03,30086,True,2006
-C0339,Olivo Hogar S.A.,Seguros de decesos y salud,Madrid,Pequena,2019-04-04,89,Jornada propia,COM-02,21072,True,1998
-C0340,Duero Ayudas S.A.,Teleasistencia y domotica,Barcelona,Grande,2019-05-06,88,Prospeccion en frio,COM-02,24939,True,2013
-C0341,Lares Mutua S.L.,Funerarias,Barcelona,Micro,2017-02-23,115,Jornada propia,COM-03,46786,True,2005
-C0342,Norte Tanatorio S.L.,Farmaceutica OTC,Madrid,Mediana,2019-03-16,90,Recomendacion,COM-03,24131,True,2014
-C0343,Ebro Viajes S.L.,Teleasistencia y domotica,Madrid,Micro,2022-10-29,47,Formulario web,COM-03,1807,True,2001
-C0344,Olivo Capital S.L.,Teleasistencia y domotica,Baleares,Mediana,2015-04-05,137,Formulario web,COM-03,17718,True,2014
-C0345,Yedra Mutua S.L.,Seguros de decesos y salud,Barcelona,Mediana,2022-12-06,45,Formulario web,COM-02,50664,True,2017
-C0346,Jalon Patrimonio S.A.,Viajes y ocio senior,Sevilla,Pequena,2018-09-02,96,Feria del sector,COM-03,24658,True,1998
-C0347,Ventisca Audio S.L.,Farmaceutica OTC,Granada,Pequena,2021-11-08,58,Formulario web,COM-03,40971,True,2015
-C0348,Alba Consorcio S.L.,Servicios juridicos y herencias,Madrid,Micro,2018-02-13,103,Jornada propia,COM-01,4050,True,2001
-C0349,Islares Rutas S.A.,Seguros de decesos y salud,Barcelona,Pequena,2021-10-25,59,Feria del sector,COM-03,29165,True,2016
-C0350,Cuidar Juridico S.L.,Funerarias,Baleares,Grande,2023-01-18,44,Formulario web,COM-02,29998,True,2000
-C0351,Espliego Ergo S.L.,Farmaceutica OTC,Alicante,Pequena,2017-01-14,116,Recomendacion,COM-02,3435,True,1999
-C0352,Robledo Previsora S.A.,Banca y planes de pension,Murcia,Pequena,2022-09-13,48,Feria del sector,COM-01,28862,False,2018
-C0353,Levante Ortopedia S.L.,Servicios juridicos y herencias,Madrid,Pequena,2020-05-05,76,Prospeccion en frio,COM-02,18282,True,2009
-C0354,Poniente Termal S.A.,Teleasistencia y domotica,Malaga,Mediana,2020-08-27,73,Feria del sector,COM-01,34342,True,2010
-C0355,Umbria Instituto S.L.,Seguros de decesos y salud,Madrid,Mediana,2019-08-19,85,Feria del sector,COM-03,32758,False,1997
-C0356,Norte Mutua S.L.,Residencias y centros de dia,A Coruna,Mediana,2017-11-10,106,Formulario web,COM-01,31498,True,2004
-C0357,Levante Herencias S.L.,Viajes y ocio senior,Barcelona,Micro,2019-12-15,81,Prospeccion en frio,COM-03,16050,True,1996
-C0358,Faro Abogados S.A.,Farmaceutica OTC,A Coruna,Mediana,2020-09-26,72,Prospeccion en frio,COM-02,46712,True,1999
-C0359,Yedra Teleasistencia S.L.,Funerarias,Madrid,Pequena,2020-02-12,79,Formulario web,COM-02,39042,True,2001
-C0360,Ebro Sonido S.A.,Viajes y ocio senior,Bizkaia,Pequena,2020-02-12,79,Formulario web,COM-03,36300,True,2015
-C0361,Lares Consorcio S.A.,Institucional y fundaciones,Valencia,Grande,2022-12-19,45,Formulario web,COM-02,27099,True,2006
-C0362,Tejo Social S.L.,Funerarias,Madrid,Micro,2019-12-29,81,Formulario web,COM-03,4540,True,2018
-C0363,Berilo Salud S.L.,Banca y planes de pension,Barcelona,Mediana,2023-01-21,44,Prospeccion en frio,COM-01,31883,True,2010
-C0364,Cierzo Optica S.A.,Funerarias,Asturias,Pequena,2020-06-07,75,Formulario web,COM-03,22390,False,2006
-C0365,Vega Termal S.L.,Seguros de decesos y salud,Madrid,Micro,2018-05-30,100,Prospeccion en frio,COM-03,14999,True,2000
-C0366,Ventisca Fundacion S.L.,Residencias y centros de dia,Valladolid,Pequena,2019-03-11,90,Jornada propia,COM-02,47609,False,2017
-C0367,Encina Audio S.L.,Ortopedia y ayudas tecnicas,Barcelona,Micro,2023-03-30,42,Recomendacion,COM-03,12959,True,2005
-C0368,Tramontana Previsora S.A.,Residencias y centros de dia,Granada,Grande,2018-09-08,96,Agencia de medios,COM-01,6957,False,1998
-C0369,Cuidar Ahorro S.L.,Banca y planes de pension,Malaga,Micro,2022-10-29,47,Formulario web,COM-02,33979,True,2010
-C0370,Duero Farma S.A.,Seguros de decesos y salud,Madrid,Mediana,2017-12-15,105,Formulario web,COM-03,39146,True,1998
-C0371,Fontana Optica S.L.,Teleasistencia y domotica,Madrid,Pequena,2019-12-10,81,Prospeccion en frio,COM-02,9793,True,2014
-C0372,Jalon Juridico S.L.,Residencias y centros de dia,Barcelona,Pequena,2022-12-06,45,Formulario web,COM-01,38333,True,2000
-C0373,Berilo Financiera S.L.,Viajes y ocio senior,Madrid,Grande,2015-05-30,136,Formulario web,COM-03,4910,True,2000
-C0374,Duero Capital S.L.,Seguros de decesos y salud,Madrid,Mediana,2021-08-02,61,Formulario web,COM-02,51262,True,2021
-C0375,Robledo Vision S.A.,Servicios juridicos y herencias,Pontevedra,Micro,2020-04-18,77,Feria del sector,COM-02,2939,False,2009
-C0376,Iberia Salud S.L.,Viajes y ocio senior,Gipuzkoa,Micro,2022-12-19,45,Agencia de medios,COM-01,15131,True,1998
-C0377,Umbria Legal S.L.,Teleasistencia y domotica,Valencia,Pequena,2018-03-05,102,Formulario web,COM-03,8025,True,2007
-C0378,Almendro Optica S.L.,Audioprotesis y optica,Barcelona,Pequena,2018-12-27,93,Prospeccion en frio,COM-02,15198,True,2016
-C0379,Norte Sonido S.L.,Teleasistencia y domotica,Barcelona,Micro,2021-08-23,61,Formulario web,COM-02,46802,True,2012
-C0380,Mirador Hogar S.A.,Ortopedia y ayudas tecnicas,Pontevedra,Micro,2022-09-30,48,Recomendacion,COM-03,28707,True,2018
-C0381,Islares Mayores S.A.,Ortopedia y ayudas tecnicas,Barcelona,Pequena,2016-08-18,121,Recomendacion,COM-01,17398,True,2006
-C0382,Robledo Consorcio S.L.,Funerarias,Barcelona,Pequena,2023-03-24,42,Feria del sector,COM-02,40155,True,2000
-C0383,Alba Funeraria S.L.,Audioprotesis y optica,Madrid,Mediana,2019-11-10,82,Jornada propia,COM-02,26116,True,2009
-C0384,Hontanar Sonido S.A.,Viajes y ocio senior,Madrid,Micro,2022-11-01,46,Recomendacion,COM-03,35783,False,2001
-C0385,Berilo Fundacion S.L.,Institucional y fundaciones,Madrid,Grande,2020-05-21,76,Feria del sector,COM-01,7661,False,2010
-C0386,Kalea Movilidad S.L.,Ortopedia y ayudas tecnicas,A Coruna,Pequena,2023-03-26,42,Formulario web,COM-02,5176,True,2008
-C0387,Bienestar Alerta S.L.,Seguros de decesos y salud,Murcia,Pequena,2017-07-03,110,Prospeccion en frio,COM-01,14191,True,2004
-C0388,Yedra Fundacion S.A.,Residencias y centros de dia,Madrid,Micro,2020-04-24,77,Feria del sector,COM-03,6085,True,2014
-C0389,Jaral Patrimonio S.L.,Residencias y centros de dia,Madrid,Grande,2020-07-26,74,Prospeccion en frio,COM-01,21906,True,2012
-C0390,Tramontana Consorcio S.L.,Institucional y fundaciones,A Coruna,Mediana,2019-09-17,84,Feria del sector,COM-01,8912,True,1997
-C0391,Horizonte Consorcio S.L.,Viajes y ocio senior,Madrid,Grande,2020-05-22,76,Jornada propia,COM-01,9978,True,2006
-C0392,Prisma Social S.L.,Farmaceutica OTC,Asturias,Pequena,2018-03-24,102,Prospeccion en frio,COM-03,50677,True,2000
-C0393,Ventisca Salud S.L.,Audioprotesis y optica,Madrid,Pequena,2023-01-20,44,Agencia de medios,COM-02,42290,True,2016
-C0394,Marisma Memorial S.L.,Viajes y ocio senior,Valencia,Mediana,2016-03-06,126,Recomendacion,COM-02,22091,True,2012
-C0395,Levante Fundacion S.L.,Servicios juridicos y herencias,Sevilla,Micro,2021-04-19,65,Formulario web,COM-03,3295,True,2008
-C0396,Quercus Farma S.L.,Audioprotesis y optica,Valencia,Pequena,2020-03-26,78,Agencia de medios,COM-02,27554,True,2009
-C0397,Guadiana Rutas S.L.,Residencias y centros de dia,Gipuzkoa,Pequena,2018-01-31,103,Jornada propia,COM-01,24038,True,2009
-C0398,Vega Mayores S.A.,Banca y planes de pension,Gipuzkoa,Mediana,2022-07-04,50,Feria del sector,COM-03,12376,True,2009
-C0399,Robledo Viajes S.L.,Teleasistencia y domotica,Cantabria,Pequena,2021-04-29,65,Feria del sector,COM-02,1619,True,2019
-C0400,Tramontana Legal S.L.,Ortopedia y ayudas tecnicas,Madrid,Micro,2020-06-23,75,Recomendacion,COM-03,7883,True,2004
-C0401,Faro Laboratorios S.L.,Farmaceutica OTC,Zaragoza,Micro,2023-02-09,43,Prospeccion en frio,COM-03,10319,True,2020
-C0402,Umbria Ortopedia S.L.,Seguros de decesos y salud,Malaga,Pequena,2017-04-11,113,Formulario web,COM-02,37718,True,1997
-C0403,Prisma Farma S.L.,Audioprotesis y optica,Zaragoza,Grande,2023-01-29,44,Prospeccion en frio,COM-02,1316,True,1999
-C0404,Iberia Funeraria S.L.,Funerarias,Madrid,Mediana,2015-12-06,129,Prospeccion en frio,COM-03,35262,True,2004
-C0405,Alba Laboratorios S.L.,Audioprotesis y optica,Barcelona,Pequena,2022-07-24,50,Prospeccion en frio,COM-02,10758,True,2018
-C0406,Ocaso Optica S.L.,Residencias y centros de dia,Madrid,Mediana,2016-01-18,128,Jornada propia,COM-03,6280,True,1996
-C0407,Vega Servicios S.L.,Seguros de decesos y salud,Valladolid,Mediana,2022-12-18,45,Prospeccion en frio,COM-01,18781,True,2003
-C0408,Ulmo Fundacion S.L.,Farmaceutica OTC,Bizkaia,Mediana,2020-07-23,74,Formulario web,COM-03,47718,True,2001
-C0409,Horizonte Abogados S.A.,Seguros de decesos y salud,Bizkaia,Micro,2015-05-28,136,Formulario web,COM-02,17965,True,2015
-C0410,Islares Domocare S.A.,Funerarias,Barcelona,Micro,2018-10-23,95,Prospeccion en frio,COM-03,51095,True,1998
-C0411,Levante Biotec S.L.,Servicios juridicos y herencias,Alicante,Micro,2022-07-03,50,Feria del sector,COM-02,28391,True,2011
-C0412,Ulmo Rutas S.A.,Audioprotesis y optica,Valencia,Micro,2019-10-21,83,Jornada propia,COM-02,28282,True,2013
-C0413,Jalon Viajes S.L.,Audioprotesis y optica,Bizkaia,Mediana,2019-09-20,84,Formulario web,COM-02,3002,True,2009
-C0414,Imperial Movilidad S.A.,Ortopedia y ayudas tecnicas,Madrid,Mediana,2019-03-19,90,Feria del sector,COM-02,16791,True,1998
-C0415,Tramontana Herencias S.L.,Teleasistencia y domotica,Madrid,Mediana,2019-03-05,90,Formulario web,COM-02,10874,True,2011
-C0416,Frontera Instituto S.L.,Viajes y ocio senior,Valencia,Grande,2026-09-06,0,Agencia de medios,COM-01,46512,True,2004
-C0417,Jalon Termal S.A.,Farmaceutica OTC,Madrid,Pequena,2026-09-04,0,Feria del sector,COM-02,31139,True,2020
-C0418,Prisma Laboratorios S.L.,Residencias y centros de dia,Granada,Mediana,2026-09-04,0,Recomendacion,COM-02,4401,True,2015
-C0419,Cuidar Tanatorio S.L.,Audioprotesis y optica,Bizkaia,Mediana,2026-09-07,0,Recomendacion,COM-01,7166,True,2010
-C0420,Ventisca Sonido S.A.,Seguros de decesos y salud,Madrid,Micro,2026-10-11,0,Formulario web,COM-02,16955,False,2002
+C0321,Ocaso Sonido S.L.,Viajes y ocio senior,Madrid,Micro,2017-05-06,112,Formulario web,COM-03,20313,True,2016
+C0322,Ventisca Previsora S.L.,Viajes y ocio senior,Madrid,Micro,2020-02-27,79,Agencia de medios,COM-02,24015,True,2011
+C0323,Duero Herencias S.L.,Viajes y ocio senior,Cantabria,Grande,2018-04-29,101,Recomendacion,COM-03,24802,False,2006
+C0324,Guadiana Ortopedia S.L.,Seguros de decesos y salud,Pontevedra,Mediana,2015-12-02,129,Feria del sector,COM-03,13833,True,2013
+C0325,Olivo Instituto S.L.,Teleasistencia y domotica,Alicante,Mediana,2015-08-29,133,Recomendacion,COM-02,17771,True,1998
+C0326,Horizonte Fundacion S.L.,Servicios juridicos y herencias,Barcelona,Micro,2018-12-09,93,Feria del sector,COM-01,8558,True,2000
+C0327,Duna Fundacion S.L.,Servicios juridicos y herencias,Barcelona,Pequena,2015-06-13,135,Formulario web,COM-02,1946,True,1992
+C0328,Alba Ergo S.A.,Farmaceutica OTC,Murcia,Pequena,2020-04-08,77,Prospeccion en frio,COM-01,47011,True,1998
+C0329,Sierra Legal S.A.,Teleasistencia y domotica,Sevilla,Mediana,2014-11-17,142,Formulario web,COM-03,21703,True,2008
+C0330,Jaral Consorcio S.L.,Ortopedia y ayudas tecnicas,Zaragoza,Pequena,2019-12-25,81,Feria del sector,COM-03,25188,True,1995
+C0331,Lares Abogados S.L.,Ortopedia y ayudas tecnicas,Gipuzkoa,Pequena,2020-07-12,74,Jornada propia,COM-03,7598,True,2009
+C0332,Islares Consorcio S.L.,Viajes y ocio senior,Gipuzkoa,Mediana,2019-10-19,83,Jornada propia,COM-03,11443,True,2009
+C0333,Horizonte Rutas S.L.,Funerarias,Madrid,Mediana,2016-03-01,126,Formulario web,COM-01,39370,True,2014
+C0334,Levante Laboratorios S.L.,Banca y planes de pension,Granada,Pequena,2015-06-17,135,Recomendacion,COM-01,2575,True,1992
+C0335,Jaral Ortopedia S.A.,Seguros de decesos y salud,Bizkaia,Mediana,2019-12-04,81,Recomendacion,COM-02,50829,False,2014
+C0336,Zarza Vision S.A.,Audioprotesis y optica,Barcelona,Pequena,2015-01-16,140,Prospeccion en frio,COM-03,28047,False,2007
+C0337,Quercus Ayudas S.L.,Ortopedia y ayudas tecnicas,A Coruna,Micro,2019-12-26,81,Recomendacion,COM-03,26041,True,2012
+C0338,Guadiana Seguros S.A.,Seguros de decesos y salud,Madrid,Pequena,2020-03-04,78,Formulario web,COM-03,36063,True,2018
+C0339,Miralbueno Previsora S.A.,Seguros de decesos y salud,Madrid,Pequena,2020-03-21,78,Jornada propia,COM-02,16912,True,2011
+C0340,Ebro Viajes S.L.,Teleasistencia y domotica,Barcelona,Grande,2020-01-16,80,Prospeccion en frio,COM-02,20100,True,2013
+C0341,Norte Abogados S.L.,Funerarias,Barcelona,Micro,2019-05-14,88,Jornada propia,COM-03,26339,True,2007
+C0342,Ulmo Fundacion S.L.,Farmaceutica OTC,Madrid,Mediana,2019-12-06,81,Recomendacion,COM-03,15423,True,2001
+C0343,Guadiana Mutua S.A.,Funerarias,Valencia,Micro,2020-04-18,77,Feria del sector,COM-03,39797,True,2016
+C0344,Islares Legal S.L.,Teleasistencia y domotica,Madrid,Micro,2019-09-06,84,Formulario web,COM-03,10575,True,2009
+C0345,Encina Residencial S.A.,Teleasistencia y domotica,Baleares,Mediana,2020-01-10,80,Formulario web,COM-03,26357,True,2019
+C0346,Hiedra Capital S.L.,Residencias y centros de dia,Alicante,Pequena,2016-08-08,121,Prospeccion en frio,COM-03,14916,False,1999
+C0347,Cuidar Juridico S.L.,Seguros de decesos y salud,Barcelona,Mediana,2015-11-11,130,Formulario web,COM-02,25311,True,2005
+C0348,Ribera Social S.L.,Viajes y ocio senior,Sevilla,Pequena,2019-11-27,82,Feria del sector,COM-03,14794,True,2004
+C0349,Zarza Herencias S.L.,Farmaceutica OTC,Granada,Pequena,2020-04-22,77,Formulario web,COM-03,21955,True,1999
+C0350,Marisma Seguros S.L.,Servicios juridicos y herencias,Madrid,Micro,2016-06-18,123,Jornada propia,COM-01,46320,True,2008
+C0351,Iberia Mayores S.L.,Seguros de decesos y salud,Barcelona,Pequena,2020-07-17,74,Feria del sector,COM-03,18179,True,2004
+C0352,Imperial Alerta S.A.,Funerarias,Baleares,Grande,2014-11-28,142,Formulario web,COM-02,48061,True,1999
+C0353,Xara Rutas S.L.,Farmaceutica OTC,Alicante,Pequena,2016-08-07,121,Recomendacion,COM-02,15275,True,2000
+C0354,Jalon Previsora S.L.,Banca y planes de pension,Murcia,Pequena,2016-02-11,127,Feria del sector,COM-01,15139,False,2012
+C0355,Ocaso Ocio S.L.,Servicios juridicos y herencias,Madrid,Pequena,2015-07-01,134,Prospeccion en frio,COM-02,49147,True,2009
+C0356,Zarza Sonido S.L.,Teleasistencia y domotica,Malaga,Mediana,2018-08-10,97,Feria del sector,COM-01,19135,True,2006
+C0357,Ribera Ahorro S.L.,Farmaceutica OTC,A Coruna,Mediana,2020-08-13,73,Prospeccion en frio,COM-02,32743,True,2013
+C0358,Faro Optica S.L.,Funerarias,Madrid,Pequena,2016-07-04,122,Formulario web,COM-02,8142,True,1993
+C0359,Fontana Ahorro S.L.,Viajes y ocio senior,Bizkaia,Pequena,2019-07-22,86,Formulario web,COM-03,1550,True,2018
+C0360,Genil Salud S.L.,Institucional y fundaciones,Valencia,Grande,2018-11-05,94,Formulario web,COM-02,23980,True,2011
+C0361,Miralbueno Ortopedia S.L.,Funerarias,Madrid,Micro,2021-11-29,58,Formulario web,COM-03,39315,True,2002
+C0362,Zarza Instituto S.A.,Banca y planes de pension,Barcelona,Mediana,2019-08-04,85,Prospeccion en frio,COM-01,22963,True,2016
+C0363,Norte Servicios S.L.,Funerarias,Asturias,Pequena,2022-12-31,44,Formulario web,COM-03,45875,False,2008
+C0364,Sendero Residencial S.L.,Seguros de decesos y salud,Madrid,Micro,2015-06-21,135,Prospeccion en frio,COM-03,31856,True,1998
+C0365,Sierra Abogados S.A.,Ortopedia y ayudas tecnicas,Zaragoza,Pequena,2016-02-08,127,Prospeccion en frio,COM-02,22744,True,2000
+C0366,Poniente Seguros S.A.,Residencias y centros de dia,Valladolid,Pequena,2019-12-31,80,Jornada propia,COM-02,20599,False,1996
+C0367,Berilo Ahorro S.L.,Ortopedia y ayudas tecnicas,Barcelona,Micro,2017-12-27,105,Recomendacion,COM-03,22390,True,2010
+C0368,Lares Seguros S.L.,Residencias y centros de dia,Granada,Grande,2022-07-07,50,Agencia de medios,COM-01,12537,False,2004
+C0369,Ulmo Ayudas S.A.,Banca y planes de pension,Malaga,Micro,2022-12-26,45,Formulario web,COM-02,26267,True,2011
+C0370,Fontana Vision S.L.,Seguros de decesos y salud,Madrid,Mediana,2021-03-27,66,Formulario web,COM-03,14444,True,2008
+C0371,Prisma Teleasistencia S.L.,Teleasistencia y domotica,Madrid,Pequena,2017-11-24,106,Prospeccion en frio,COM-02,9124,True,2005
+C0372,Tejo Servicios S.L.,Residencias y centros de dia,Barcelona,Pequena,2022-10-07,47,Formulario web,COM-01,23433,True,2011
+C0373,Zarza Optica S.L.,Seguros de decesos y salud,Madrid,Mediana,2022-12-31,44,Formulario web,COM-02,15233,True,1999
+C0374,Kalea Juridico S.L.,Servicios juridicos y herencias,Pontevedra,Micro,2019-08-14,85,Feria del sector,COM-02,47277,False,2010
+C0375,Islares Ocio S.L.,Viajes y ocio senior,Gipuzkoa,Micro,2018-03-09,102,Agencia de medios,COM-01,31236,True,2018
+C0376,Nogal Fundacion S.A.,Teleasistencia y domotica,Valencia,Pequena,2023-01-07,44,Formulario web,COM-03,28544,True,2006
+C0377,Poniente Memorial S.L.,Seguros de decesos y salud,Madrid,Grande,2018-06-02,99,Recomendacion,COM-03,18510,True,1994
+C0378,Yedra Ortopedia S.L.,Audioprotesis y optica,Barcelona,Pequena,2023-02-03,43,Prospeccion en frio,COM-02,44492,True,2002
+C0379,Robledo Ortopedia S.L.,Teleasistencia y domotica,Barcelona,Micro,2019-11-02,82,Formulario web,COM-02,50867,True,1999
+C0380,Tramontana Capital S.L.,Ortopedia y ayudas tecnicas,Pontevedra,Micro,2019-09-02,84,Recomendacion,COM-03,49570,True,2007
+C0381,Ocaso Residencial S.A.,Ortopedia y ayudas tecnicas,Barcelona,Pequena,2023-02-01,43,Recomendacion,COM-01,17342,True,2023
+C0382,Zenit Rutas S.A.,Funerarias,Barcelona,Pequena,2019-03-16,90,Feria del sector,COM-02,39860,True,2019
+C0383,Duero Consorcio S.A.,Audioprotesis y optica,Madrid,Mediana,2018-09-19,96,Jornada propia,COM-02,42970,True,2018
+C0384,Jara Patrimonio S.A.,Viajes y ocio senior,Madrid,Micro,2018-07-02,98,Recomendacion,COM-03,32891,False,2014
+C0385,Alba Ayudas S.A.,Institucional y fundaciones,Madrid,Grande,2021-01-10,68,Feria del sector,COM-01,4884,False,2007
+C0386,Robledo Salud S.L.,Ortopedia y ayudas tecnicas,A Coruna,Pequena,2018-09-19,96,Formulario web,COM-02,52306,True,2015
+C0387,Lumen Rutas S.L.,Residencias y centros de dia,Madrid,Micro,2021-03-24,66,Feria del sector,COM-03,1487,True,2007
+C0388,Vega Laboratorios S.A.,Residencias y centros de dia,Madrid,Grande,2018-11-11,94,Prospeccion en frio,COM-01,38071,True,1999
+C0389,Jalon Ayudas S.L.,Institucional y fundaciones,A Coruna,Mediana,2018-01-31,103,Feria del sector,COM-01,40048,True,2014
+C0390,Genil Hogar S.L.,Viajes y ocio senior,Madrid,Grande,2023-01-15,44,Jornada propia,COM-01,36214,True,2001
+C0391,Islares Rutas S.L.,Farmaceutica OTC,Asturias,Pequena,2016-12-22,117,Prospeccion en frio,COM-03,32655,True,1996
+C0392,Jaral Residencial S.L.,Audioprotesis y optica,Madrid,Pequena,2021-04-28,65,Agencia de medios,COM-02,17267,True,2004
+C0393,Alba Farma S.L.,Viajes y ocio senior,Valencia,Mediana,2020-02-06,79,Recomendacion,COM-02,7995,True,2011
+C0394,Kalea Social S.L.,Servicios juridicos y herencias,Sevilla,Micro,2018-12-30,93,Formulario web,COM-03,12027,True,2001
+C0395,Islares Amparo S.L.,Audioprotesis y optica,Valencia,Pequena,2026-10-21,0,Agencia de medios,COM-02,36072,True,2013
+C0396,Duna Hogar S.A.,Residencias y centros de dia,Gipuzkoa,Pequena,2026-09-11,0,Jornada propia,COM-01,1619,True,2002
+C0397,Vega Abogados S.A.,Funerarias,Valencia,Pequena,2026-09-04,0,Recomendacion,COM-01,19026,False,2023
+C0398,Fontana Sonido S.A.,Banca y planes de pension,Gipuzkoa,Mediana,2026-09-08,0,Feria del sector,COM-03,41056,True,2010
+C0399,Encina Consorcio S.A.,Servicios juridicos y herencias,Valladolid,Micro,2026-10-02,0,Prospeccion en frio,COM-02,47247,False,2021
