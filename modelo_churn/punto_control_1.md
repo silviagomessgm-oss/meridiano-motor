@@ -75,24 +75,24 @@ Prueba: 2025-09-30, 2025-12-31 (solo datos originales).
 
 ## 4. Distribución de cada variable (todas las fechas de corte)
 
-|                                   |    n |   sin dato |      media |      mín |     p10 |       p25 |   mediana |          p75 |         p90 |         máx |   nº con 1 |   clientes distintos con 1 |
-|:----------------------------------|-----:|-----------:|-----------:|---------:|--------:|----------:|----------:|-------------:|------------:|------------:|-----------:|---------------------------:|
-| recencia_dias                     | 2243 |          0 |  141.6     |  29      |  29     |   30      |  121      |  213         | 305         | 365         |        nan |                        nan |
-| frecuencia_12m                    | 2243 |          0 |    3.804   |   1      |   1     |    1      |    3      |    5         |   8         |  17         |        nan |                        nan |
-| antiguedad_meses                  | 2243 |          0 |   42.75    |  12      |  15.9   |   23.35   |   38.4    |   57.25      |  74.2       | 155.9       |        nan |                        nan |
-| valor_12m                         | 2243 |          0 | 8254       | 169.3    | 998     | 2080      | 5390      |    1.063e+04 |   1.992e+04 |   5.407e+04 |        nan |                        nan |
-| valor_mismo_periodo_anio_anterior | 2243 |          0 | 4816       |   0      |   0     |  787.4    | 2594      | 7086         |   1.209e+04 |   3.703e+04 |        nan |                        nan |
-| tendencia                         | 2243 |          0 |   -0.03926 |  -1      |  -1     |   -1      |   -0.2124 |    1         |   1         |   1         |        nan |                        nan |
-| n_familias_12m                    | 2243 |          0 |    1.438   |   1      |   1     |    1      |    1      |    2         |   2         |   4         |        nan |                        nan |
-| ctr_relativo                      | 1634 |        609 |    0.98    |   0.2099 |   0.593 |    0.7536 |    0.951  |    1.158     |   1.418     |   3.153     |        nan |                        nan |
-| cambio_interlocutor_12m           | 2243 |          0 |  nan       | nan      | nan     |  nan      |  nan      |  nan         | nan         | nan         |        412 |                        118 |
-| reclamacion_sin_resolver_12m      | 2243 |          0 |  nan       | nan      | nan     |  nan      |  nan      |  nan         | nan         | nan         |         53 |                         27 |
-| dias_sin_contacto                 | 2243 |          0 |   50.96    |   0      |   3     |    8      |   21      |   55         | 159         | 433         |        nan |                        nan |
-| facturas_vencidas_impagadas       | 2243 |          0 |    0.04146 |   0      |   0     |    0      |    0      |    0         |   0         |   2         |        nan |                        nan |
-| retraso_medio_cobro_12m           | 2168 |         75 |   10.55    |   0      |   2     |    5      |    9      |   14         |  20         | 126         |        nan |                        nan |
-| pedidos_firmados_pendientes       | 2243 |          0 |    0.2461  |   0      |   0     |    0      |    0      |    0         |   1         |   5         |        nan |                        nan |
-| propuestas_abiertas               | 2243 |          0 |    0.3263  |   0      |   0     |    0      |    0      |    1         |   1         |   4         |        nan |                        nan |
-| propuestas_perdidas_12m           | 2243 |          0 |    0.8939  |   0      |   0     |    0      |    1      |    1         |   2         |   6         |        nan |                        nan |
+|                                   |    n |   sin dato |      media |      mín |      p10 |       p25 |   mediana |          p75 |         p90 |         máx |   nº con 1 |   clientes distintos con 1 |
+|:----------------------------------|-----:|-----------:|-----------:|---------:|---------:|----------:|----------:|-------------:|------------:|------------:|-----------:|---------------------------:|
+| recencia_dias                     | 2243 |          0 |  141.6     |  29      |  29      |   30      |  121      |  213         | 305         | 365         |        nan |                        nan |
+| frecuencia_12m                    | 2243 |          0 |    3.804   |   1      |   1      |    1      |    3      |    5         |   8         |  17         |        nan |                        nan |
+| antiguedad_meses                  | 2243 |          0 |   42.75    |  12      |  15.9    |   23.35   |   38.4    |   57.25      |  74.2       | 155.9       |        nan |                        nan |
+| valor_12m                         | 2243 |          0 | 8254       | 169.3    | 998      | 2080      | 5390      |    1.063e+04 |   1.992e+04 |   5.407e+04 |        nan |                        nan |
+| valor_mismo_periodo_anio_anterior | 2243 |          0 | 4816       |   0      |   0      |  787.4    | 2594      | 7086         |   1.209e+04 |   3.703e+04 |        nan |                        nan |
+| tendencia                         | 2243 |          0 |   -0.03926 |  -1      |  -1      |   -1      |   -0.2124 |    1         |   1         |   1         |        nan |                        nan |
+| n_familias_12m                    | 2243 |          0 |    1.438   |   1      |   1      |    1      |    1      |    2         |   2         |   4         |        nan |                        nan |
+| ctr_relativo                      | 1634 |        609 |    0.9728  |   0.1822 |   0.6008 |    0.7355 |    0.9395 |    1.15      |   1.386     |   3.285     |        nan |                        nan |
+| cambio_interlocutor_12m           | 2243 |          0 |  nan       | nan      | nan      |  nan      |  nan      |  nan         | nan         | nan         |        328 |                         94 |
+| reclamacion_sin_resolver_12m      | 2243 |          0 |  nan       | nan      | nan      |  nan      |  nan      |  nan         | nan         | nan         |         66 |                         26 |
+| dias_sin_contacto                 | 2243 |          0 |   52.72    |   0      |   3      |    9      |   22      |   57         | 160         | 447         |        nan |                        nan |
+| facturas_vencidas_impagadas       | 2243 |          0 |    0.04146 |   0      |   0      |    0      |    0      |    0         |   0         |   2         |        nan |                        nan |
+| retraso_medio_cobro_12m           | 2168 |         75 |   10.55    |   0      |   2      |    5      |    9      |   14         |  20         | 126         |        nan |                        nan |
+| pedidos_firmados_pendientes       | 2243 |          0 |    0.2461  |   0      |   0      |    0      |    0      |    0         |   1         |   5         |        nan |                        nan |
+| propuestas_abiertas               | 2243 |          0 |    0.3232  |   0      |   0      |    0      |    0      |    1         |   1         |   4         |        nan |                        nan |
+| propuestas_perdidas_12m           | 2243 |          0 |    0.9015  |   0      |   0      |    0      |    1      |    1         |   2         |   6         |        nan |                        nan |
 
 ## 5. % de abandono por tramos de cada variable (solo entrenamiento)
 
@@ -122,19 +122,19 @@ Prueba: 2025-09-30, 2025-12-31 (solo datos originales).
 | n_familias_12m                    | 1                          |  1264 |         46   | 45.0 (929)                    | 49.0 (335)                      |
 | n_familias_12m                    | 2                          |   583 |         51.8 | 52.1 (468)                    | 50.4 (115)                      |
 | n_familias_12m                    | 3 o más                    |   145 |         60   | 56.8 (118)                    | 74.1 (27)                       |
-| ctr_relativo                      | T1 [0.2099 a 0.7445]       |   363 |         59.5 | 58.5 (306)                    | 64.9 (57)                       |
-| ctr_relativo                      | T2 [0.7456 a 0.9506]       |   362 |         48.3 | 45.7 (278)                    | 57.1 (84)                       |
-| ctr_relativo                      | T3 [0.9514 a 1.157]        |   362 |         47.2 | 44.2 (265)                    | 55.7 (97)                       |
-| ctr_relativo                      | T4 [1.157 a 3.153]         |   362 |         42.3 | 43.2 (271)                    | 39.6 (91)                       |
+| ctr_relativo                      | T1 [0.1822 a 0.7311]       |   363 |         61.2 | 60.3 (305)                    | 65.5 (58)                       |
+| ctr_relativo                      | T2 [0.7323 a 0.9392]       |   362 |         48.6 | 45.6 (274)                    | 58.0 (88)                       |
+| ctr_relativo                      | T3 [0.9399 a 1.151]        |   362 |         47   | 45.6 (263)                    | 50.5 (99)                       |
+| ctr_relativo                      | T4 [1.152 a 3.285]         |   362 |         40.6 | 39.9 (278)                    | 42.9 (84)                       |
 | ctr_relativo                      | sin dato                   |   543 |         47.1 | 47.8 (395)                    | 45.3 (148)                      |
-| cambio_interlocutor_12m           | no                         |  1614 |         44.9 | 44.0 (1210)                   | 47.5 (404)                      |
-| cambio_interlocutor_12m           | sí                         |   378 |         65.1 | 64.3 (305)                    | 68.5 (73)                       |
-| reclamacion_sin_resolver_12m      | no                         |  1942 |         47.7 | 46.9 (1476)                   | 50.2 (466)                      |
-| reclamacion_sin_resolver_12m      | sí                         |    50 |         90   | 94.9 (39)                     | 72.7 (11)                       |
-| dias_sin_contacto                 | T1 [0 a 8]                 |   505 |         35.4 | 35.5 (358)                    | 35.4 (147)                      |
-| dias_sin_contacto                 | T2 [9 a 20]                |   492 |         39.4 | 39.1 (384)                    | 40.7 (108)                      |
-| dias_sin_contacto                 | T3 [21 a 55]               |   502 |         43   | 41.6 (399)                    | 48.5 (103)                      |
-| dias_sin_contacto                 | T4 [56 a 433]              |   493 |         77.5 | 76.5 (374)                    | 80.7 (119)                      |
+| cambio_interlocutor_12m           | no                         |  1698 |         45.1 | 44.4 (1294)                   | 47.5 (404)                      |
+| cambio_interlocutor_12m           | sí                         |   294 |         69.7 | 70.1 (221)                    | 68.5 (73)                       |
+| reclamacion_sin_resolver_12m      | no                         |  1929 |         47.3 | 46.4 (1463)                   | 50.2 (466)                      |
+| reclamacion_sin_resolver_12m      | sí                         |    63 |         92.1 | 96.2 (52)                     | 72.7 (11)                       |
+| dias_sin_contacto                 | T1 [0 a 9]                 |   535 |         36.4 | 36.9 (371)                    | 35.4 (164)                      |
+| dias_sin_contacto                 | T2 [10 a 22]               |   493 |         43   | 42.8 (388)                    | 43.8 (105)                      |
+| dias_sin_contacto                 | T3 [23 a 57]               |   466 |         39.9 | 38.3 (376)                    | 46.7 (90)                       |
+| dias_sin_contacto                 | T4 [58 a 447]              |   498 |         75.9 | 74.2 (380)                    | 81.4 (118)                      |
 | facturas_vencidas_impagadas       | 0                          |  1914 |         49.2 | 48.6 (1457)                   | 51.2 (457)                      |
 | facturas_vencidas_impagadas       | 1                          |    73 |         35.6 | 34.0 (53)                     | 40.0 (20)                       |
 | facturas_vencidas_impagadas       | 2                          |     5 |         60   | 60.0 (5)                      | —                               |
@@ -147,11 +147,11 @@ Prueba: 2025-09-30, 2025-12-31 (solo datos originales).
 | pedidos_firmados_pendientes       | 1                          |   390 |         19   | 18.9 (296)                    | 19.1 (94)                       |
 | pedidos_firmados_pendientes       | 2                          |    37 |         13.5 | 9.4 (32)                      | 40.0 (5)                        |
 | pedidos_firmados_pendientes       | 3 o más                    |     4 |          0   | 0.0 (3)                       | 0.0 (1)                         |
-| propuestas_abiertas               | 0                          |  1428 |         54.5 | 55.1 (1070)                   | 52.5 (358)                      |
-| propuestas_abiertas               | 1                          |   474 |         36.1 | 33.2 (368)                    | 46.2 (106)                      |
-| propuestas_abiertas               | 2                          |    75 |         25.3 | 23.1 (65)                     | 40.0 (10)                       |
-| propuestas_abiertas               | 3 o más                    |    15 |         20   | 16.7 (12)                     | 33.3 (3)                        |
-| propuestas_perdidas_12m           | 0                          |   831 |         43.9 | 43.3 (619)                    | 45.8 (212)                      |
-| propuestas_perdidas_12m           | 1                          |   713 |         49.8 | 50.1 (539)                    | 48.9 (174)                      |
-| propuestas_perdidas_12m           | 2                          |   322 |         55   | 52.5 (255)                    | 64.2 (67)                       |
-| propuestas_perdidas_12m           | 3 o más                    |   126 |         58.7 | 55.9 (102)                    | 70.8 (24)                       |
+| propuestas_abiertas               | 0                          |  1442 |         54   | 54.5 (1084)                   | 52.5 (358)                      |
+| propuestas_abiertas               | 1                          |   458 |         36.2 | 33.2 (352)                    | 46.2 (106)                      |
+| propuestas_abiertas               | 2                          |    74 |         31.1 | 29.7 (64)                     | 40.0 (10)                       |
+| propuestas_abiertas               | 3 o más                    |    18 |         16.7 | 13.3 (15)                     | 33.3 (3)                        |
+| propuestas_perdidas_12m           | 0                          |   876 |         41.8 | 40.1 (670)                    | 47.1 (206)                      |
+| propuestas_perdidas_12m           | 1                          |   671 |         49.8 | 50.1 (487)                    | 48.9 (184)                      |
+| propuestas_perdidas_12m           | 2                          |   288 |         58.7 | 58.4 (226)                    | 59.7 (62)                       |
+| propuestas_perdidas_12m           | 3 o más                    |   157 |         65   | 63.6 (132)                    | 72.0 (25)                       |

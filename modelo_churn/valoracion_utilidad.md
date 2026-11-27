@@ -15,39 +15,39 @@ Validación: cortes originales 2025-03-31, 2025-06-30 (239 obs., 134 anunciantes
 
 | modelo              | entrenamiento           |   AUC |   precisión top 12 |   Brier |
 |:--------------------|:------------------------|------:|-------------------:|--------:|
-| regresión logística | A. solo originales      | 0.818 |              1.000 |   0.186 |
-| regresión logística | B. ampliado completo    | 0.837 |              1.000 |   0.167 |
-| regresión logística | C. solo generados       | 0.836 |              1.000 |   0.166 |
-| regresión logística | D. ampliado sin costura | 0.833 |              1.000 |   0.168 |
+| regresión logística | A. solo originales      | 0.820 |              1.000 |   0.184 |
+| regresión logística | B. ampliado completo    | 0.829 |              1.000 |   0.170 |
+| regresión logística | C. solo generados       | 0.826 |              1.000 |   0.171 |
+| regresión logística | D. ampliado sin costura | 0.824 |              1.000 |   0.173 |
 | árbol (3 niveles)   | A. solo originales      | 0.743 |              0.958 |   0.226 |
-| árbol (3 niveles)   | B. ampliado completo    | 0.802 |              1.000 |   0.161 |
-| árbol (3 niveles)   | C. solo generados       | 0.813 |              1.000 |   0.161 |
-| árbol (3 niveles)   | D. ampliado sin costura | 0.802 |              1.000 |   0.161 |
+| árbol (3 niveles)   | B. ampliado completo    | 0.796 |              1.000 |   0.163 |
+| árbol (3 niveles)   | C. solo generados       | 0.807 |              1.000 |   0.163 |
+| árbol (3 niveles)   | D. ampliado sin costura | 0.796 |              1.000 |   0.163 |
 
 ## Diferencia de AUC frente a entrenar solo con originales
 
 | modelo              | comparación   |   dif. AUC | IC 95 % (bootstrap por anunciante)   |
 |:--------------------|:--------------|-----------:|:-------------------------------------|
-| regresión logística | B. − A        |     +0.019 | [-0.009, +0.044]                     |
-| regresión logística | C. − A        |     +0.018 | [-0.014, +0.048]                     |
-| regresión logística | D. − A        |     +0.015 | [-0.011, +0.043]                     |
-| árbol (3 niveles)   | B. − A        |     +0.059 | [+0.003, +0.114]                     |
-| árbol (3 niveles)   | C. − A        |     +0.069 | [+0.013, +0.125]                     |
-| árbol (3 niveles)   | D. − A        |     +0.059 | [+0.003, +0.114]                     |
+| regresión logística | B. − A        |     +0.009 | [-0.020, +0.035]                     |
+| regresión logística | C. − A        |     +0.006 | [-0.029, +0.038]                     |
+| regresión logística | D. − A        |     +0.004 | [-0.028, +0.032]                     |
+| árbol (3 niveles)   | B. − A        |     +0.052 | [-0.002, +0.107]                     |
+| árbol (3 niveles)   | C. − A        |     +0.064 | [+0.007, +0.119]                     |
+| árbol (3 niveles)   | D. − A        |     +0.052 | [-0.002, +0.107]                     |
 
 ## Diagnóstico 0 · Fidelidad de las distribuciones (filas originales frente a añadidas)
 
 | parte    |   campañas |   importe mediano (€) |   descuento medio (%) |   % Digital |   retraso medio de cobro (días) |   % ampliaciones ganadas |
 |:---------|-----------:|----------------------:|----------------------:|------------:|--------------------------------:|-------------------------:|
-| añadida  |       1661 |                  1039 |                   7.9 |        68.7 |                            10.9 |                     50.7 |
-| original |       1432 |                  1158 |                   8   |        67.1 |                             9.8 |                     53.6 |
+| añadida  |       1661 |                  1039 |                   7.9 |        68.7 |                            10.9 |                     52.1 |
+| original |       1432 |                  1158 |                   8   |        67.1 |                             9.7 |                     53.6 |
 
 |                                                                  |   valor |
 |:-----------------------------------------------------------------|--------:|
 | anunciantes de dim_clientes sin campañas en los datos originales |      35 |
 | … de ellos con alguna campaña en la ampliación                   |      35 |
 | anunciantes con primera campaña anterior al alta                 |       0 |
-| facturas originales sin cobrar al final de la ampliación         |      11 |
+| facturas originales sin cobrar al final de la ampliación         |       7 |
 | … vencidas antes del 1-oct-2026                                  |       0 |
 
 ## Diagnóstico 1 · Abandono por corte según el origen del anunciante (efecto costura)
@@ -80,26 +80,26 @@ Validación: cortes originales 2025-03-31, 2025-06-30 (239 obs., 134 anunciantes
 
 | parte             |   % con propuesta abierta · sigue |   % con propuesta abierta · abandona |
 |:------------------|----------------------------------:|-------------------------------------:|
-| cortes generados  |                              38.9 |                                 19.1 |
+| cortes generados  |                              37.3 |                                 18.9 |
 | cortes originales |                              27.7 |                                 22.3 |
 
 ## Diagnóstico 3 · Pesos de la regresión logística (variables estandarizadas; entrenada con cortes anteriores a 2025-06-30)
 
 |                                   |   A. solo originales |   B. ampliado completo |
 |:----------------------------------|---------------------:|-----------------------:|
-| tendencia                         |                -1.11 |                  -0.56 |
-| pedidos_firmados_pendientes       |                -0.76 |                  -0.73 |
-| valor_12m                         |                -0.66 |                  -0.53 |
-| recencia_dias                     |                -0.62 |                  -0.02 |
-| sin dato: retraso_medio_cobro_12m |                -0.62 |                  -0.76 |
-| ctr_relativo                      |                -0.36 |                  -0.21 |
-| antiguedad_meses                  |                -0.17 |                   0.08 |
-| propuestas_abiertas               |                -0.1  |                  -0.31 |
-| sin dato: ctr_relativo            |                -0.04 |                   0.05 |
-| retraso_medio_cobro_12m           |                 0.19 |                   0.11 |
-| n_familias_12m                    |                 0.29 |                   0.37 |
-| propuestas_perdidas_12m           |                 0.31 |                   0.06 |
-| cambio_interlocutor_12m           |                 0.37 |                   0.27 |
-| frecuencia_12m                    |                 0.44 |                   0.49 |
-| valor_mismo_periodo_anio_anterior |                 0.58 |                   0.59 |
-| dias_sin_contacto                 |                 0.91 |                   1.06 |
+| tendencia                         |                -1.12 |                  -0.52 |
+| pedidos_firmados_pendientes       |                -0.76 |                  -0.75 |
+| sin dato: retraso_medio_cobro_12m |                -0.62 |                  -0.77 |
+| recencia_dias                     |                -0.6  |                   0.05 |
+| valor_12m                         |                -0.6  |                  -0.52 |
+| ctr_relativo                      |                -0.38 |                  -0.19 |
+| antiguedad_meses                  |                -0.16 |                   0.06 |
+| propuestas_abiertas               |                -0.11 |                  -0.32 |
+| sin dato: ctr_relativo            |                -0.04 |                   0.04 |
+| retraso_medio_cobro_12m           |                 0.18 |                   0.11 |
+| propuestas_perdidas_12m           |                 0.2  |                   0.28 |
+| n_familias_12m                    |                 0.28 |                   0.35 |
+| cambio_interlocutor_12m           |                 0.36 |                   0.3  |
+| frecuencia_12m                    |                 0.44 |                   0.5  |
+| valor_mismo_periodo_anio_anterior |                 0.53 |                   0.55 |
+| dias_sin_contacto                 |                 0.92 |                   0.88 |
