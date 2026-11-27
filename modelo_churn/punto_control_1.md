@@ -10,55 +10,55 @@ Prueba: 2025-09-30, 2025-12-31 (solo datos originales).
 
 |                     | datos                 |   observaciones |   abandonos |   % abandono |   perdida_total |   contraccion |   activo |
 |:--------------------|:----------------------|----------------:|------------:|-------------:|----------------:|--------------:|---------:|
-| 2020-12-31          | con datos generados   |              85 |          45 |         52.9 |              40 |             5 |       40 |
-| 2021-03-31          | con datos generados   |              89 |          45 |         50.6 |              38 |             7 |       44 |
-| 2021-06-30          | con datos generados   |              88 |          44 |         50   |              31 |            13 |       44 |
-| 2021-09-30          | con datos generados   |              78 |          37 |         47.4 |              26 |            11 |       41 |
-| 2021-12-31          | con datos generados   |              83 |          38 |         45.8 |              24 |            14 |       45 |
-| 2022-03-31          | con datos generados   |              93 |          45 |         48.4 |              36 |             9 |       48 |
-| 2022-06-30          | con datos generados   |             100 |          53 |         53   |              39 |            14 |       47 |
-| 2022-09-30          | con datos generados   |             103 |          55 |         53.4 |              37 |            18 |       48 |
-| 2022-12-31          | con datos generados   |             105 |          54 |         51.4 |              41 |            13 |       51 |
-| 2023-03-31          | con datos generados   |             104 |          56 |         53.8 |              40 |            16 |       48 |
-| 2023-06-30          | con datos generados   |              98 |          38 |         38.8 |              26 |            12 |       60 |
-| 2023-09-30          | con datos generados   |             100 |          37 |         37   |              24 |            13 |       63 |
-| 2023-12-31          | con datos generados   |             107 |          41 |         38.3 |              28 |            13 |       66 |
-| 2024-03-31          | con datos generados   |             113 |          53 |         46.9 |              39 |            14 |       60 |
-| 2024-06-30          | con datos generados   |             128 |          58 |         45.3 |              48 |            10 |       70 |
+| 2020-12-31          | con datos generados   |              86 |          52 |         60.5 |              46 |             6 |       34 |
+| 2021-03-31          | con datos generados   |              83 |          45 |         54.2 |              35 |            10 |       38 |
+| 2021-06-30          | con datos generados   |              86 |          42 |         48.8 |              31 |            11 |       44 |
+| 2021-09-30          | con datos generados   |              82 |          34 |         41.5 |              23 |            11 |       48 |
+| 2021-12-31          | con datos generados   |              85 |          40 |         47.1 |              27 |            13 |       45 |
+| 2022-03-31          | con datos generados   |              95 |          48 |         50.5 |              40 |             8 |       47 |
+| 2022-06-30          | con datos generados   |             100 |          52 |         52   |              41 |            11 |       48 |
+| 2022-09-30          | con datos generados   |             101 |          54 |         53.5 |              38 |            16 |       47 |
+| 2022-12-31          | con datos generados   |             112 |          57 |         50.9 |              38 |            19 |       55 |
+| 2023-03-31          | con datos generados   |             110 |          55 |         50   |              35 |            20 |       55 |
+| 2023-06-30          | con datos generados   |             107 |          46 |         43   |              35 |            11 |       61 |
+| 2023-09-30          | con datos generados   |             109 |          47 |         43.1 |              34 |            13 |       62 |
+| 2023-12-31          | con datos generados   |             118 |          53 |         44.9 |              40 |            13 |       65 |
+| 2024-03-31          | con datos generados   |             120 |          60 |         50   |              46 |            14 |       60 |
+| 2024-06-30          | con datos generados   |             110 |          40 |         36.4 |              30 |            10 |       70 |
 | 2024-09-30          | solo datos originales |             115 |          59 |         51.3 |              47 |            12 |       56 |
 | 2024-12-31          | solo datos originales |             123 |          64 |         52   |              47 |            17 |       59 |
 | 2025-03-31          | solo datos originales |             121 |          61 |         50.4 |              46 |            15 |       60 |
 | 2025-06-30          | solo datos originales |             118 |          58 |         49.2 |              45 |            13 |       60 |
 | 2025-09-30 (prueba) | solo datos originales |             123 |          62 |         50.4 |              46 |            16 |       61 |
 | 2025-12-31 (prueba) | solo datos originales |             128 |          68 |         53.1 |              54 |            14 |       60 |
-| TOTAL               |                       |            2202 |        1071 |         48.6 |             802 |           269 |     1131 |
+| TOTAL               |                       |            2232 |        1097 |         49.1 |             824 |           273 |     1135 |
 
 ## 2. Anunciantes distintos
 
 |                                      |   anunciantes distintos |
 |:-------------------------------------|------------------------:|
-| Total panel                          |                     282 |
-| Entrenamiento (19 cortes)            |                     261 |
+| Total panel                          |                     297 |
+| Entrenamiento (19 cortes)            |                     276 |
 | Prueba (2 cortes)                    |                     142 |
 | En prueba y también en entrenamiento |                     121 |
 
 |   nº de fechas de corte en que aparece |   anunciantes |
 |---------------------------------------:|--------------:|
-|                                      1 |            48 |
-|                                      2 |            24 |
-|                                      3 |            26 |
-|                                      4 |            23 |
-|                                      5 |            14 |
-|                                      6 |            11 |
-|                                      7 |            11 |
-|                                      8 |            15 |
+|                                      1 |            52 |
+|                                      2 |            28 |
+|                                      3 |            24 |
+|                                      4 |            29 |
+|                                      5 |            21 |
+|                                      6 |             7 |
+|                                      7 |            10 |
+|                                      8 |            20 |
 |                                      9 |             4 |
-|                                     10 |             9 |
-|                                     11 |            15 |
-|                                     12 |            11 |
+|                                     10 |             8 |
+|                                     11 |            13 |
+|                                     12 |             9 |
 |                                     13 |            14 |
-|                                     14 |             5 |
-|                                     15 |            11 |
+|                                     14 |             8 |
+|                                     15 |             9 |
 |                                     16 |             9 |
 |                                     17 |             4 |
 |                                     18 |             6 |
@@ -70,88 +70,88 @@ Prueba: 2025-09-30, 2025-12-31 (solo datos originales).
 
 | fecha_corte           |   cortes |   observaciones |   anunciantes |   abandonos |   % abandono |
 |:----------------------|---------:|----------------:|--------------:|------------:|-------------:|
-| con datos generados   |       15 |            1474 |           227 |         699 |         47.4 |
+| con datos generados   |       15 |            1504 |           242 |         725 |         48.2 |
 | solo datos originales |        4 |             477 |           156 |         242 |         50.7 |
 
 ## 4. Distribución de cada variable (todas las fechas de corte)
 
 |                                   |    n |   sin dato |      media |      mín |      p10 |       p25 |   mediana |          p75 |         p90 |         máx |   nº con 1 |   clientes distintos con 1 |
 |:----------------------------------|-----:|-----------:|-----------:|---------:|---------:|----------:|----------:|-------------:|------------:|------------:|-----------:|---------------------------:|
-| recencia_dias                     | 2202 |          0 |  141.7     |  29      |  29      |   58      |  121      |  213         | 304.9       | 365         |        nan |                        nan |
-| frecuencia_12m                    | 2202 |          0 |    3.622   |   1      |   1      |    1      |    3      |    5         |   8         |  21         |        nan |                        nan |
-| antiguedad_meses                  | 2202 |          0 |   42.85    |  12      |  15.9    |   23.32   |   38.5    |   56.2       |  75.28      | 155.9       |        nan |                        nan |
-| valor_12m                         | 2202 |          0 | 8447       | 231.1    | 962.6    | 2022      | 5346      |    1.118e+04 |   2.069e+04 |   6.528e+04 |        nan |                        nan |
-| valor_mismo_periodo_anio_anterior | 2202 |          0 | 4868       |   0      |   0      |  735.9    | 2526      | 6993         |   1.23e+04  |   4.919e+04 |        nan |                        nan |
-| tendencia                         | 2202 |          0 |   -0.03151 |  -1      |  -1      |   -1      |   -0.1955 |    1         |   1         |   1         |        nan |                        nan |
-| n_familias_12m                    | 2202 |          0 |    1.444   |   1      |   1      |    1      |    1      |    2         |   2         |   4         |        nan |                        nan |
-| ctr_relativo                      | 1574 |        628 |    0.9814  |   0.3505 |   0.6566 |    0.7707 |    0.9512 |    1.139     |   1.372     |   2.45      |        nan |                        nan |
-| cambio_interlocutor_12m           | 2202 |          0 |  nan       | nan      | nan      |  nan      |  nan      |  nan         | nan         | nan         |        301 |                         94 |
-| reclamacion_sin_resolver_12m      | 2202 |          0 |  nan       | nan      | nan      |  nan      |  nan      |  nan         | nan         | nan         |         33 |                         10 |
-| dias_sin_contacto                 | 2202 |          0 |   54.07    |   0      |   3      |    8      |   21.5    |   56         | 166         | 450         |        nan |                        nan |
-| facturas_vencidas_impagadas       | 2202 |          0 |    0.03588 |   0      |   0      |    0      |    0      |    0         |   0         |   2         |        nan |                        nan |
-| retraso_medio_cobro_12m           | 2125 |         77 |   10.28    |   0      |   1.5    |    5      |    8.75   |   13.4       |  19.75      |  95         |        nan |                        nan |
-| pedidos_firmados_pendientes       | 2202 |          0 |    0.2361  |   0      |   0      |    0      |    0      |    0         |   1         |   3         |        nan |                        nan |
-| propuestas_abiertas               | 2202 |          0 |    0.3465  |   0      |   0      |    0      |    0      |    1         |   1         |   6         |        nan |                        nan |
-| propuestas_perdidas_12m           | 2202 |          0 |    1.07    |   0      |   0      |    0      |    1      |    2         |   3         |   8         |        nan |                        nan |
+| recencia_dias                     | 2232 |          0 |  144.5     |  29      |  29      |   58      |  121      |  241         | 305         | 365         |        nan |                        nan |
+| frecuencia_12m                    | 2232 |          0 |    3.52    |   1      |   1      |    1      |    3      |    5         |   7         |  21         |        nan |                        nan |
+| antiguedad_meses                  | 2232 |          0 |   42.03    |  12      |  15.8    |   22.6    |   37.1    |   55.1       |  74.69      | 155.9       |        nan |                        nan |
+| valor_12m                         | 2232 |          0 | 8249       | 231.1    | 908.1    | 2022      | 5239      |    1.054e+04 |   2.048e+04 |   6.528e+04 |        nan |                        nan |
+| valor_mismo_periodo_anio_anterior | 2232 |          0 | 4772       |   0      |   0      |  683.6    | 2496      | 6801         |   1.228e+04 |   4.919e+04 |        nan |                        nan |
+| tendencia                         | 2232 |          0 |   -0.04353 |  -1      |  -1      |   -1      |   -0.2291 |    1         |   1         |   1         |        nan |                        nan |
+| n_familias_12m                    | 2232 |          0 |    1.424   |   1      |   1      |    1      |    1      |    2         |   2         |   4         |        nan |                        nan |
+| ctr_relativo                      | 1574 |        658 |    0.992   |   0.2268 |   0.6199 |    0.7636 |    0.9661 |    1.181     |   1.417     |   2.673     |        nan |                        nan |
+| cambio_interlocutor_12m           | 2232 |          0 |  nan       | nan      | nan      |  nan      |  nan      |  nan         | nan         | nan         |        338 |                        103 |
+| reclamacion_sin_resolver_12m      | 2232 |          0 |  nan       | nan      | nan      |  nan      |  nan      |  nan         | nan         | nan         |         31 |                         11 |
+| dias_sin_contacto                 | 2232 |          0 |   55.47    |   0      |   3      |    9      |   22      |   57         | 177         | 439         |        nan |                        nan |
+| facturas_vencidas_impagadas       | 2232 |          0 |    0.0336  |   0      |   0      |    0      |    0      |    0         |   0         |   2         |        nan |                        nan |
+| retraso_medio_cobro_12m           | 2151 |         81 |   10.26    |   0      |   2      |    5      |    8.5    |   13.24      |  20         |  95         |        nan |                        nan |
+| pedidos_firmados_pendientes       | 2232 |          0 |    0.2298  |   0      |   0      |    0      |    0      |    0         |   1         |   3         |        nan |                        nan |
+| propuestas_abiertas               | 2232 |          0 |    0.315   |   0      |   0      |    0      |    0      |    1         |   1         |   3         |        nan |                        nan |
+| propuestas_perdidas_12m           | 2232 |          0 |    0.8535  |   0      |   0      |    0      |    1      |    1         |   2         |   6         |        nan |                        nan |
 
 ## 5. % de abandono por tramos de cada variable (solo entrenamiento)
 
 | variable                          | tramo                      |   obs |   % abandono | % con datos generados (obs)   | % solo datos originales (obs)   |
 |:----------------------------------|:---------------------------|------:|-------------:|:------------------------------|:--------------------------------|
-| recencia_dias                     | T1 [29 a 58]               |   530 |         31.9 | 28.9 (405)                    | 41.6 (125)                      |
-| recencia_dias                     | T2 [59 a 121]              |   562 |         38.3 | 37.2 (435)                    | 41.7 (127)                      |
-| recencia_dias                     | T3 [149 a 213]             |   401 |         55.9 | 57.1 (294)                    | 52.3 (107)                      |
-| recencia_dias                     | T4 [241 a 365]             |   458 |         72.7 | 74.1 (340)                    | 68.6 (118)                      |
-| frecuencia_12m                    | T1 [1 a 3]                 |  1182 |         44.7 | 43.5 (894)                    | 48.3 (288)                      |
-| frecuencia_12m                    | T2 [4 a 5]                 |   370 |         51.9 | 51.3 (277)                    | 53.8 (93)                       |
-| frecuencia_12m                    | T3 [6 a 21]                |   399 |         55.4 | 55.4 (303)                    | 55.2 (96)                       |
-| antiguedad_meses                  | T1 [12 a 23.2]             |   489 |         50.1 | 49.9 (425)                    | 51.6 (64)                       |
-| antiguedad_meses                  | T2 [23.3 a 37.4]           |   488 |         45.9 | 43.1 (401)                    | 58.6 (87)                       |
-| antiguedad_meses                  | T3 [37.5 a 54.1]           |   489 |         46.6 | 44.1 (354)                    | 53.3 (135)                      |
-| antiguedad_meses                  | T4 [54.2 a 152.9]          |   485 |         50.3 | 53.7 (294)                    | 45.0 (191)                      |
-| valor_12m                         | T1 [231.1 a 2046]          |   488 |         46.5 | 43.3 (365)                    | 56.1 (123)                      |
-| valor_12m                         | T2 [2050 a 5365]           |   488 |         46.1 | 44.4 (365)                    | 51.2 (123)                      |
-| valor_12m                         | T3 [5392 a 1.118e+04]      |   487 |         48.5 | 49.2 (358)                    | 46.5 (129)                      |
-| valor_12m                         | T4 [1.119e+04 a 6.528e+04] |   488 |         51.8 | 52.6 (386)                    | 49.0 (102)                      |
-| valor_mismo_periodo_anio_anterior | T1 [0 a 751.2]             |   488 |         19.7 | 19.4 (386)                    | 20.6 (102)                      |
-| valor_mismo_periodo_anio_anterior | T2 [759.8 a 2554]          |   488 |         52.5 | 51.2 (340)                    | 55.4 (148)                      |
-| valor_mismo_periodo_anio_anterior | T3 [2562 a 6968]           |   487 |         60   | 58.1 (370)                    | 65.8 (117)                      |
-| valor_mismo_periodo_anio_anterior | T4 [6988 a 4.919e+04]      |   488 |         60.9 | 62.2 (378)                    | 56.4 (110)                      |
-| tendencia                         | T1 [-1 a -0.2046]          |   976 |         67.3 | 66.8 (719)                    | 68.9 (257)                      |
-| tendencia                         | T2 [-0.2044 a 1]           |   975 |         29.1 | 29.0 (755)                    | 29.5 (220)                      |
-| n_familias_12m                    | 1                          |  1237 |         46.3 | 45.3 (902)                    | 49.0 (335)                      |
-| n_familias_12m                    | 2                          |   564 |         50.2 | 50.1 (449)                    | 50.4 (115)                      |
-| n_familias_12m                    | 3 o más                    |   150 |         56.7 | 52.8 (123)                    | 74.1 (27)                       |
-| ctr_relativo                      | T1 [0.3505 a 0.7692]       |   348 |         57.8 | 55.8 (278)                    | 65.7 (70)                       |
-| ctr_relativo                      | T2 [0.7696 a 0.9512]       |   347 |         49.3 | 47.3 (273)                    | 56.8 (74)                       |
-| ctr_relativo                      | T3 [0.9512 a 1.133]        |   347 |         46.7 | 42.9 (259)                    | 58.0 (88)                       |
-| ctr_relativo                      | T4 [1.133 a 2.45]          |   347 |         40.9 | 42.4 (250)                    | 37.1 (97)                       |
-| ctr_relativo                      | sin dato                   |   562 |         47.2 | 47.8 (414)                    | 45.3 (148)                      |
-| cambio_interlocutor_12m           | no                         |  1684 |         46.4 | 46.1 (1280)                   | 47.5 (404)                      |
-| cambio_interlocutor_12m           | sí                         |   267 |         59.6 | 56.2 (194)                    | 68.5 (73)                       |
-| reclamacion_sin_resolver_12m      | no                         |  1921 |         48   | 47.4 (1455)                   | 50.2 (466)                      |
-| reclamacion_sin_resolver_12m      | sí                         |    30 |         60   | 52.6 (19)                     | 72.7 (11)                       |
-| dias_sin_contacto                 | T1 [0 a 9]                 |   535 |         33.8 | 33.2 (371)                    | 35.4 (164)                      |
-| dias_sin_contacto                 | T2 [10 a 21]               |   443 |         37   | 35.7 (347)                    | 41.7 (96)                       |
-| dias_sin_contacto                 | T3 [22 a 56]               |   487 |         43.3 | 41.9 (389)                    | 49.0 (98)                       |
-| dias_sin_contacto                 | T4 [57 a 450]              |   486 |         79.2 | 78.7 (367)                    | 80.7 (119)                      |
-| facturas_vencidas_impagadas       | 0                          |  1884 |         48.6 | 47.7 (1427)                   | 51.2 (457)                      |
-| facturas_vencidas_impagadas       | 1                          |    65 |         40   | 40.0 (45)                     | 40.0 (20)                       |
-| facturas_vencidas_impagadas       | 2                          |     2 |          0   | 0.0 (2)                       | —                               |
-| retraso_medio_cobro_12m           | T1 [0 a 5]                 |   516 |         41.3 | 40.4 (396)                    | 44.2 (120)                      |
-| retraso_medio_cobro_12m           | T2 [5.125 a 9]             |   470 |         49.8 | 49.2 (323)                    | 51.0 (147)                      |
-| retraso_medio_cobro_12m           | T3 [9.083 a 13.5]          |   434 |         47.5 | 46.4 (343)                    | 51.6 (91)                       |
-| retraso_medio_cobro_12m           | T4 [13.6 a 95]             |   470 |         61.3 | 60.5 (365)                    | 63.8 (105)                      |
-| retraso_medio_cobro_12m           | sin dato                   |    61 |          0   | 0.0 (47)                      | 0.0 (14)                        |
-| pedidos_firmados_pendientes       | 0                          |  1547 |         56.8 | 56.1 (1170)                   | 58.9 (377)                      |
-| pedidos_firmados_pendientes       | 1                          |   366 |         15.8 | 14.7 (272)                    | 19.1 (94)                       |
-| pedidos_firmados_pendientes       | 2                          |    34 |         14.7 | 10.3 (29)                     | 40.0 (5)                        |
-| pedidos_firmados_pendientes       | 3 o más                    |     4 |          0   | 0.0 (3)                       | 0.0 (1)                         |
-| propuestas_abiertas               | 0                          |  1408 |         55.2 | 56.1 (1050)                   | 52.5 (358)                      |
-| propuestas_abiertas               | 1                          |   422 |         32.9 | 28.5 (316)                    | 46.2 (106)                      |
-| propuestas_abiertas               | 2                          |    93 |         22.6 | 20.5 (83)                     | 40.0 (10)                       |
-| propuestas_abiertas               | 3 o más                    |    28 |         14.3 | 12.0 (25)                     | 33.3 (3)                        |
-| propuestas_perdidas_12m           | 0                          |   853 |         48.7 | 49.8 (641)                    | 45.3 (212)                      |
-| propuestas_perdidas_12m           | 1                          |   504 |         44.6 | 40.9 (328)                    | 51.7 (176)                      |
-| propuestas_perdidas_12m           | 2                          |   341 |         54.3 | 52.7 (273)                    | 60.3 (68)                       |
-| propuestas_perdidas_12m           | 3 o más                    |   253 |         45.8 | 44.0 (232)                    | 66.7 (21)                       |
+| recencia_dias                     | T1 [29 a 58]               |   524 |         31.9 | 28.8 (399)                    | 41.6 (125)                      |
+| recencia_dias                     | T2 [59 a 121]              |   558 |         37.3 | 36.0 (431)                    | 41.7 (127)                      |
+| recencia_dias                     | T3 [149 a 241]             |   448 |         56.7 | 58.1 (334)                    | 52.6 (114)                      |
+| recencia_dias                     | T4 [242 a 365]             |   451 |         74.9 | 76.8 (340)                    | 69.4 (111)                      |
+| frecuencia_12m                    | T1 [1 a 3]                 |  1231 |         45.1 | 44.1 (943)                    | 48.3 (288)                      |
+| frecuencia_12m                    | T2 [4 a 5]                 |   385 |         54   | 54.1 (292)                    | 53.8 (93)                       |
+| frecuencia_12m                    | T3 [6 a 21]                |   365 |         55.9 | 56.1 (269)                    | 55.2 (96)                       |
+| antiguedad_meses                  | T1 [12 a 22.4]             |   498 |         51.6 | 51.8 (438)                    | 50.0 (60)                       |
+| antiguedad_meses                  | T2 [22.5 a 35.7]           |   493 |         51.1 | 49.0 (414)                    | 62.0 (79)                       |
+| antiguedad_meses                  | T3 [35.8 a 52.8]           |   498 |         44.2 | 40.7 (356)                    | 52.8 (142)                      |
+| antiguedad_meses                  | T4 [52.9 a 152.9]          |   492 |         48.4 | 50.7 (296)                    | 44.9 (196)                      |
+| valor_12m                         | T1 [231.1 a 2046]          |   496 |         49.6 | 47.5 (373)                    | 56.1 (123)                      |
+| valor_12m                         | T2 [2050 a 5214]           |   495 |         48.1 | 47.1 (376)                    | 51.3 (119)                      |
+| valor_12m                         | T3 [5227 a 1.053e+04]      |   495 |         47.9 | 47.8 (372)                    | 48.0 (123)                      |
+| valor_12m                         | T4 [1.054e+04 a 6.528e+04] |   495 |         49.7 | 50.4 (383)                    | 47.3 (112)                      |
+| valor_mismo_periodo_anio_anterior | T1 [0 a 699.8]             |   496 |         18.8 | 18.9 (397)                    | 18.2 (99)                       |
+| valor_mismo_periodo_anio_anterior | T2 [712.9 a 2526]          |   495 |         54.7 | 54.2 (347)                    | 56.1 (148)                      |
+| valor_mismo_periodo_anio_anterior | T3 [2530 a 6763]           |   495 |         60.8 | 59.3 (376)                    | 65.5 (119)                      |
+| valor_mismo_periodo_anio_anterior | T4 [6800 a 4.919e+04]      |   495 |         61   | 62.2 (384)                    | 56.8 (111)                      |
+| tendencia                         | T1 [-1 a -0.2575]          |   991 |         68.8 | 68.8 (736)                    | 69.0 (255)                      |
+| tendencia                         | T2 [-0.2528 a 1]           |   990 |         28.8 | 28.5 (768)                    | 29.7 (222)                      |
+| n_familias_12m                    | 1                          |  1280 |         47   | 46.2 (945)                    | 49.0 (335)                      |
+| n_familias_12m                    | 2                          |   571 |         51.8 | 52.2 (456)                    | 50.4 (115)                      |
+| n_familias_12m                    | 3 o más                    |   130 |         53.8 | 48.5 (103)                    | 74.1 (27)                       |
+| ctr_relativo                      | T1 [0.2268 a 0.7614]       |   348 |         57.2 | 55.3 (282)                    | 65.2 (66)                       |
+| ctr_relativo                      | T2 [0.7631 a 0.9663]       |   347 |         56.8 | 55.6 (252)                    | 60.0 (95)                       |
+| ctr_relativo                      | T3 [0.9671 a 1.183]        |   347 |         44.4 | 42.7 (255)                    | 48.9 (92)                       |
+| ctr_relativo                      | T4 [1.185 a 2.673]         |   347 |         40.3 | 40.6 (271)                    | 39.5 (76)                       |
+| ctr_relativo                      | sin dato                   |   592 |         46.8 | 47.3 (444)                    | 45.3 (148)                      |
+| cambio_interlocutor_12m           | no                         |  1677 |         46   | 45.6 (1273)                   | 47.5 (404)                      |
+| cambio_interlocutor_12m           | sí                         |   304 |         64.1 | 62.8 (231)                    | 68.5 (73)                       |
+| reclamacion_sin_resolver_12m      | no                         |  1953 |         48.4 | 47.9 (1487)                   | 50.2 (466)                      |
+| reclamacion_sin_resolver_12m      | sí                         |    28 |         75   | 76.5 (17)                     | 72.7 (11)                       |
+| dias_sin_contacto                 | T1 [0 a 9]                 |   521 |         34.4 | 33.9 (357)                    | 35.4 (164)                      |
+| dias_sin_contacto                 | T2 [10 a 22]               |   487 |         38.8 | 37.4 (382)                    | 43.8 (105)                      |
+| dias_sin_contacto                 | T3 [23 a 58]               |   481 |         43.5 | 42.7 (391)                    | 46.7 (90)                       |
+| dias_sin_contacto                 | T4 [59 a 439]              |   492 |         79.3 | 78.6 (374)                    | 81.4 (118)                      |
+| facturas_vencidas_impagadas       | 0                          |  1917 |         49.2 | 48.6 (1460)                   | 51.2 (457)                      |
+| facturas_vencidas_impagadas       | 1                          |    63 |         36.5 | 34.9 (43)                     | 40.0 (20)                       |
+| facturas_vencidas_impagadas       | 2                          |     1 |        100   | 100.0 (1)                     | —                               |
+| retraso_medio_cobro_12m           | T1 [0 a 5]                 |   482 |         45.2 | 45.1 (359)                    | 45.5 (123)                      |
+| retraso_medio_cobro_12m           | T2 [5.1 a 8.667]           |   483 |         49.3 | 49.0 (353)                    | 50.0 (130)                      |
+| retraso_medio_cobro_12m           | T3 [8.7 a 13.33]           |   473 |         49   | 48.2 (371)                    | 52.0 (102)                      |
+| retraso_medio_cobro_12m           | T4 [13.38 a 95]            |   478 |         58.4 | 57.0 (370)                    | 63.0 (108)                      |
+| retraso_medio_cobro_12m           | sin dato                   |    65 |          0   | 0.0 (51)                      | 0.0 (14)                        |
+| pedidos_firmados_pendientes       | 0                          |  1580 |         56.8 | 56.1 (1203)                   | 58.9 (377)                      |
+| pedidos_firmados_pendientes       | 1                          |   366 |         17.8 | 17.3 (272)                    | 19.1 (94)                       |
+| pedidos_firmados_pendientes       | 2                          |    32 |         15.6 | 11.1 (27)                     | 40.0 (5)                        |
+| pedidos_firmados_pendientes       | 3 o más                    |     3 |          0   | 0.0 (2)                       | 0.0 (1)                         |
+| propuestas_abiertas               | 0                          |  1439 |         53.4 | 53.7 (1081)                   | 52.5 (358)                      |
+| propuestas_abiertas               | 1                          |   459 |         38.1 | 35.7 (353)                    | 46.2 (106)                      |
+| propuestas_abiertas               | 2                          |    67 |         26.9 | 24.6 (57)                     | 40.0 (10)                       |
+| propuestas_abiertas               | 3 o más                    |    16 |         37.5 | 38.5 (13)                     | 33.3 (3)                        |
+| propuestas_perdidas_12m           | 0                          |   889 |         47.5 | 48.2 (679)                    | 45.2 (210)                      |
+| propuestas_perdidas_12m           | 1                          |   673 |         46.1 | 44.4 (498)                    | 50.9 (175)                      |
+| propuestas_perdidas_12m           | 2                          |   295 |         55.6 | 54.2 (227)                    | 60.3 (68)                       |
+| propuestas_perdidas_12m           | 3 o más                    |   124 |         57.3 | 54.0 (100)                    | 70.8 (24)                       |

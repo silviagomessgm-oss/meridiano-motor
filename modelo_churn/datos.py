@@ -29,4 +29,12 @@ def cargar_tablas(carpeta) -> dict:
     for clave, (fichero, fechas) in _TABLAS.items():
         df = pd.read_csv(carpeta / f"{fichero}.csv", parse_dates=fechas)
         tablas[clave] = df.drop(columns=COLUMNAS_FOTO.get(clave, []), errors="ignore")
+    # Datos ampliados: las facturas originales pendientes se cobran en un fichero aparte,
+    # porque las filas originales se conservan byte a byte.
+    posteriores = carpeta / "cobros_posteriores.csv"
+    if posteriores.exists():
+        cobros = pd.read_csv(posteriores, parse_dates=["fecha_cobro"]).set_index("id_factura")["fecha_cobro"]
+        f = tablas["facturas"]
+        hueco = f["fecha_cobro"].isna()
+        f.loc[hueco, "fecha_cobro"] = f.loc[hueco, "id_factura"].map(cobros)
     return tablas

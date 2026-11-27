@@ -1,59 +1,59 @@
-# Valoración de los datos ampliados (`tablas_ampliadas/`)
+# Valoración de los datos ampliados (`tablas_ampliadas/`) · versión 2
 
-Fecha: 2026-11-27. Las cifras salen de `valoracion_utilidad.md` (generado con
-`python -m modelo_churn.valorar_ampliacion`) y de `punto_control_1.md`. La validación usa solo
-cortes originales de entrenamiento (mar-25 y jun-25); los cortes de prueba (sep-25 y dic-25) no se han tocado.
+Fecha: 2026-11-27. Datos regenerados en `main` (commit 1ba91f4). Las cifras salen de `valoracion_utilidad.md`
+(`python -m modelo_churn.valorar_ampliacion`) y de `punto_control_1.md`. La versión 1 de esta valoración queda en el
+historial de git (commit e06f69c). La validación usa solo cortes originales de entrenamiento (mar-25 y jun-25); los
+cortes de prueba (sep-25 y dic-25) no se han tocado.
 
-## Veredicto: suman. Conservarlos, pidiendo cuatro correcciones al generador
+## Veredicto: siguen sumando. Conservarlos, con una corrección pendiente y una precaución al entrenar
 
-| Pregunta | Respuesta |
-|---|---|
-| ¿Se parecen a los originales? | Sí, en todo lo agregado: importes (mediana 1.098 € frente a 1.158 €), descuento medio (8 % en ambas), mezcla de familias, CTR por producto y año, tipos de interacción, tasas de éxito de propuestas (ampliaciones 54,6 % frente a 53,6 %) y retraso de cobro (10,5 frente a 9,6 días). |
-| ¿Ayudan a predecir los datos originales? | Sí. Regresión logística: AUC 0,816 → 0,835 y Brier 0,187 → 0,167 (mejor calibrada); la mejora de AUC tiene un IC 95 % de [−0,011; +0,049]. Árbol de 3 niveles: AUC 0,727 → 0,792, IC [+0,010; +0,122]. |
-| ¿Son fieles en lo que importa al modelo? | En casi todo: un modelo entrenado solo con datos generados predice los originales tan bien como uno entrenado con los originales (AUC 0,831 frente a 0,816 en logística). |
-| ¿Qué restan? | Cambian la explicación comercial del modelo en tres variables (propuestas abiertas, propuestas perdidas y cambio de interlocutor) y tienen un bache en la costura de 2023. Ver abajo. |
+| | Solo originales | Ampliados v2 |
+|---|---|---|
+| Regresión logística · AUC (validación) | 0,813 | 0,831 (dif. +0,018, IC 95 % [−0,007; +0,044]) |
+| Regresión logística · Brier | 0,190 | 0,169 |
+| Árbol de 3 niveles · AUC | 0,716 | 0,799 (dif. +0,083, IC 95 % [+0,025; +0,142]) |
 
-## Problemas encontrados
+## Estado de los cuatro cambios pedidos
 
-1. **Propuestas comerciales ligadas al abandono futuro.** El generador casi deja de enviar propuestas a quien va a
-   abandonar. Anunciantes con alguna propuesta abierta: en los cortes originales, 27,7 % entre los que siguen y 22,3 %
-   entre los que abandonan; en los generados, 40,5 % frente a 15,7 %. Además, en los originales el abandono sube con las
-   propuestas perdidas (45 % con 0 a 67 % con 3 o más) y en los generados no. Consecuencia en el modelo: el peso de
-   `propuestas_abiertas` se multiplica por 4 (−0,10 → −0,40) y `propuestas_perdidas_12m` cambia de signo (+0,27 → −0,11).
-2. **Bache en la costura de 2023.** El abandono total cae al 38,8 %, 37,0 % y 38,3 % en los cortes de jun-23, sep-23 y
-   dic-23, frente al 45–54 % del resto. Los anunciantes originales abandonan solo un 22–28 % en esos cortes (36–52 % en
-   los demás). Pista: 35 anunciantes de `dim_clientes` (altas de 2016 a 2022) no tienen ninguna campaña ni en los datos
-   originales ni en la ampliación; por su perfil son anunciantes que se fueron antes de oct-23, pero no tienen historia.
-3. **Señales de relación más débiles de lo que deberían.** Con cambio de interlocutor el abandono es 68,5 % frente a
-   47,5 % sin él en los cortes originales, y 56,2 % frente a 46,1 % en los generados. El generador se calibró «sin
-   superar» a los originales, pero ha quedado claramente por debajo: su peso en el modelo baja de 0,36 a 0,13.
-4. **Detalles de coherencia (sin efecto en el modelo):** 16 anunciantes tienen la primera campaña entre 1 y 21 días antes
-   de su fecha de alta (en los originales no ocurre nunca); y las 61 facturas originales pendientes a sep-26 siguen
-   pendientes a 27-nov-26, aunque 9 vencieron antes de oct-26.
+| Problema | Originales (cortes de entrenamiento) | Versión 1 | Versión 2 | Estado |
+|---|---|---|---|---|
+| Con propuesta abierta: siguen · abandonan | 27,7 % · 22,3 % | 40,5 % · 15,7 % | 35,7 % · 20,0 % | Mejorado; sigue algo más fuerte |
+| Peso de `propuestas_abiertas` en el modelo | −0,10 | −0,40 | −0,21 | Mejorado |
+| Peso de `propuestas_perdidas_12m` | +0,28 | −0,11 (signo cambiado) | +0,06 | Corregido el signo; más débil |
+| Cambio de interlocutor: abandono con · sin | 68,5 % · 47,5 % | 56,2 % · 46,1 % | 62,8 % · 45,6 % | Resuelto en lo esencial |
+| Peso de `cambio_interlocutor_12m` | +0,36 | +0,13 | +0,20 | Mejorado |
+| 35 anunciantes de `dim_clientes` sin historia | — | 0 de 35 con campañas | 35 de 35 | Resuelto |
+| Primera campaña anterior al alta | 0 | 16 | 0 | Resuelto |
+| Facturas originales pendientes | — | 61 (9 vencidas antes de oct-26) | 9 (ninguna vencida antes de oct-26) | Resuelto (`cobros_posteriores.csv`, ya integrado en la carga) |
+| Abandono en los cortes jun-23, sep-23, dic-23 | 49–53 % en el resto | 38,8 % · 37,0 % · 38,3 % | 43,0 % · 43,1 % · 44,9 % | Mejorado, no resuelto |
+| Abandono en jun-24 | | 45,3 % | 36,4 % | Empeora (ver abajo) |
 
-## Cambios que proponer al generador
+## Lo que queda
 
-1. Que el envío de propuestas y su desenlace no dependan de si el anunciante va a abandonar, o que se calibren con los
-   originales: % con propuesta abierta 27,7 % (sigue) frente a 22,3 % (abandona), y abandono creciente con las propuestas
-   perdidas (45 % → 67 %).
-2. Generar la historia anterior a oct-23 de los 35 anunciantes de `dim_clientes` sin campañas, como anunciantes que
-   abandonan antes de oct-23, y comprobar que el abandono de los cortes jun-23 a dic-23 queda en la línea del resto
-   (≈ 50 %).
-3. Calibrar el cambio de interlocutor y las reclamaciones para que su relación con el abandono sea igual a la original,
-   no más débil.
-4. Fecha de alta igual o anterior a la primera campaña, y decidir qué pasa con las facturas originales pendientes en
-   los meses añadidos.
+1. **La calibración usó los cortes de prueba (corrección necesaria).** Según el README, las señales generadas se
+   calibraron con «5 cortes E2 originales, dic-24 → dic-25», que incluyen los de prueba (sep-25 y dic-25). No se han
+   copiado filas, pero sí proporciones de la prueba, de modo que la cifra de acierto en la prueba podría salir algo
+   optimista. Además, la calibración usa la etiqueta E2 de `evaluacion/` (población con hasta 540 días sin campaña), no la
+   de este modelo (`modelo_churn/etiqueta.py`: campaña en los 12 meses previos, sin anunciantes nuevos).
+2. **Sigue el bache de la costura.** En los cortes de jun-23 a jun-24 los anunciantes originales abandonan un 30–38 %,
+   frente al 49–54 % antes y después. Causa: el generador da historia previa sobre todo a quien después sigue comprando.
+   De los 89 anunciantes antiguos (alta antes de oct-22) que compran entre oct-23 y abr-24, 72 (81 %) tienen campañas
+   generadas entre oct-22 y sep-23; de los 31 que no vuelven a comprar hasta después de abr-24, solo 5 (16 %). En jun-24
+   el bache se ve más porque ya no quedan anunciantes nuevos (C0321+), que antes lo compensaban con un 100 % de abandono.
+3. **Lo que aportan es volumen, no información nueva.** Como las señales se calibraron con los datos originales, los
+   datos generados repiten las relaciones de los originales con más casos. Por eso el modelo es más estable, pero el
+   informe debe decirlo así: no descubren patrones que no estuvieran ya en los datos del caso.
 
-Después, volver a ejecutar `python -m modelo_churn.control1 --datos tablas_ampliadas --limite-fin-w 2026-09-01
---inicio-originales 2023-10-01` y `python -m modelo_churn.valorar_ampliacion` para comprobar que los problemas 1 a 3 han
-desaparecido.
+## Recomendación
 
-## Si no se regeneran
-
-- Entrenar sin los cortes de la costura (mar-23 a jun-24) da el mismo acierto (logística: AUC 0,832; árbol: 0,810) y
-  evita el problema 2.
-- Los problemas 1 y 3 seguirían: la explicación comercial de los pesos tendría que hacerse con el modelo entrenado solo
-  con datos originales, o advertir de que esas tres variables están distorsionadas.
+- **Pedir una corrección al generador:** recalibrar las señales solo con los cortes de entrenamiento (hasta jun-25) y con
+  la etiqueta de `modelo_churn/etiqueta.py`. Así ninguna información del periodo de prueba entra en el entrenamiento.
+- **El bache de la costura se resuelve al entrenar, sin regenerar:** quitar del entrenamiento los cortes de mar-23 a jun-24
+  da el mismo acierto (regresión logística: AUC 0,829 frente a 0,831; árbol: 0,815 frente a 0,799). Si el generador
+  quiere corregirlo: dar compras entre oct-22 y sep-23 a más de los 31 anunciantes antiguos que vuelven tras abr-24
+  (como pausas o bajas con reactivación), hasta que el abandono de esos cortes ronde el 50 %.
+- **En el Punto de Control 2:** comparar el entrenamiento con solo originales y con los ampliados (sin la costura) sobre
+  los mismos cortes de prueba, y explicar los pesos comerciales con los dos modelos.
 
 ## Nota para el punto de control 2
 
