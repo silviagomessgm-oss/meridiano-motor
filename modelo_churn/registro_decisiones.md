@@ -1,0 +1,23 @@
+# Registro de decisiones · Modelo de abandono de anunciantes
+
+Quién decide: **Alumna** (dirección del proyecto) o **Claude** (propuesta técnica).
+Estado: *aprobada*, *pendiente* (espera aprobación en un punto de control) o *rechazada*.
+
+| # | Fecha | Decisión | Quién | Por qué | Estado |
+|---|-------|----------|-------|---------|--------|
+| 1 | 2026-11-27 | Trabajar en `modelo_churn/` sin usar ni copiar código de `evaluacion/` ni `propuestas/`; solo se leen las tablas de `tablas/`. | Alumna | Esas carpetas son de una versión anterior que se va a sustituir. | aprobada |
+| 2 | 2026-11-27 | Objetivo: probabilidad de abandono en los 210 días siguientes a T para anunciantes con campaña en los 12 meses anteriores a T. Etiqueta E2 (pérdida total o contracción < 50 %; con < 1 año de historia, abandono si no hay campaña en W). | Alumna | Definición de negocio del TFP. | aprobada |
+| 3 | 2026-11-27 | Fechas de corte trimestrales (fin de mar/jun/sep/dic) con 12 meses de historia y W terminando antes del 1-sep-2026. Prueba = las dos últimas. | Alumna | Validación temporal; nunca mezcla aleatoria. | aprobada |
+| 4 | 2026-11-27 | Con los datos, las fechas de corte son 30-sep-24, 31-dic-24, 31-mar-25, 30-jun-25 (entrenamiento) y 30-sep-25, 31-dic-25 (prueba). | Claude | Consecuencia de la regla 3: la primera con 12 meses de historia es 30-sep-24 (los datos empiezan el 1-oct-23); la última con W < 1-sep-26 es 31-dic-25 (W acaba el 29-jul-26). | aprobada (cálculo) |
+| 5 | 2026-11-27 | Al cargar, se eliminan `dim_clientes.antiguedad_meses`, `fact_facturacion.estado` y `fact_facturacion.dias_retraso`. Se recalculan desde fechas. | Claude | Son fotos tomadas al final del periodo: usarlas sería usar información posterior a T. | aprobada (regla de no fuga) |
+| 6 | 2026-11-27 | En las variables, un cobro con fecha posterior a T se trata como «no cobrado» en T. | Claude | En T esa factura aún estaba pendiente. | aprobada (regla de no fuga) |
+| 7 | 2026-11-27 | Test automático de no fuga (`tests/test_no_fuga.py`): variables iguales con todos los datos, con datos cortados en T y con datos inventados posteriores a T; más un control que comprueba que el test detecta una fuga deliberada. | Alumna (requisito) / Claude (diseño) | Regla sin excepción. | aprobada |
+| 8 | 2026-11-27 | «Un año», «12 meses» y «el mismo periodo un año antes» se cuentan en meses de calendario, no en 365 días. | Claude | Todas las campañas se emiten el día 1 de mes. Con el 29-feb-2024, «365 días» deja fuera oct-23 en el corte de sep-24 y ene-24 en el de dic-24 (población 131 vs 135 y 145 vs 150). | pendiente (PC1) |
+| 9 | 2026-11-27 | «Compra» y «factura» de la etiqueta = campañas por `fecha_emision` e `importe_eur` (no fechas de `fact_facturacion`). | Claude | Que la etiqueta no dependa de cuándo se cobra. | pendiente (PC1) |
+| 10 | 2026-11-27 | «Pasa un año entero sin comprar»: se evalúa solo dentro de W (no se mira a 365 días). | Claude | Con la regla 365 d el corte de prueba dic-25 no tiene etiqueta (faltan datos hasta dic-26) y añade solo 3–7 abandonos por corte. Dentro de W la cláusula no añade casos (ver PC1), así que E2 queda como «pérdida total + contracción». | pendiente (PC1) |
+| 11 | 2026-11-27 | «Menos de 1 año de historia» = `fecha_alta` posterior a T − 1 año. | Claude | La alternativa (primera campaña) no es fiable: los datos empiezan en oct-23 y en el corte de sep-24 marcaría a los 135 anunciantes como nuevos. | pendiente (PC1) |
+| 12 | 2026-11-27 | CTR relativo = clics reales / clics esperados de sus campañas Digital de los últimos 12 meses, con el CTR medio de cada producto calculado con todas las campañas Digital hasta T. Sin campañas digitales = sin dato (no cero). | Claude | Comparación justa entre productos con CTR muy distinto; 1 = en la media. | pendiente (PC1) |
+| 13 | 2026-11-27 | Contacto comercial = Llamada, Email comercial, Visita o Videollamada con respuesta (resultado distinto de «Sin respuesta»). | Claude | Un intento sin respuesta no es contacto. Excluir además los emails de «Seguimiento de campaña» apenas cambia la variable (correlación 0,96). | pendiente (PC1) |
+| 14 | 2026-11-27 | Cambio de interlocutor y reclamación sin resolver: en los 12 meses anteriores a T. Se asume que el resultado de la reclamación es el conocido en su fecha. | Claude | No hay fecha de resolución en los datos; es una limitación. | pendiente (PC1) |
+| 15 | 2026-11-27 | Semilla aleatoria fija = 42 para todo lo que tenga azar (bootstrap, modelos). | Claude | Reproducibilidad. | aprobada |
+| 16 | 2026-11-27 | Entorno: Python 3.13, pandas 3.0.5, scikit-learn 1.9.1 (ver `requirements.txt` de esta carpeta). | Claude | Versiones con las que se han obtenido los resultados. | aprobada |
