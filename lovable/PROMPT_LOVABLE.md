@@ -90,7 +90,7 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
 - **Etiqueta:** `riesgo` → «Riesgo de abandono» (rojo) · `ampliacion` → «Ampliación» (azul) · `lead_nuevo` → «Lead nuevo» (violeta) · `seguimiento` → «Seguimiento» (gris).
 - `estado_confirmado_comercial`: `Perdido`, `Redujo mucho`, `Activo`, `Pausa: volvió después`, `No sé`.
 - `resultado_acciones.grupo`: `accion` → «Con acción del comercial» · `propuesta_sin_accion` → «Propuesta sin acción» · `control` → «Grupo de control».
-- `resultado_acciones.resultado`: `perdida_total` → «Pérdida total» · `contraccion` → «Contracción» · `activo` → «Siguió comprando» · `fuera_de_poblacion_volvio` → «Volvió a comprar» · `fuera_de_poblacion_sin_compra` → «Sin compras».
+- `resultado_acciones.resultado`: `perdida_total` → «Pérdida total» · `contraccion` → «Contracción» · `activo` → «Siguió comprando» · `fuera_de_poblacion_volvio` → «Volvió a comprar» · `fuera_de_poblacion_sin_compra` → «Sin compras» · `salvada_escenario` → «Salvada (escenario supuesto)»; si hay alguna, aviso ámbar fijo sobre el bloque de resultados: «Simulacro para la presentación: datos ficticios con un escenario supuesto de efecto de la acción. No es un resultado».
 - `motivo_confirmado` (se muestra la etiqueta y se guarda el valor):
 
   | Valor | Etiqueta visible |

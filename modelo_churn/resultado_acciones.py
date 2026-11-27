@@ -115,10 +115,10 @@ def efecto(res, banda=BANDA_CONTROL):
     """Abandono con acción frente a control en la misma banda de riesgo (la única comparación justa)."""
     d = res[res["banda_riesgo"] == banda]
     a, c = d[d["grupo"] == "accion"], d[d["grupo"] == "control"]
-    pa = 100 * a["abandono"].mean() if len(a) else None
-    pc = 100 * c["abandono"].mean() if len(c) else None
-    return {"banda": banda, "cuentas_accion": len(a), "pct_abandono_accion": None if pa is None else round(pa, 1),
-            "cuentas_control": len(c), "pct_abandono_control": None if pc is None else round(pc, 1),
+    pa = float(100 * a["abandono"].mean()) if len(a) else None
+    pc = float(100 * c["abandono"].mean()) if len(c) else None
+    return {"banda": banda, "cuentas_accion": int(len(a)), "pct_abandono_accion": None if pa is None else round(pa, 1),
+            "cuentas_control": int(len(c)), "pct_abandono_control": None if pc is None else round(pc, 1),
             "diferencia_puntos": None if pa is None or pc is None else round(pc - pa, 1)}
 
 

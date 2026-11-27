@@ -40,7 +40,12 @@ salva el equipo comercial. Haz estos cambios en el panel, manteniendo el estilo 
      banda de riesgo, resultado, «Salvada» (sí/no) y lo que confirmó el comercial, con filtro por grupo y orden por semana descendente.
    - Textos: grupo `accion` → «Con acción del comercial», `propuesta_sin_accion` → «Propuesta sin acción», `control` →
      «Grupo de control»; resultado `perdida_total` → «Pérdida total», `contraccion` → «Contracción», `activo` → «Siguió
-     comprando», `fuera_de_poblacion_volvio` → «Volvió a comprar», `fuera_de_poblacion_sin_compra` → «Sin compras».
+     comprando», `fuera_de_poblacion_volvio` → «Volvió a comprar», `fuera_de_poblacion_sin_compra` → «Sin compras»,
+     `salvada_escenario` → «Salvada (escenario supuesto)».
+   - **Simulacro:** si alguna fila de `resultado_acciones` tiene `resultado = 'salvada_escenario'`, muestra arriba del
+     bloque un aviso ámbar fijo: «Simulacro para la presentación: datos ficticios con un escenario supuesto de efecto de
+     la acción. No es un resultado». Esas filas se cargan con `demo/salida/cargar_simulacro.sql` y se borran con
+     `demo/salida/borrar_simulacro.sql`.
 
 Comprobación: con un usuario comercial, el menú de dirección y `resultado_acciones` no aparecen; con dirección, el
 bloque nuevo aparece (vacío hasta que termine la primera ventana de 210 días).
