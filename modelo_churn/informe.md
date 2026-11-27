@@ -127,18 +127,18 @@ la variable sube una desviación típica, con el resto igual.
 
 | Variable | Peso | × odds | 1 desviación típica | Lectura comercial |
 |---|---|---|---|---|
-| Días sin contacto comercial | +0,830 | 2,29 | 76 días | Un cliente al que nadie contacta se va. Es la señal más fuerte. |
-| Pedidos firmados pendientes | −0,746 | 0,47 | 0,5 pedidos | Un pedido firmado protege mucho. |
-| Compra en el mismo periodo del año anterior | +0,569 | 1,77 | 6.011 € | Cuanto más compró el año pasado, más tiene que mantener para no contar como contracción. |
-| Tendencia de la facturación | −0,535 | 0,59 | 0,86 | Si la inversión cae, sube el riesgo. |
-| Sin cobros en 12 meses | −0,521 | 0,59 | — | Suelen ser anunciantes de temporada, que la etiqueta no cuenta como abandono. |
+| Días sin contacto comercial | +0,832 | 2,30 | 76 días | Un cliente al que nadie contacta se va. Es la señal más fuerte. |
+| Pedidos firmados pendientes | −0,743 | 0,48 | 0,5 pedidos | Un pedido firmado protege mucho. |
+| Compra en el mismo periodo del año anterior | +0,561 | 1,75 | 6.011 € | Cuanto más compró el año pasado, más tiene que mantener para no contar como contracción. |
+| Tendencia de la facturación | −0,549 | 0,58 | 0,86 | Si la inversión cae, sube el riesgo. |
+| Sin cobros en 12 meses | −0,518 | 0,60 | — | Suelen ser anunciantes de temporada, que la etiqueta no cuenta como abandono. |
 | Frecuencia (12 meses) | +0,450 | 1,57 | 3 campañas | Junto con el valor: con la misma facturación, muchas campañas pequeñas indican más riesgo que pocas grandes. |
-| Valor (12 meses) | −0,408 | 0,67 | 9.051 € | |
+| Valor (12 meses) | −0,400 | 0,67 | 9.051 € | |
 | Propuestas abiertas | −0,302 | 0,74 | 0,6 | Una propuesta en curso protege (efecto reforzado por los datos generados, ver limitaciones). |
-| Cambio de interlocutor | +0,276 | 1,32 | — | Un nuevo responsable de marketing es un momento de riesgo. |
-| Nº de familias | +0,253 | 1,29 | 0,6 | |
-| Propuestas perdidas (12 meses) | +0,244 | 1,28 | 1 | Las propuestas rechazadas anticipan el abandono. |
-| CTR relativo | −0,188 | 0,83 | 0,28 | Si sus campañas rinden más que la media de su producto, se queda. |
+| Cambio de interlocutor | +0,272 | 1,31 | — | Un nuevo responsable de marketing es un momento de riesgo. |
+| Nº de familias | +0,259 | 1,30 | 0,6 | |
+| Propuestas perdidas (12 meses) | +0,239 | 1,27 | 1 | Las propuestas rechazadas anticipan el abandono. |
+| CTR relativo | −0,182 | 0,83 | 0,28 | Si sus campañas rinden más que la media de su producto, se queda. |
 | Días sin campaña, antigüedad, retraso de cobro | < 0,09 | | | Su información ya la recogen las demás variables. |
 
 Varias variables están muy relacionadas entre sí (frecuencia y valor; días sin campaña y días sin contacto), así que
@@ -161,7 +161,7 @@ sus pesos se interpretan en conjunto, no uno a uno.
 6. **Calibración.** El periodo de prueba tuvo más abandono (51,8 %) que el de entrenamiento (48,7 %): en los deciles
    3, 4, 6, 7 y 8 el modelo predice entre 10 y 15 puntos menos de lo real (en el 5, 7 puntos más). En los extremos
    acierta.
-7. **Anunciantes nuevos.** Se puntúan con un modelo entrenado sin ellos (24 de los 132 puntuados el 27-nov-2026): su
+7. **Anunciantes nuevos.** Se puntúan con un modelo entrenado sin ellos (24 de los 135 puntuados el 27-nov-2026): su
    probabilidad es menos fiable.
 8. **Puntuar después de sep-2026.** El último corte de entrenamiento (mar-26) tiene su resultado en meses generados
    (hasta oct-26). Y la fecha de puntuación nunca puede ser posterior al último dato: `puntuar.py` lo impide.
