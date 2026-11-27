@@ -6,7 +6,7 @@ viene después trabaja con la vista de los datos tal como estaban en T.
 import numpy as np
 import pandas as pd
 
-from .etiqueta import UN_ANIO, en, poblacion
+from .etiqueta import UN_ANIO, en, poblacion, ventana_anio_anterior
 
 SEIS_MESES = pd.DateOffset(months=6)
 DIAS_MES = 30.4375
@@ -14,7 +14,8 @@ TIPOS_CONTACTO_COMERCIAL = {"Llamada", "Email comercial", "Visita", "Videollamad
 FAMILIA_DIGITAL = "Digital"
 
 VARIABLES = [
-    "recencia_dias", "frecuencia_12m", "antiguedad_meses", "valor_12m", "tendencia",
+    "recencia_dias", "frecuencia_12m", "antiguedad_meses", "valor_12m",
+    "valor_mismo_periodo_anio_anterior", "tendencia",
     "n_familias_12m", "ctr_relativo", "cambio_interlocutor_12m",
     "reclamacion_sin_resolver_12m", "dias_sin_contacto",
     "facturas_vencidas_impagadas", "retraso_medio_cobro_12m",
@@ -72,6 +73,10 @@ def calcular_variables(tablas, T):
     alta = cli.set_index("id_cliente")["fecha_alta"].reindex(ids)
     out["antiguedad_meses"] = ((T - alta).dt.days / DIAS_MES).round(1)
     out["valor_12m"] = _por_cliente(c12.groupby("id_cliente")["importe_eur"].sum(), ids, 0.0)
+    # Lo comprado en los mismos 210 días del año anterior (W'); termina antes de T.
+    p0, p1 = ventana_anio_anterior(T)
+    out["valor_mismo_periodo_anio_anterior"] = _por_cliente(
+        en(camp, "fecha_emision", p0, p1).groupby("id_cliente")["importe_eur"].sum(), ids, 0.0)
     ult6 = _por_cliente(en(camp, "fecha_emision", hace6, T).groupby("id_cliente")["importe_eur"].sum(), ids, 0.0)
     ant6 = _por_cliente(en(camp, "fecha_emision", hace12, hace6).groupby("id_cliente")["importe_eur"].sum(), ids, 0.0)
     out["tendencia"] = ((ult6 - ant6) / np.maximum(ant6, 1.0)).clip(-1, 1)
