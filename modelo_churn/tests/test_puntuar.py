@@ -13,15 +13,14 @@ from test_no_fuga import _con_futuro, _solo_hasta
 
 RAIZ = Path(__file__).resolve().parents[2]
 SCRIPT = RAIZ / "modelo_churn" / "puntuar.py"
-ORIGINALES = cargar_tablas(RAIZ / "tablas")
-AMPLIADAS = RAIZ / "tablas_ampliadas"
-DATOS_CLI = AMPLIADAS if AMPLIADAS.is_dir() else RAIZ / "tablas"
+DATOS_CLI = RAIZ / "tablas"
+DATOS = cargar_tablas(DATOS_CLI)
 FECHA_CLI = "2026-09-30"
 
 
 @pytest.fixture(scope="module")
 def resultado():
-    scores, _ = puntuar(cargar_tablas(DATOS_CLI), FECHA_CLI)
+    scores, _ = puntuar(DATOS, FECHA_CLI)
     return scores
 
 
@@ -29,9 +28,9 @@ def resultado():
 def test_no_fuga_en_la_puntuacion(fecha):
     """Añadir datos posteriores a la fecha de puntuación no cambia nada (ni el entrenamiento ni las variables)."""
     F = pd.Timestamp(fecha)
-    referencia, _ = puntuar(_solo_hasta(ORIGINALES, F), F)
-    pd.testing.assert_frame_equal(puntuar(ORIGINALES, F)[0], referencia)
-    pd.testing.assert_frame_equal(puntuar(_con_futuro(ORIGINALES, F), F)[0], referencia)
+    referencia, _ = puntuar(_solo_hasta(DATOS, F), F)
+    pd.testing.assert_frame_equal(puntuar(DATOS, F)[0], referencia)
+    pd.testing.assert_frame_equal(puntuar(_con_futuro(DATOS, F), F)[0], referencia)
 
 
 def test_probabilidades_entre_0_y_1(resultado):
@@ -66,4 +65,4 @@ def test_identico_al_ejecutarlo_dos_veces(tmp_path):
 
 def test_fecha_posterior_al_ultimo_dato_falla():
     with pytest.raises(ValueError, match="posterior al último dato"):
-        puntuar(ORIGINALES, "2027-01-01")
+        puntuar(DATOS, "2027-01-01")

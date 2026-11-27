@@ -1,7 +1,7 @@
 """Punto de control 1: descripción del panel antes de modelar.
 
 Uso:
-  python -m modelo_churn.control1 --datos tablas_ampliadas --limite-fin-w 2026-09-01 \
+  python -m modelo_churn.control1 --datos tablas --limite-fin-w 2026-09-01 \
       --inicio-originales 2023-10-01 --salida modelo_churn/punto_control_1.md
 """
 import argparse

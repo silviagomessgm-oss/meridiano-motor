@@ -1,6 +1,6 @@
 # Punto de control 1 · Descripción del panel (generado automáticamente)
 
-Datos: `tablas` (campañas de 2023-10-01 a 2026-09-01). Límite de W: día 1 del último mes con campañas.
+Datos: `tablas_originales` (campañas de 2023-10-01 a 2026-09-01). Límite de W: día 1 del último mes con campañas.
 
 Fechas de corte (6): 2024-09-30, 2024-12-31, 2025-03-31, 2025-06-30, 2025-09-30, 2025-12-31.
 

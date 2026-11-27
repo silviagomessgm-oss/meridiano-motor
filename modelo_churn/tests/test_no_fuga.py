@@ -11,10 +11,10 @@ from modelo_churn.panel import limite_fin_w
 from modelo_churn.variables import calcular_variables
 
 RAIZ = Path(__file__).resolve().parents[2]
-# Se comprueba con los datos originales y con los ampliados, en todas las fechas de corte
+# Se comprueba con los datos originales (tablas_originales/) y con los actuales (tablas/, ampliados), en todas las fechas de corte
 # posibles con cada conjunto (incluidas las que caen en la parte generada).
 CONJUNTOS = {nombre: cargar_tablas(RAIZ / nombre)
-             for nombre in ("tablas", "tablas_ampliadas") if (RAIZ / nombre).is_dir()}
+             for nombre in ("tablas_originales", "tablas") if (RAIZ / nombre).is_dir()}
 CASOS = [(nombre, T) for nombre, t in CONJUNTOS.items()
          for T in fechas_corte(t["campanas"], limite_fin_w(t))]
 DATOS = CONJUNTOS["tablas"]

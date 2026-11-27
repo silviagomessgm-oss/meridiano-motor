@@ -10,7 +10,7 @@ Además: abandono por corte según el origen del anunciante (efecto costura), pr
 abiertas según la etiqueta y pesos de la regresión logística con y sin datos generados.
 
 Uso: python -m modelo_churn.valorar_ampliacion --panel modelo_churn/panel.csv \
-        --tablas-originales tablas --salida modelo_churn/valoracion_utilidad.md
+        --tablas-originales tablas_originales --salida modelo_churn/valoracion_utilidad.md
 """
 import argparse
 from pathlib import Path
@@ -108,7 +108,7 @@ def fidelidad(orig, ampl):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--panel", default="modelo_churn/panel.csv")
-    ap.add_argument("--tablas-originales", default="tablas")
+    ap.add_argument("--tablas-originales", default="tablas_originales")
     ap.add_argument("--tablas-ampliadas", default="tablas_ampliadas")
     ap.add_argument("--salida", default="modelo_churn/valoracion_utilidad.md")
     a = ap.parse_args()

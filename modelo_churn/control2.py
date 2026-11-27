@@ -1,7 +1,7 @@
 """Punto de control 2: comparación de modelos en los cortes de prueba.
 
 Uso:
-  python -m modelo_churn.control2 --datos tablas_ampliadas --limite-fin-w 2026-09-01 \
+  python -m modelo_churn.control2 --datos tablas --limite-fin-w 2026-09-01 \
       --inicio-originales 2024-09-30 --salida modelo_churn/punto_control_2.md
 """
 import argparse
@@ -120,7 +120,7 @@ def hojas_arbol(pipe, entreno, prueba):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--datos", default="tablas_ampliadas")
+    ap.add_argument("--datos", default="tablas")
     ap.add_argument("--limite-fin-w", default="2026-09-01")
     ap.add_argument("--inicio-originales", default="2024-09-30",
                     help="Primer corte con solo datos originales (para el entrenamiento de comparación)")

@@ -1,6 +1,6 @@
 # Punto de control 2 · Comparación de modelos (generado automáticamente)
 
-Datos: `tablas_ampliadas`. Entrenamiento: 19 cortes (2020-12-31 a 2025-06-30, 1992 obs.); comparación «solo originales»: 4 cortes (477 obs.). Prueba: 2025-09-30, 2025-12-31 (251 obs., 142 anunciantes, 51.8 % de abandono). IC 95 %: bootstrap por anunciante (1000 remuestras, semilla 42).
+Datos: `tablas`. Entrenamiento: 19 cortes (2020-12-31 a 2025-06-30, 1992 obs.); comparación «solo originales»: 4 cortes (477 obs.). Prueba: 2025-09-30, 2025-12-31 (251 obs., 142 anunciantes, 51.8 % de abandono). IC 95 %: bootstrap por anunciante (1000 remuestras, semilla 42).
 
 Brier de referencia sin modelo (predecir siempre el 48.7 % de entrenamiento): 0.251.
 

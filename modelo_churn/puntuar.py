@@ -1,7 +1,7 @@
 """Puntuación de abandono de anunciantes (contrato con el resto del sistema).
 
 Uso:
-  python modelo_churn/puntuar.py --datos tablas_ampliadas --fecha AAAA-MM-DD --salida <carpeta>
+  python modelo_churn/puntuar.py --datos tablas --fecha AAAA-MM-DD --salida <carpeta>
 
 Genera <carpeta>/scores_modelo.csv con exactamente las columnas id_cliente, prob_abandono: una fila por anunciante
 activo en la fecha (alguna campaña en los 12 meses anteriores), con la probabilidad de que abandone en los 210 días

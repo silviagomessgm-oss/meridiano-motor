@@ -21,8 +21,9 @@ las tomó y por qué, están en `registro_decisiones.md`.
 | | |
 |---|---|
 | Tablas | `dim_clientes`, `fact_campanas`, `fact_facturacion`, `fact_interacciones`, `oportunidades` (y `cobros_posteriores` en los datos ampliados). `dim_productos` y `contactos` no se usan. |
-| Datos originales (`tablas/`) | oct-2023 → sep-2026. |
-| Datos ampliados (`tablas_ampliadas/`) | ene-2020 → 27-nov-2026: los originales intactos más una ampliación sintética hacia atrás y hacia delante (versión 4). |
+| Datos originales (`tablas_originales/`) | oct-2023 → sep-2026. Se conservan sin cambios para identificar el periodo de prueba y repetir la valoración. |
+| Datos ampliados (`tablas_ampliadas/`) | ene-2020 → 27-nov-2026: los originales intactos más una ampliación sintética hacia atrás y hacia delante (versión 4), con su generador. |
+| Datos operativos (`tablas/` y hoja de Google que carga n8n) | Los datos ampliados, con los cobros posteriores ya incorporados en `fact_facturacion` y la antigüedad recalculada al 27-nov-2026. Es lo que usa el resto del sistema. Para el modelo dan exactamente los mismos resultados que `tablas_ampliadas/`. |
 | Columnas descartadas | `dim_clientes.antiguedad_meses`, `fact_facturacion.estado` y `dias_retraso`: son una foto del final del periodo y supondrían usar información posterior a la fecha de corte. Se recalculan desde las fechas. |
 | Fechas de corte | Fin de trimestre con 12 meses de historia previa y con W terminando antes del 1-sep-2026: 21 cortes (dic-20 → dic-25). |
 | Entrenamiento | 19 cortes (dic-20 → jun-25): 1.992 observaciones de 260 anunciantes, 48,7 % de abandono. 15 cortes contienen datos generados (1.515 obs.) y 4 solo originales (477 obs.). |
@@ -187,13 +188,13 @@ sus pesos se interpretan en conjunto, no uno a uno.
 
 ```
 python -m pytest modelo_churn/tests -q
-python -m modelo_churn.control1 --datos tablas_ampliadas --limite-fin-w 2026-09-01 --inicio-originales 2023-10-01
+python -m modelo_churn.control1 --datos tablas --limite-fin-w 2026-09-01 --inicio-originales 2023-10-01
 python -m modelo_churn.valorar_ampliacion
-python -m modelo_churn.control2 --datos tablas_ampliadas --limite-fin-w 2026-09-01
-python modelo_churn/puntuar.py --datos tablas_ampliadas --fecha 2026-11-27 --salida <carpeta> --detalle
+python -m modelo_churn.control2 --datos tablas --limite-fin-w 2026-09-01
+python modelo_churn/puntuar.py --datos tablas --fecha 2026-11-27 --salida <carpeta> --detalle
 ```
 
-Entorno: Python 3.13, pandas 3.0.5, scikit-learn 1.9.1 (`requirements.txt`). Semilla 42. Tests: no fuga de las variables
-en todas las fechas de corte de ambos conjuntos de datos, no fuga de la puntuación, probabilidades entre 0 y 1, sin
+Entorno: Python 3.13, pandas 3.0.5, scikit-learn 1.9.1 (`requirements.txt`); con las versiones del resto del sistema (pandas 2.2.3, numpy 2.1.3) los resultados son los mismos. Semilla 42. Tests: no fuga de las variables
+en todas las fechas de corte de `tablas_originales/` y `tablas/`, no fuga de la puntuación, probabilidades entre 0 y 1, sin
 clientes duplicados, columnas exactas, una fila por anunciante activo, resultado idéntico en dos ejecuciones y rechazo de
 fechas posteriores al último dato (37 tests).
