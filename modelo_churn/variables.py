@@ -20,6 +20,9 @@ VARIABLES = [
     "facturas_vencidas_impagadas", "retraso_medio_cobro_12m",
     "pedidos_firmados_pendientes", "propuestas_abiertas", "propuestas_perdidas_12m",
 ]
+# Se calculan para describirlas, pero no entran en el modelo (decisiones 22 y 23).
+SOLO_DESCRIPTIVAS = ["reclamacion_sin_resolver_12m", "facturas_vencidas_impagadas"]
+VARIABLES_MODELO = [v for v in VARIABLES if v not in SOLO_DESCRIPTIVAS]
 DESENLACES_PERDIDOS = {"Perdida", "Muerta en silencio"}
 
 

@@ -27,7 +27,8 @@ def tabla_cortes(panel, cortes_prueba):
         "abandonos": g["abandono"].sum(),
     })
     t["% abandono"] = (100 * t["abandonos"] / t["observaciones"]).round(1)
-    tipos = pd.crosstab(panel["fecha_corte"], panel["tipo"]).reindex(columns=TIPOS, fill_value=0)
+    tipos = pd.crosstab(panel["fecha_corte"], panel["tipo"])
+    tipos = tipos[[c for c in TIPOS if c in tipos.columns]]
     t = t.join(tipos)
     t.index = [f"{T.date()}{' (prueba)' if T in cortes_prueba else ''}" for T in t.index]
     tot = t.sum(numeric_only=True)

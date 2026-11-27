@@ -4,109 +4,109 @@ Fechas de corte: 2024-09-30, 2024-12-31, 2025-03-31, 2025-06-30, 2025-09-30, 202
 
 ## 1. Observaciones y abandonos por fecha de corte
 
-|                     |   observaciones |   abandonos |   % abandono |   perdida_total |   contraccion |   nuevo_sin_campana |   activo |   nuevo_activo |
-|:--------------------|----------------:|------------:|-------------:|----------------:|--------------:|--------------------:|---------:|---------------:|
-| 2024-09-30          |             135 |          67 |         49.6 |              47 |            12 |                   8 |       56 |             12 |
-| 2024-12-31          |             150 |          72 |         48   |              47 |            17 |                   8 |       59 |             19 |
-| 2025-03-31          |             139 |          66 |         47.5 |              46 |            15 |                   5 |       60 |             13 |
-| 2025-06-30          |             139 |          68 |         48.9 |              45 |            13 |                  10 |       60 |             11 |
-| 2025-09-30 (prueba) |             139 |          69 |         49.6 |              46 |            16 |                   7 |       61 |              9 |
-| 2025-12-31 (prueba) |             144 |          76 |         52.8 |              54 |            14 |                   8 |       60 |              8 |
-| TOTAL               |             846 |         418 |         49.4 |             285 |            87 |                  46 |      356 |             72 |
+|                     |   observaciones |   abandonos |   % abandono |   perdida_total |   contraccion |   activo |
+|:--------------------|----------------:|------------:|-------------:|----------------:|--------------:|---------:|
+| 2024-09-30          |             115 |          59 |         51.3 |              47 |            12 |       56 |
+| 2024-12-31          |             123 |          64 |         52   |              47 |            17 |       59 |
+| 2025-03-31          |             121 |          61 |         50.4 |              46 |            15 |       60 |
+| 2025-06-30          |             118 |          58 |         49.2 |              45 |            13 |       60 |
+| 2025-09-30 (prueba) |             123 |          62 |         50.4 |              46 |            16 |       61 |
+| 2025-12-31 (prueba) |             128 |          68 |         53.1 |              54 |            14 |       60 |
+| TOTAL               |             728 |         372 |         51.1 |             285 |            87 |      356 |
 
 ## 2. Anunciantes distintos
 
 |                                      |   anunciantes distintos |
 |:-------------------------------------|------------------------:|
-| Total panel                          |                     196 |
-| Entrenamiento (4 cortes)             |                     177 |
-| Prueba (2 cortes)                    |                     158 |
-| En prueba y también en entrenamiento |                     139 |
+| Total panel                          |                     180 |
+| Entrenamiento (4 cortes)             |                     156 |
+| Prueba (2 cortes)                    |                     142 |
+| En prueba y también en entrenamiento |                     118 |
 
 |   nº de fechas de corte en que aparece |   anunciantes |
 |---------------------------------------:|--------------:|
-|                                      1 |            20 |
-|                                      2 |            16 |
-|                                      3 |            27 |
-|                                      4 |            24 |
-|                                      5 |            37 |
-|                                      6 |            72 |
+|                                      1 |            24 |
+|                                      2 |            21 |
+|                                      3 |            24 |
+|                                      4 |            26 |
+|                                      5 |            24 |
+|                                      6 |            61 |
 
 ## 3. Distribución de cada variable (todas las fechas de corte)
 
-|                              |   n |   sin dato |      media |      mín |      p10 |       p25 |    mediana |      p75 |         p90 |         máx |   nº con 1 |   clientes distintos con 1 |
-|:-----------------------------|----:|-----------:|-----------:|---------:|---------:|----------:|-----------:|---------:|------------:|------------:|-----------:|---------------------------:|
-| recencia_dias                | 846 |          0 |  137.6     |  29      |  29      |   30      |  121       |  213     | 303         | 365         |        nan |                        nan |
-| frecuencia_12m               | 846 |          0 |    3.506   |   1      |   1      |    1      |    3       |    4.75  |   7         |  17         |        nan |                        nan |
-| antiguedad_meses             | 846 |          0 |   45.82    |   2.2    |   9.65   |   20.12   |   44.3     |   64.17  |  86.5       | 155.9       |        nan |                        nan |
-| valor_12m                    | 846 |          0 | 7698       | 244.5    | 873.2    | 1702      | 4520       | 9525     |   1.992e+04 |   5.407e+04 |        nan |                        nan |
-| tendencia                    | 846 |          0 |    0.02943 |  -1      |  -1      |   -1      |   -0.03245 |    1     |   1         |   1         |        nan |                        nan |
-| n_familias_12m               | 846 |          0 |    1.346   |   1      |   1      |    1      |    1       |    2     |   2         |   4         |        nan |                        nan |
-| ctr_relativo                 | 598 |        248 |    0.9778  |   0.4114 |   0.6747 |    0.7911 |    0.9396  |    1.146 |   1.339     |   1.912     |        nan |                        nan |
-| cambio_interlocutor_12m      | 846 |          0 |  nan       | nan      | nan      |  nan      |  nan       |  nan     | nan         | nan         |        133 |                         56 |
-| reclamacion_sin_resolver_12m | 846 |          0 |  nan       | nan      | nan      |  nan      |  nan       |  nan     | nan         | nan         |         14 |                          5 |
-| dias_sin_contacto            | 846 |          0 |   47.21    |   0      |   2      |    6      |   19       |   52.75  | 143         | 381         |        nan |                        nan |
-| facturas_vencidas_impagadas  | 846 |          0 |    0.04019 |   0      |   0      |    0      |    0       |    0     |   0         |   1         |        nan |                        nan |
-| retraso_medio_cobro_12m      | 797 |         49 |    9.62    |   0      |   1      |    4.429  |    7.75    |   12.29  |  18.8       |  95         |        nan |                        nan |
-| pedidos_firmados_pendientes  | 846 |          0 |    0.2518  |   0      |   0      |    0      |    0       |    0     |   1         |   3         |        nan |                        nan |
-| propuestas_abiertas          | 846 |          0 |    0.2707  |   0      |   0      |    0      |    0       |    0     |   1         |   3         |        nan |                        nan |
-| propuestas_perdidas_12m      | 846 |          0 |    0.8381  |   0      |   0      |    0      |    1       |    1     |   2         |   4         |        nan |                        nan |
+|                              |   n |   sin dato |      media |      mín |       p10 |       p25 |   mediana |         p75 |         p90 |         máx |   nº con 1 |   clientes distintos con 1 |
+|:-----------------------------|----:|-----------:|-----------:|---------:|----------:|----------:|----------:|------------:|------------:|------------:|-----------:|---------------------------:|
+| recencia_dias                | 728 |          0 |  144.8     |  29      |   29      |   58      |  121      | 213         | 304.3       | 365         |        nan |                        nan |
+| frecuencia_12m               | 728 |          0 |    3.651   |   1      |    1      |    1      |    3      |   5         |   8         |  17         |        nan |                        nan |
+| antiguedad_meses             | 728 |          0 |   51.99    |  12.1    |   17.7    |   30.85   |   49.25   |  67.33      |  90.43      | 155.9       |        nan |                        nan |
+| valor_12m                    | 728 |          0 | 8285       | 244.5    | 1007      | 1894      | 5239      |   1.028e+04 |   2.137e+04 |   5.407e+04 |        nan |                        nan |
+| tendencia                    | 728 |          0 |   -0.06186 |  -1      |   -1      |   -1      |   -0.3075 |   1         |   1         |   1         |        nan |                        nan |
+| n_familias_12m               | 728 |          0 |    1.372   |   1      |    1      |    1      |    1      |   2         |   2         |   4         |        nan |                        nan |
+| ctr_relativo                 | 514 |        214 |    0.9888  |   0.4114 |    0.6737 |    0.7929 |    0.9638 |   1.157     |   1.349     |   1.828     |        nan |                        nan |
+| cambio_interlocutor_12m      | 728 |          0 |  nan       | nan      |  nan      |  nan      |  nan      | nan         | nan         | nan         |        107 |                         48 |
+| reclamacion_sin_resolver_12m | 728 |          0 |  nan       | nan      |  nan      |  nan      |  nan      | nan         | nan         | nan         |         14 |                          5 |
+| dias_sin_contacto            | 728 |          0 |   49.59    |   0      |    2      |    6      |   20      |  54.25      | 158         | 381         |        nan |                        nan |
+| facturas_vencidas_impagadas  | 728 |          0 |    0.04121 |   0      |    0      |    0      |    0      |   0         |   0         |   1         |        nan |                        nan |
+| retraso_medio_cobro_12m      | 698 |         30 |    9.89    |   0      |    1      |    4.5    |    8      |  12.67      |  19         |  95         |        nan |                        nan |
+| pedidos_firmados_pendientes  | 728 |          0 |    0.2486  |   0      |    0      |    0      |    0      |   0         |   1         |   3         |        nan |                        nan |
+| propuestas_abiertas          | 728 |          0 |    0.2706  |   0      |    0      |    0      |    0      |   0         |   1         |   3         |        nan |                        nan |
+| propuestas_perdidas_12m      | 728 |          0 |    0.8255  |   0      |    0      |    0      |    1      |   1         |   2         |   4         |        nan |                        nan |
 
 ## 4. % de abandono por tramos de cada variable (solo entrenamiento)
 
 | variable                     | tramo                        |   obs |   % abandono |
 |:-----------------------------|:-----------------------------|------:|-------------:|
-| recencia_dias                | Q1 (bajo) [29 a 30]          |   141 |         34   |
-| recencia_dias                | Q2 [30 a 120]                |   141 |         39   |
-| recencia_dias                | Q3 [121 a 213]               |   140 |         52.1 |
-| recencia_dias                | Q4 (alto) [213 a 365]        |   141 |         68.8 |
-| frecuencia_12m               | Q1 (bajo) [1 a 1]            |   141 |         47.5 |
-| frecuencia_12m               | Q2 [1 a 3]                   |   141 |         41.1 |
-| frecuencia_12m               | Q3 [3 a 5]                   |   140 |         52.9 |
-| frecuencia_12m               | Q4 (alto) [5 a 16]           |   141 |         52.5 |
-| antiguedad_meses             | Q1 (bajo) [2.2 a 20.6]       |   141 |         41.8 |
-| antiguedad_meses             | Q2 [20.8 a 43.4]             |   141 |         56   |
-| antiguedad_meses             | Q3 [43.4 a 61.6]             |   140 |         54.3 |
-| antiguedad_meses             | Q4 (alto) [62.1 a 152.9]     |   141 |         41.8 |
-| valor_12m                    | Q1 (bajo) [244.5 a 1705]     |   141 |         53.9 |
-| valor_12m                    | Q2 [1705 a 4340]             |   141 |         48.2 |
-| valor_12m                    | Q3 [4346 a 9253]             |   140 |         43.6 |
-| valor_12m                    | Q4 (alto) [9253 a 4.978e+04] |   141 |         48.2 |
-| tendencia                    | Q1 (bajo) [-1 a -1]          |   141 |         68.8 |
-| tendencia                    | Q2 [-1 a -0.1446]            |   141 |         68.1 |
-| tendencia                    | Q3 [-0.1383 a 1]             |   140 |         35.7 |
-| tendencia                    | Q4 (alto) [1 a 1]            |   141 |         21.3 |
-| n_familias_12m               | 1                            |   404 |         47   |
-| n_familias_12m               | 2 o más                      |   159 |         52.2 |
-| ctr_relativo                 | Q1 (bajo) [0.4114 a 0.7868]  |    98 |         58.2 |
-| ctr_relativo                 | Q2 [0.7884 a 0.937]          |    98 |         51   |
-| ctr_relativo                 | Q3 [0.938 a 1.126]           |    98 |         55.1 |
-| ctr_relativo                 | Q4 (alto) [1.133 a 1.828]    |    98 |         38.8 |
-| ctr_relativo                 | sin dato                     |   171 |         43.3 |
-| cambio_interlocutor_12m      | no                           |   476 |         45.2 |
-| cambio_interlocutor_12m      | sí                           |    87 |         66.7 |
-| reclamacion_sin_resolver_12m | no                           |   552 |         48   |
+| recencia_dias                | Q1 (bajo) [29 a 58]          |   120 |         40.8 |
+| recencia_dias                | Q2 [58 a 121]                |   119 |         39.5 |
+| recencia_dias                | Q3 [121 a 213]               |   119 |         53.8 |
+| recencia_dias                | Q4 (alto) [213 a 365]        |   119 |         68.9 |
+| frecuencia_12m               | Q1 (bajo) [1 a 1]            |   120 |         46.7 |
+| frecuencia_12m               | Q2 [1 a 3]                   |   119 |         46.2 |
+| frecuencia_12m               | Q3 [3 a 5]                   |   119 |         56.3 |
+| frecuencia_12m               | Q4 (alto) [5 a 16]           |   119 |         53.8 |
+| antiguedad_meses             | Q1 (bajo) [12.1 a 33.2]      |   120 |         56.7 |
+| antiguedad_meses             | Q2 [33.2 a 48.1]             |   119 |         51.3 |
+| antiguedad_meses             | Q3 [48.5 a 64.6]             |   119 |         53.8 |
+| antiguedad_meses             | Q4 (alto) [64.9 a 152.9]     |   119 |         41.2 |
+| valor_12m                    | Q1 (bajo) [244.5 a 2010]     |   120 |         57.5 |
+| valor_12m                    | Q2 [2025 a 4973]             |   119 |         48.7 |
+| valor_12m                    | Q3 [5029 a 9948]             |   119 |         47.9 |
+| valor_12m                    | Q4 (alto) [9975 a 4.978e+04] |   119 |         48.7 |
+| tendencia                    | Q1 (bajo) [-1 a -1]          |   120 |         67.5 |
+| tendencia                    | Q2 [-1 a -0.385]             |   119 |         69.7 |
+| tendencia                    | Q3 [-0.3839 a 1]             |   119 |         46.2 |
+| tendencia                    | Q4 (alto) [1 a 1]            |   119 |         19.3 |
+| n_familias_12m               | 1                            |   335 |         49   |
+| n_familias_12m               | 2 o más                      |   142 |         54.9 |
+| ctr_relativo                 | Q1 (bajo) [0.4114 a 0.7979]  |    83 |         61.4 |
+| ctr_relativo                 | Q2 [0.7982 a 0.9761]         |    82 |         59.8 |
+| ctr_relativo                 | Q3 [0.9782 a 1.156]          |    82 |         50   |
+| ctr_relativo                 | Q4 (alto) [1.158 a 1.828]    |    82 |         41.5 |
+| ctr_relativo                 | sin dato                     |   148 |         45.3 |
+| cambio_interlocutor_12m      | no                           |   404 |         47.5 |
+| cambio_interlocutor_12m      | sí                           |    73 |         68.5 |
+| reclamacion_sin_resolver_12m | no                           |   466 |         50.2 |
 | reclamacion_sin_resolver_12m | sí                           |    11 |         72.7 |
-| dias_sin_contacto            | Q1 (bajo) [0 a 6]            |   141 |         29.8 |
-| dias_sin_contacto            | Q2 [6 a 18]                  |   141 |         36.2 |
-| dias_sin_contacto            | Q3 [18 a 52]                 |   140 |         50   |
-| dias_sin_contacto            | Q4 (alto) [52 a 381]         |   141 |         78   |
-| facturas_vencidas_impagadas  | 0                            |   541 |         48.8 |
-| facturas_vencidas_impagadas  | 1                            |    22 |         40.9 |
-| retraso_medio_cobro_12m      | Q1 (bajo) [0 a 4.571]        |   135 |         37.8 |
-| retraso_medio_cobro_12m      | Q2 [4.625 a 8]               |   134 |         49.3 |
-| retraso_medio_cobro_12m      | Q3 [8 a 12.5]                |   134 |         53   |
-| retraso_medio_cobro_12m      | Q4 (alto) [12.5 a 95]        |   135 |         61.5 |
-| retraso_medio_cobro_12m      | sin dato                     |    25 |          8   |
-| pedidos_firmados_pendientes  | 0                            |   441 |         57.4 |
-| pedidos_firmados_pendientes  | 1                            |   115 |         15.7 |
-| pedidos_firmados_pendientes  | 2 o más                      |     7 |         28.6 |
-| propuestas_abiertas          | 0                            |   424 |         50.7 |
-| propuestas_abiertas          | 1                            |   124 |         41.9 |
-| propuestas_abiertas          | 2 o más                      |    15 |         40   |
-| propuestas_perdidas_12m      | 0                            |   252 |         45.6 |
-| propuestas_perdidas_12m      | 1                            |   213 |         46.9 |
-| propuestas_perdidas_12m      | 2 o más                      |    98 |         59.2 |
+| dias_sin_contacto            | Q1 (bajo) [0 a 7]            |   120 |         34.2 |
+| dias_sin_contacto            | Q2 [7 a 19]                  |   119 |         38.7 |
+| dias_sin_contacto            | Q3 [19 a 55]                 |   119 |         49.6 |
+| dias_sin_contacto            | Q4 (alto) [57 a 381]         |   119 |         80.7 |
+| facturas_vencidas_impagadas  | 0                            |   457 |         51.2 |
+| facturas_vencidas_impagadas  | 1                            |    20 |         40   |
+| retraso_medio_cobro_12m      | Q1 (bajo) [0 a 5]            |   116 |         44   |
+| retraso_medio_cobro_12m      | Q2 [5 a 8.2]                 |   116 |         45.7 |
+| retraso_medio_cobro_12m      | Q3 [8.25 a 13]               |   115 |         53.9 |
+| retraso_medio_cobro_12m      | Q4 (alto) [13 a 95]          |   116 |         65.5 |
+| retraso_medio_cobro_12m      | sin dato                     |    14 |          0   |
+| pedidos_firmados_pendientes  | 0                            |   377 |         58.9 |
+| pedidos_firmados_pendientes  | 1                            |    94 |         19.1 |
+| pedidos_firmados_pendientes  | 2 o más                      |     6 |         33.3 |
+| propuestas_abiertas          | 0                            |   358 |         52.5 |
+| propuestas_abiertas          | 1                            |   106 |         46.2 |
+| propuestas_abiertas          | 2 o más                      |    13 |         38.5 |
+| propuestas_perdidas_12m      | 0                            |   217 |         45.6 |
+| propuestas_perdidas_12m      | 1                            |   176 |         51.1 |
+| propuestas_perdidas_12m      | 2 o más                      |    84 |         63.1 |
 
 ## 5. Sensibilidad de la etiqueta y la población
 
