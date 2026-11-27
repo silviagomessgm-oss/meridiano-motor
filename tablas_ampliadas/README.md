@@ -15,10 +15,10 @@ continuación, calibrado con los datos originales. El modelo de abandono no form
 |---|---|---|---|
 | dim_clientes | 267 | 79 | 346 |
 | contactos | 296 | 85 | 381 |
-| fact_campanas | 1.432 | 1.661 | 3.093 |
-| fact_facturacion | 1.432 | 1.661 | 3.093 |
-| fact_interacciones | 9.620 | 10.215 | 19.835 |
-| oportunidades | 2.076 | 3.057 | 5.133 |
+| fact_campanas | 1.432 | 1.712 | 3.144 |
+| fact_facturacion | 1.432 | 1.712 | 3.144 |
+| fact_interacciones | 9.620 | 10.272 | 19.892 |
+| oportunidades | 2.076 | 3.156 | 5.232 |
 | dim_comercial, dim_productos | sin cambios | — | — |
 | `cobros_posteriores.csv` (nueva) | — | 61 | 61 |
 
@@ -29,7 +29,8 @@ continuación, calibrado con los datos originales. El modelo de abandono no form
   - la historia de los **35 anunciantes de `dim_clientes` que no tenían campañas**, como anunciantes que abandonaron antes
     de oct-2023 (en los datos originales solo reciben propuestas de recuperación);
   - 74 anunciantes antiguos más (C0321 en adelante) que también abandonaron antes de oct-2023.
-- **Hacia delante (sep-2026 → 27-nov-2026):** la continuación de los anunciantes que seguían activos y 5 altas nuevas.
+- **Hacia delante (sep-2026 → 27-nov-2026):** la continuación de los anunciantes que seguían activos y 5 altas nuevas,
+  completada hasta el nivel del mismo periodo de 2025 (ver «Complemento de octubre y noviembre de 2026»).
 
 ## Separación entrenamiento / prueba
 
@@ -56,6 +57,29 @@ Las 61 facturas originales en estado «Pendiente» reflejan la situación a 30-s
 **se actualiza su situación a 27-nov-2026**: 54 pasan a «Cobrada», con fecha de cobro y días de retraso, y 7 siguen
 pendientes. Son las únicas filas originales que cambian en esta carpeta; `tablas/` no se toca. `cobros_posteriores.csv`
 deja constancia de esas 61 facturas. Ningún corte con resultado depende de estos cobros.
+
+### Complemento de octubre y noviembre de 2026
+
+La primera versión del tramo hasta hoy tenía menos de la mitad de actividad que el mismo periodo de 2025 (campañas
+emitidas en octubre y noviembre: 20 y 18, frente a 52 y 46), y el modelo lo interpretaba como riesgo al puntuar a
+noviembre de 2026. Se completa al final de cada tabla, con una secuencia aleatoria propia, de modo que **ninguna fila
+anterior cambia**:
+
+| | oct-nov 2025 | oct-nov 2026 antes | oct-nov 2026 ahora |
+|---|---|---|---|
+| Campañas emitidas (oct · nov) | 52 · 46 | 20 · 18 | 47 · 42 |
+| Interacciones (oct · 1-27 nov) | 309 · 264 | 240 · 235 | 287 · 245 |
+| Propuestas cerradas entre el 1-oct y el 27-nov | 98 | 14 | 109 |
+
+El objetivo es el nivel de 2025 corregido por la tendencia de enero a agosto de 2026 frente a 2025 (campañas 0,90,
+propuestas 1,19, interacciones 0,93). Las propuestas añadidas son las que se cerraron después del 30-sep-2026 (las
+cerradas antes estarían ya en los originales), algunas enviadas en jun-sep. Las interacciones nuevas son de tipos
+habituales: no añaden cambios de interlocutor ni reclamaciones. Ningún corte de entrenamiento ni de prueba cambia:
+todas sus ventanas terminan antes de sep-2026.
+
+**Limitación que queda:** como en los datos originales, las propuestas solo aparecen cuando se cierran. En la última
+fecha casi ninguna figura como abierta: el 23-nov-2026, el 2 % de los anunciantes activos, frente al 28 % el
+23-nov-2025. El modelo lee esa ausencia como riesgo.
 
 ## Método
 
