@@ -173,15 +173,25 @@ sus pesos se interpretan en conjunto, no uno a uno.
 1. **Cada semana** n8n carga la hoja de datos en Supabase (W0) y el motor ejecuta `ciclo_semanal.py`, cuyo paso 3 llama a `puntuar.py` con la fecha de corte (el lunes anterior). Los anunciantes que el modelo no puntúa (con 366–540 días sin campaña, que las propuestas todavía consideran) reciben el riesgo de respaldo por señales. La capa de selección elige las
    12 cuentas para el equipo comercial y no repite una cuenta propuesta o en control en los últimos 90 días (decisión de
    la alumna; hoy en `ciclo_semanal.py`).
-2. **Grupo de control aleatorio.** De las cuentas que se habrían propuesto, una parte elegida al azar (con semilla
-   registrada) no recibe ninguna acción de retención. Es la única forma de separar el efecto de la acción del acierto del
-   modelo: si el equipo salva cuentas, el modelo parecería equivocarse en ellas. La proporción del control es una decisión
-   pendiente; con 12 cuentas por semana, el grupo crece despacio y harán falta varios trimestres para sacar conclusiones.
-3. **A los 210 días** de cada semana se calcula la etiqueta E2 de las cuentas puntuadas y se mide:
-   - **efecto de la acción:** abandono de las cuentas contactadas frente al grupo de control;
+2. **Grupo de control.** El sistema de propuestas sortea cada trimestre un 20 % de las cuentas de riesgo medio (nunca
+   las de riesgo alto ni las cuentas clave) que no reciben ninguna acción. Es la única forma de separar el efecto de la
+   acción del acierto del modelo: si el equipo salva cuentas, el modelo parecería equivocarse en ellas. Como el control
+   solo existe en la banda media, el efecto solo se puede medir en esa banda.
+3. **A los 210 días** de cada semana, el paso 5 del ciclo (`modelo_churn/resultado_acciones.py`) calcula la etiqueta E2
+   de cada cuenta propuesta o en control y la clasifica: «con acción» (propuesta aprobada o enviada), «propuesta sin
+   acción» o «control»; una cuenta con acción que no abandona cuenta como **salvada**. El resultado va al cuadro de
+   mando y a Supabase (`resultado_acciones`, vistas `resumen_resultado_acciones` y `efecto_accion`), y el panel de
+   dirección lo muestra. Se mide:
+   - **efecto de la acción:** abandono de las cuentas de riesgo medio con acción frente a las del grupo de control
+     (vista `efecto_accion`). Comparar todas las cuentas con acción con el control mezclaría riesgos distintos;
    - **acierto del modelo:** AUC y calibración por deciles en las cuentas que no recibieron acción (control y no
      seleccionadas), comparados con los de este informe (AUC 0,883; deciles del apartado 5).
-4. **Reentrenamiento:** automático en cada ejecución, con todos los cortes de resultado conocido. Conviene revisar
+4. **El modelo aprende de las acciones.** Al reentrenar, `puntuar.py` deja fuera las observaciones de cuentas en las que
+   el equipo actuó entre 90 días antes del corte y el final de su ventana: su resultado ya no es el natural, y el modelo
+   aprendería que una cuenta salvada no estaba en riesgo. Además, cada ciclo guarda la tabla de aprendizaje
+   (`aprendizaje_acciones.csv`: resultado de cada cuenta con sus variables en la fecha de la propuesta), base para
+   entrenar en el futuro un modelo de qué cuentas se pueden salvar cuando haya casos suficientes en acción y en control.
+5. **Reentrenamiento:** automático en cada ejecución, con todos los cortes de resultado conocido. Conviene revisar
    trimestralmente que los pesos y la regularización elegida no cambian de forma brusca.
 
 ## 10. Cómo reproducirlo

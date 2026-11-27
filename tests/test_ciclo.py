@@ -44,6 +44,16 @@ def test_ciclos_semanales_enfriamiento_y_validacion_de_E2_como_indicador(tmp_pat
         activos = f[(f.fecha_emision > pd.Timestamp("2025-09-28")) & (f.fecha_emision <= pd.Timestamp("2026-09-28"))].id_cliente
         assert set(sc.id_cliente) == set(activos)                     # una fila por anunciante con campaña en 12 meses
         assert os.path.exists(os.path.join(RAIZ, "salidas", "2026-09-28", "cuadro_de_mando.xlsx"))
+        # Resultado de las acciones: las semanas de diciembre ya han cerrado su ventana de 210 días
+        res = pd.read_csv(os.path.join(RAIZ, "salidas", "2026-09-28", "resultado_acciones.csv"))
+        assert set(res.fecha_corte) == set(semanas) and set(res.grupo) <= {"accion", "propuesta_sin_accion", "control"}
+        assert (res.salvada == ((res.grupo == "accion") & (res.abandono == 0))).all()
+        k = pd.read_excel(os.path.join(RAIZ, "salidas", "2026-09-28", "cuadro_de_mando.xlsx"), sheet_name="Resumen")
+        assert "   Abandono en el grupo de control" in set(k.Indicador)
+        assert "Efecto de la acción (banda media, comparable con el control)" in set(k.Indicador)
+        h = pd.read_csv(os.path.join(HIST, "propuestas_historico.csv"))
+        assert h.banda_riesgo.notna().all() and set(h[h.estado_plan == "control"].banda_riesgo) == {"media"}
+        assert json.load(open(os.path.join(RAIZ, "salidas", "2026-09-28", "modelo_usado.json")))["modelo"].startswith("E2")
         # Repetir un ciclo no duplica el histórico
         h = pd.read_csv(os.path.join(HIST, "propuestas_historico.csv"))
         assert not h.duplicated(["fecha_corte", "id_cliente"]).any()

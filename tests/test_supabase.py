@@ -30,6 +30,7 @@ def db():
                 "returns trigger language plpgsql as $$ begin return null; end $$")
     cur.execute(open(os.path.join(RAIZ, "supabase", "esquema_desplegado.sql")).read())
     cur.execute(open(os.path.join(RAIZ, "supabase", "backlog2.sql")).read())          # 2.ª auditoría del backlog
+    cur.execute(open(os.path.join(RAIZ, "supabase", "modelo_churn.sql")).read())      # modelo de abandono y resultado de las acciones
     cur.execute("""
       insert into dim_comercial values ('COM-01','Martina','m@meridiano.com'), ('COM-02','Juan','j@meridiano.com');
       insert into perfiles values ('m@meridiano.com','comercial','COM-01'), ('j@meridiano.com','comercial','COM-02'),
@@ -468,3 +469,57 @@ def test_restaurar_demo_deja_la_semana_como_recien_publicada(db):
     assert uno(db, "select count(*) from eventos_propuesta where propuesta_id=%s and accion = 'publicada'", p)[0] == 1
     accion(db, "CLI-1", "aprobar")                                               # la demo se puede repetir
     assert estado(db, "CLI-1") == "enviando"
+
+
+def test_resultado_acciones_solo_direccion_y_coherente(db):
+    db.execute("""insert into resultado_acciones (fecha_corte, id_cliente, grupo, resultado, abandono, salvada, fecha_resultado)
+                  values ('2026-01-05','CLI-1','accion','activo',false,true,'2026-08-03'),
+                         ('2026-01-05','CLI-2','control','perdida_total',true,false,'2026-08-03')""")
+    with pytest.raises(psycopg2.Error, match="salvada_coherente"):        # salvada solo si hubo acción y no abandonó
+        db.execute("""insert into resultado_acciones (fecha_corte, id_cliente, grupo, resultado, abandono, salvada, fecha_resultado)
+                      values ('2026-01-12','CLI-2','control','activo',false,true,'2026-08-10')""")
+    db.execute("rollback")
+    _como(db, "d@meridiano.com")
+    assert uno(db, "select count(*) from resultado_acciones")[0] == 2
+    assert uno(db, "select cuentas, salvadas, pct_abandono from resumen_resultado_acciones where grupo='accion'") == (1, 1, 0)
+    db.execute("reset role")
+    db.execute("update resultado_acciones set banda_riesgo = 'media'")
+    _como(db, "d@meridiano.com")
+    assert uno(db, "select cuentas_accion, cuentas_control, diferencia_puntos from efecto_accion") == (1, 1, 100)
+    _como(db, "m@meridiano.com")                                            # un comercial no ve los resultados
+    assert uno(db, "select count(*) from resultado_acciones")[0] == 0
+    with pytest.raises(psycopg2.Error):
+        db.execute("delete from resultado_acciones")
+    db.execute("rollback; reset role")
+
+
+def test_propuesta_guarda_el_modelo_que_la_genero(db):
+    db.execute("update propuestas set modelo = 'E2 · regresión logística (modelo_churn)' where id_cliente = 'CLI-1'")
+    assert uno(db, "select modelo from propuestas where id_cliente='CLI-1'")[0].startswith("E2")
+    assert uno(db, "select modelo from propuestas where id_cliente='CLI-2'")[0] is None      # propuesta anterior al cambio
+
+
+def test_plan_vigente_con_modelo_y_cada_comercial_ve_lo_suyo(db):
+    db.execute("update propuestas set modelo = 'E2 · regresión logística (modelo_churn)' where id_cliente = 'CLI-1'")
+    db.execute(open(os.path.join(RAIZ, "supabase", "modelo_churn.sql")).read())          # se puede ejecutar dos veces
+    _como(db, "m@meridiano.com")
+    db.execute("select id_cliente, modelo from plan_vigente"); filas = db.fetchall()
+    assert filas == [("CLI-1", "E2 · regresión logística (modelo_churn)")]               # RLS: solo sus propuestas
+    _como(db, "d@meridiano.com")
+    assert uno(db, "select count(*) from plan_vigente")[0] == 2
+    db.execute("reset role")
+
+
+def test_migracion_sobre_instalacion_nueva_solo_con_schema():
+    nombre = "t_" + uuid.uuid4().hex[:8]
+    adm = psycopg2.connect(DSN + " dbname=postgres"); adm.autocommit = True
+    adm.cursor().execute(f"create database {nombre}")
+    try:
+        c = psycopg2.connect(DSN + f" dbname={nombre}"); c.autocommit = True; cur = c.cursor()
+        for f in ("tests/supabase_stub.sql", "supabase/schema.sql", "supabase/modelo_churn.sql"):
+            cur.execute(open(os.path.join(RAIZ, f)).read())
+        cur.execute("select column_name from information_schema.columns where table_name='plan_vigente' and column_name='modelo'")
+        assert cur.fetchone() == ("modelo",)
+        c.close()
+    finally:
+        adm.cursor().execute(f"drop database {nombre} with (force)"); adm.close()

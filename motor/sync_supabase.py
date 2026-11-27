@@ -19,7 +19,9 @@ COLS_PROPUESTA = ["fecha_corte", "id_cliente", "comercial_asignado", "comercial_
                   "categoria", "tipo_riesgo", "banda_riesgo", "prob_abandono", "valor_esperado_accion", "facturacion_en_riesgo",
                   "valor_cuenta", "cuenta_clave", "requiere_direccion", "motivo_principal", "motivo_secundario", "accion_id",
                   "producto_sugerido_nombre", "fecha_limite", "justificacion", "ficha_cuenta", "material_titulo",
-                  "material_cuerpo", "notas_internas", "fuente_material"]
+                  "material_cuerpo", "notas_internas", "fuente_material", "modelo"]
+COLS_RESULTADO = ["fecha_corte", "id_cliente", "grupo", "banda_riesgo", "resultado", "abandono", "salvada",
+                  "estado_confirmado_comercial", "fecha_resultado"]
 COLS_CONFIRMACION = ["id_cliente", "fecha_corte", "comercial_asignado", "banda_riesgo", "motivo_principal", "estado_confirmado_comercial",
                      "motivo_confirmado", "diagnostico_correcto", "comentario_comercial"]
 
@@ -94,7 +96,8 @@ def bajar():
     asig = leer_tabla("asignaciones_ciclo")
     os.makedirs(HIST, exist_ok=True)
     if len(asig):
-        asig[["id_cliente", "estado_plan", "fecha_corte"]].to_csv(os.path.join(HIST, "propuestas_historico.csv"), index=False)
+        cols = ["id_cliente", "estado_plan", "fecha_corte"] + (["banda_riesgo"] if "banda_riesgo" in asig.columns else [])
+        asig[cols].to_csv(os.path.join(HIST, "propuestas_historico.csv"), index=False)
     print(f"asignaciones de ciclos anteriores: {len(asig)}")
     # Etiqueta única por empresa: los clientes con propuesta de ampliación o seguimiento no entran en el plan de churn
     otras = leer_tabla("propuestas", "&etiqueta=neq.riesgo&id_cliente=not.is.null")
@@ -126,6 +129,9 @@ def subir(fecha):
     plan = pd.read_excel(os.path.join(sal, "propuestas_retencion.xlsx"), sheet_name="Plan_por_comercial")
     plan["fecha_corte"] = pd.to_datetime(plan.fecha_corte).dt.date
     plan["fecha_limite"] = pd.to_datetime(plan.fecha_limite).dt.date
+    ruta_modelo = os.path.join(sal, "modelo_usado.json")       # qué modelo de abandono generó las propuestas
+    if os.path.exists(ruta_modelo):
+        plan["modelo"] = json.load(open(ruta_modelo, encoding="utf-8")).get("modelo")
     regs = plan[[c for c in COLS_PROPUESTA if c in plan.columns]].to_dict("records")   # sin columnas de confirmación
     est = json.load(open(os.path.join(sal, "estado_etiqueta.json"), encoding="utf-8"))
     kpis = pd.read_excel(os.path.join(sal, "cuadro_de_mando.xlsx"), sheet_name="Resumen")
@@ -134,13 +140,22 @@ def subir(fecha):
               "casos": est.get("casos"), "acuerdo": est.get("acuerdo")}]
     asig = pd.concat([plan.assign(estado_plan="propuesto"),
                       pd.read_excel(os.path.join(sal, "propuestas_retencion.xlsx"), sheet_name="Grupo_control").assign(estado_plan="control")])
-    aregs = asig[["id_cliente", "estado_plan"]].assign(fecha_corte=fecha).to_dict("records")
+    aregs = asig[["id_cliente", "estado_plan", "banda_riesgo"]].assign(fecha_corte=fecha).to_dict("records")
+    ruta_res = os.path.join(sal, "resultado_acciones.csv")    # qué cuentas se salvan: acción frente a control
+    rregs = []
+    if os.path.exists(ruta_res):
+        res = pd.read_csv(ruta_res, dtype={"id_cliente": str})
+        res["abandono"] = res["abandono"].astype(bool); res["salvada"] = res["salvada"].astype(bool)
+        rregs = res[COLS_RESULTADO].astype(object).where(res[COLS_RESULTADO].notna(), None).to_dict("records")
     if modo_local():
-        print(f"Modo local: {len(regs)} propuestas, estado y {len(kregs)} KPIs listos para subir (no se sube nada)")
-        return dict(propuestas=len(regs), kpis=len(kregs))
+        print(f"Modo local: {len(regs)} propuestas, estado, {len(kregs)} KPIs y {len(rregs)} resultados de acciones "
+              "listos para subir (no se sube nada)")
+        return dict(propuestas=len(regs), kpis=len(kregs), resultados=len(rregs))
     upsert("propuestas", regs, "fecha_corte,id_cliente")
     upsert("asignaciones_ciclo", aregs, "fecha_corte,id_cliente")
     upsert("estado_etiqueta", eregs, "fecha_corte"); upsert("kpis_ciclo", kregs, "fecha_corte,indicador")
+    if rregs:
+        upsert("resultado_acciones", rregs, "fecha_corte,id_cliente")
     upsert("ejecuciones", [{"origen": "motor", "estado": "ok", "detalle": {"fecha_corte": fecha, "propuestas": len(regs),
                                                                           "etiqueta": est.get("etiqueta_vigente")}}])
     print(f"Subidas {len(regs)} propuestas, estado de la etiqueta y {len(kregs)} KPIs")
