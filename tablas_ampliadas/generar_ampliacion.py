@@ -463,6 +463,90 @@ cobros.to_csv(os.path.join(SAL, "cobros_posteriores.csv"), index=False, lineterm
 print(f"cobros_posteriores   {len(filas_cob)} facturas originales pendientes a 30-sep-2026 · "
       f"{sum(f['estado_27nov2026'] == 'Cobrada' for f in filas_cob)} cobradas a 27-nov-2026")
 
+# ---------------------------------------------------------------- 7c. complemento oct-2026 → 27-nov-2026
+# El tramo hacia delante salía con menos de la mitad de campañas que el mismo periodo de 2025 (oct 20 frente a 52, nov 18
+# frente a 46), menos interacciones y casi ninguna propuesta: el modelo lo leía como riesgo. Se completa hasta el nivel del
+# mismo periodo de 2025 corregido por la tendencia de ene–ago (2026 frente a 2025). Usa una secuencia aleatoria propia y
+# se añade al final: ninguna fila generada antes cambia. Las propuestas solo se registran cerradas (como en los
+# originales), así que las enviadas hace poco siguen sin aparecer: es lo esperado, no un hueco.
+rng = np.random.default_rng(20261127)
+todo_c = pd.concat([camp[["id_cliente", "id_campana", "fecha_emision"]], C[["id_cliente", "id_campana", "fecha_emision"]]])
+def ratio_ene_ago(fechas):
+    f = pd.to_datetime(pd.Series(fechas)); m = f.dt.month <= 8
+    return (m & (f.dt.year == 2026)).sum() / max(1, (m & (f.dt.year == 2025)).sum())
+r_camp = ratio_ene_ago(todo_c.fecha_emision)
+act = todo_c[(todo_c.fecha_emision > "2025-10-01") & (todo_c.fecha_emision <= "2026-10-01")].id_cliente.unique()
+act = [c for c in act if c in tam_cli.index or c in {n["id_cliente"] for n in nuevos_cli}]
+info = {r.id_cliente: (r.comercial_asignado, r.tamano, r.categoria) for r in cli.itertuples()}
+info.update({n["id_cliente"]: (n["comercial"], n["tamano"], n["categoria"]) for n in nuevos_cli})
+n0 = len(filas_camp)
+for mes in (pd.Timestamp("2026-10-01"), pd.Timestamp("2026-11-01")):
+    objetivo = int(round(((camp.fecha_emision == mes - pd.DateOffset(years=1)).sum()) * r_camp))
+    for _ in range(200):
+        nuevas_c = pd.DataFrame(filas_camp[n0:]) if len(filas_camp) > n0 else pd.DataFrame(columns=["fecha_emision", "id_cliente"])
+        en_mes = pd.concat([C[C.fecha_emision == mes].id_cliente, nuevas_c[nuevas_c.fecha_emision == mes].id_cliente])
+        if len(en_mes) >= objetivo: break
+        libres = [c for c in act if c not in set(en_mes)]
+        w = np.array([ritmo_de(c) * pesos_mes(c, info[c][2])[mes.month - 1] if c in tam_cli.index else 1.0 for c in libres])
+        idc = libres[rng.choice(len(libres), p=w / w.sum())]
+        emitir_campana(idc, info[idc][0], info[idc][1], mes + pd.Timedelta(days=int(rng.integers(0, 20))),
+                       propias.get(idc), limite=HOY)
+C2 = pd.DataFrame(filas_camp[n0:])
+C2 = C2[C2.fecha_emision <= HOY]
+C = pd.concat([C, C2], ignore_index=True)
+for _, o in C2.sort_values("fecha_emision").iterrows():                    # facturas
+    em = o.fecha_emision + pd.Timedelta(days=int(rng.integers(1, 12)))
+    if em > HOY: continue
+    cond = int(cond_cli.get(o.id_cliente, rng.choice([30, 30, 60, 90]))); venc = em + pd.Timedelta(days=cond)
+    r = float(rng.choice(retrasos)); cobro = venc + pd.Timedelta(days=r); pend = cobro > HOY
+    filas_fac.append(dict(id_factura=nuevo_id("F"), id_cliente=o.id_cliente, id_orden=o.id_orden, importe_eur=o.importe_eur,
+                          fecha_emision=em, condiciones_pago_dias=cond, fecha_vencimiento=venc,
+                          fecha_cobro=None if pend else cobro, dias_retraso=None if pend else float(r),
+                          estado="Pendiente" if pend else "Cobrada"))
+def oportunidad_cerrada(idc, origen, desenlace, envio, cierre, id_orden, comercial, producto, fila):
+    """Solo propuestas cerradas después del 30-sep-2026 (las cerradas antes estarían ya en los datos originales)."""
+    if not (pd.Timestamp("2026-09-30") < cierre <= HOY): return
+    filas_op.append(dict(id_oportunidad=nuevo_id("OP"), id_cliente=idc, id_lead=None if idc else nuevo_id("L"), origen=origen,
+                         id_producto_propuesto=producto, importe_propuesto_eur=round(float(fila[0]) * rng.normal(1, 0.05), 2),
+                         fecha_envio=envio, fecha_cierre=cierre, desenlace=desenlace, id_orden=id_orden,
+                         n_toques_seguimiento=int(fila[1]), dias_hasta_cierre=(cierre - envio).days, comercial=comercial,
+                         correccion="—"))
+for k, g in C2.groupby("id_campana"):                                       # propuestas ganadas de las campañas nuevas
+    o = g.sort_values("fecha_emision").iloc[0]
+    if rng.random() > P_GANADA: continue
+    fila = bolsa[("Ampliacion de cartera", "Ganada")][rng.integers(len(bolsa[("Ampliacion de cartera", "Ganada")]))]
+    cierre = o.fecha_orden + pd.Timedelta(days=int(rng.choice(desfase_ganadas)))
+    oportunidad_cerrada(o.id_cliente, "Ampliacion de cartera", "Ganada", cierre - pd.Timedelta(days=int(fila[2])), cierre,
+                        o.id_orden, o.comercial, o.id_producto, fila)
+# Propuestas no ganadas cerradas entre el 1-oct y hoy: tantas como en 2025 (enviadas el mismo mes y cerradas entre el
+# 1-oct-2025 y el 27-nov-2025), corregidas por la tendencia.
+r_op = ratio_ene_ago(opo.fecha_envio)
+ref = opo[(opo.desenlace != "Ganada") & (opo.fecha_cierre > "2025-09-30") & (opo.fecha_cierre <= "2025-11-27")]
+ya = pd.DataFrame(filas_op)
+ya = ya[(ya.desenlace != "Ganada") & (ya.fecha_cierre > "2026-09-30")]
+for (origen, mes), g in ref.groupby(["origen", ref.fecha_envio.dt.to_period("M")]):
+    m26 = (mes + 12).to_timestamp()
+    hay = ((ya.origen == origen) & (ya.fecha_envio.dt.to_period("M") == mes + 12)).sum()
+    for _ in range(max(0, int(round(len(g) * r_op)) - hay)):
+        x = g.iloc[rng.integers(len(g))]
+        envio = x.fecha_envio + pd.DateOffset(years=1); cierre = x.fecha_cierre + pd.DateOffset(years=1)
+        idc = act[rng.integers(len(act))] if origen == "Ampliacion de cartera" else None
+        oportunidad_cerrada(idc, origen, x.desenlace, envio, cierre, None, info[idc][0] if idc else rng.choice(coms),
+                            rng.choice(prods), (x.importe_propuesto_eur, x.n_toques_seguimiento, 0))
+# Interacciones de oct y nov hasta el nivel de 2025 (tipos habituales; sin cambios de interlocutor ni reclamaciones nuevas)
+inter_o = pd.read_csv(os.path.join(ORIG, "fact_interacciones.csv"), parse_dates=["fecha"])
+r_int = ratio_ene_ago(inter_o.fecha)
+ya_i = pd.DataFrame(filas_int); n_int0 = len(filas_int)
+for mes, fin in ((pd.Timestamp("2026-10-01"), pd.Timestamp("2026-10-31")), (pd.Timestamp("2026-11-01"), HOY)):
+    ref_i = inter_o[(inter_o.fecha >= mes - pd.DateOffset(years=1)) & (inter_o.fecha <= fin - pd.DateOffset(years=1))]
+    hay = ((ya_i.fecha >= mes) & (ya_i.fecha <= fin)).sum()
+    ternas = ref_i[~ref_i.tipo.isin(["Cambio de interlocutor", "Reclamacion"])][["tipo", "canal", "resultado"]].values
+    for _ in range(max(0, int(round(len(ref_i) * r_int)) - hay)):
+        idc = act[rng.integers(len(act))]
+        interaccion(idc, mes + pd.Timedelta(days=int(rng.integers(0, (fin - mes).days + 1))), ternas[rng.integers(len(ternas))], info[idc][0])
+print(f"complemento oct–nov-2026: {len(C2)} órdenes, propuestas y interacciones hasta el nivel de 2025 (tendencias "
+      f"{r_camp:.2f} · {r_op:.2f} · {r_int:.2f})")
+
 # ---------------------------------------------------------------- 8. escritura: originales + filas nuevas al final
 # Las filas originales se copian tal cual, salvo las facturas pendientes a 30-sep-2026 cobradas antes del 27-nov-2026.
 def fmt(df, cols, fechas):
@@ -474,7 +558,8 @@ salidas = {
     "contactos": (pd.DataFrame(filas_con), []),
     "fact_campanas": (C.drop(columns=[c for c in ("tamano", "categoria") if c in C]), ["fecha_orden", "fecha_emision"]),
     "fact_facturacion": (pd.DataFrame(filas_fac), ["fecha_emision", "fecha_vencimiento", "fecha_cobro"]),
-    "fact_interacciones": (pd.DataFrame(filas_int).sort_values("fecha"), ["fecha"]),
+    "fact_interacciones": (pd.concat([pd.DataFrame(filas_int[:n_int0]).sort_values("fecha"),          # complemento al final
+                                      pd.DataFrame(filas_int[n_int0:]).sort_values("fecha")]), ["fecha"]),
     "oportunidades": (pd.DataFrame(filas_op), ["fecha_envio", "fecha_cierre"]),
 }
 os.makedirs(SAL, exist_ok=True)
