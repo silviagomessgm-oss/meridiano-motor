@@ -17,8 +17,8 @@ continuación, calibrado con los datos originales. El modelo de abandono no form
 | contactos | 296 | 85 | 381 |
 | fact_campanas | 1.432 | 1.661 | 3.093 |
 | fact_facturacion | 1.432 | 1.661 | 3.093 |
-| fact_interacciones | 9.620 | 10.260 | 19.880 |
-| oportunidades | 2.076 | 2.986 | 5.062 |
+| fact_interacciones | 9.620 | 10.215 | 19.835 |
+| oportunidades | 2.076 | 3.057 | 5.133 |
 | dim_comercial, dim_productos | sin cambios | — | — |
 | `cobros_posteriores.csv` (nueva) | — | 61 | 61 |
 
@@ -53,7 +53,7 @@ generación.** La única excepción es la continuación de sep-2026 a nov-2026, 
 ### Facturas pendientes
 
 Las 61 facturas originales en estado «Pendiente» reflejan la situación a 30-sep-2026, la fecha de los datos originales, y
-no se modifican. Su situación a 27-nov-2026 está en **`cobros_posteriores.csv`** (50 cobradas y 11 todavía pendientes),
+no se modifican. Su situación a 27-nov-2026 está en **`cobros_posteriores.csv`** (54 cobradas y 7 todavía pendientes),
 con el retraso de cobro habitual. Ningún corte con resultado la necesita. Solo hace falta si se puntúa a 27-nov-2026.
 
 ## Método
@@ -69,14 +69,17 @@ Pensado para no introducir reglas nuevas que luego «descubra» el modelo:
    comprando o no** (en los datos originales: 0,070 al mes a los activos y 0,066 a los que llevan más de un año sin comprar).
    Las ganadas salen de las campañas (84 %). En los meses previos a un episodio de abandono se añaden algunas propuestas
    que no prosperan, que es la relación que muestran los datos originales.
-4. **Señales:** se calibran sobre los episodios de abandono de la etiqueta E2 (`evaluacion/src/etiqueta_e2.py`), con la
-   **población de `modelo_churn/etiqueta.py`**: campaña en los 12 meses anteriores al corte y al menos un año desde el alta.
-   - **Cambio de interlocutor:** en los 60 días previos al 30 % de los episodios, más 0,015 al año a cualquier anunciante.
-   - **Reclamación sin resolver:** antes del 30 % de las pérdidas definitivas, solo en anunciantes que no aparecen en los
-     datos originales. Esta señal cuenta para siempre y alteraría los cortes originales. Las demás reclamaciones están
-     resueltas.
+4. **Señales:** se calibran sobre los episodios de abandono de **la etiqueta del modelo**, `modelo_churn/etiqueta.py`
+   (copia literal en `etiqueta_modelo_churn.py`): población con campaña en los 12 meses de calendario anteriores al corte,
+   E2 con W de 210 días y regla de año «W». Se excluyen los anunciantes con menos de un año desde el alta.
+   - **Cambio de interlocutor:** en los 60 días previos al 22 % de los episodios, más 0,015 al año a cualquier anunciante.
+   - **Reclamación sin resolver:** antes del 20 % de las pérdidas definitivas, más un 15 % de las reclamaciones ordinarias.
+     Ambas solo en anunciantes que no aparecen en los datos originales, porque la señal cuenta para siempre y alteraría
+     los cortes originales. Las demás reclamaciones están resueltas.
    - **CTR un 25–55 % más bajo:** en el año previo al 35 % de los episodios. Después se reajusta la parte añadida para que
      la mediana de CTR de cada producto (la referencia de la señal) sea la de los datos originales hasta jun-2025.
+   - **Propuestas ganadas:** se cierran entre 2 días antes y 48 días después de la orden, con la misma distribución que en
+     los originales.
 5. **Facturas e interacciones:** con las frecuencias y distribuciones medidas en los datos originales hasta jun-2025.
 
 Supuestos: anunciantes activos por ejercicio de 98 (EF2020, año de la pandemia, solo ene–sep), 110, 122 y 130; tarifas
@@ -95,37 +98,50 @@ de los productos iguales a las actuales.
 La retención de EF2022–EF2024 (71–76 %) es más alta que la de los ejercicios originales (63–67 %). Es la consecuencia
 de que los 31 anunciantes que vuelven después de abr-2024 compren ahora en EF2023.
 
-**Abandono por corte** (E2, población del modelo):
+**Abandono por corte** (etiqueta del modelo, sin anunciantes con menos de un año desde el alta):
 
-| Corte | jun-22 | sep-22 | dic-22 | mar-23 | jun-23 | sep-23 | dic-23 | mar-24 | jun-24 | sep-24 | dic-24* | mar-25* | jun-25* |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Abandono | 41 % | 39 % | 53 % | 57 % | 54 % | 49 % | 46 % | 48 % | 42 % | 49 % | 52 % | 51 % | 50 % |
+| Corte | dic-20 | mar-21 | jun-21 | sep-21 | dic-21 | mar-22 | jun-22 | sep-22 | dic-22 | mar-23 | jun-23 | sep-23 | dic-23 | mar-24 | jun-24 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Abandono | 61 % | 54 % | 59 % | 55 % | 41 % | 39 % | 41 % | 39 % | 50 % | 52 % | 51 % | 52 % | 43 % | 50 % | 39 % |
 
-**Relación de las señales con el abandono** (E2, población del modelo; señales calculadas como en
+Cortes de entrenamiento originales (sep-24 → jun-25): 50,7 % de media.
+
+**Relación de las señales con el abandono** (misma etiqueta y población; señales calculadas como en
 `evaluar_umbral_abandono.py`; con la señal frente a sin ella):
 
-| | Originales, cortes de entrenamiento (dic-24 → jun-25) | Parte añadida (mar-21 → sep-24) |
+| | Originales, cortes de entrenamiento (sep-24 → jun-25) | Parte añadida (dic-20 → jun-24) |
 |---|---|---|
-| Observaciones · abandono medio | 357 · 50,4 % | 1.532 · 47,8 % |
-| Cambio de interlocutor | 67,3 % vs 47,4 % (15 % de los casos) | 67,1 % vs 43,2 % (19 %) |
-| Reclamación sin resolver | 90,0 % vs 49,3 % (2,8 %) | 91,2 % vs 46,9 % (2,2 %) |
-| CTR bajo | 63,8 % vs 47,8 % (16 %) | 59,2 % vs 44,9 % (21 %) |
-| Caída de inversión | 61,7 % vs 37,9 % | 62,6 % vs 32,3 % |
-| Más de 90 días sin contacto | 100 % vs 41,8 % | 95,2 % vs 42,9 % |
-| Con propuesta abierta: siguen · abandonan | 31,6 % · 22,8 % | 37,5 % · 18,7 % |
-| Abandono con 0 · 1–2 · 3+ propuestas no ganadas en el último año | 43 % · 55 % · 72 % | 43 % · 50 % · 59 % |
+| Observaciones · abandono medio | 477 · 50,7 % | 1.515 · 48,1 % |
+| Cambio de interlocutor | 67,6 % vs 47,8 % (15 % de los casos) | 70,1 % vs 44,4 % (15 %) |
+| Reclamación sin resolver | 75,0 % vs 50,1 % (2,5 %, n = 12) | 96,3 % vs 46,3 % (3,6 %) |
+| CTR bajo | 63,9 % vs 48,4 % (15 %) | 60,5 % vs 45,1 % (19 %) |
+| Caída de inversión | 68,9 % vs 30,0 % | 66,1 % vs 29,4 % |
+| Más de 90 días sin contacto | 94,0 % vs 43,7 % | 91,5 % vs 43,2 % |
+| Con propuesta abierta: siguen · abandonan | 27,7 % · 22,3 % | 37,3 % · 18,9 % |
+| Abandono con 0 · 1–2 · 3+ propuestas no ganadas en el último año | 46 % · 54 % · 67 % | 40 % · 53 % · 64 % |
 
-`comprobar_senales.py` reproduce esta tabla.
+Diferencias que quedan:
+- **Propuesta abierta entre los que siguen** (37 % frente a 28 %): son sobre todo propuestas ganadas abiertas en la fecha
+  de corte (25 % frente a 16 %). No baja al reducir las propuestas no ganadas ni las ganadas por campaña, así que lo dejo
+  señalado.
+- **Reclamación sin resolver** algo más fuerte (96 % frente a 75 %). En los originales son 12 casos, 9 frente a 3. Para
+  acercarla habría que poner reclamaciones sin resolver a anunciantes actuales que siguen, y eso cambiaría las señales de
+  los cortes originales.
+- **Abandono bajo en dic-21 → sep-22 (≈ 40 %) y en jun-24 (39 %).**
+
+`comprobar_senales.py` reproduce estas tablas.
 
 ## Qué cambia para el modelo
 
-| E2, población del modelo, cortes trimestrales | Solo originales | Ampliadas |
+Fechas de corte de `fechas_corte(campanas, "2026-09-01")`, sin anunciantes con menos de un año desde el alta:
+
+| | Solo originales | Ampliadas |
 |---|---|---|
-| Cortes de entrenamiento | 3 (dic-24 → jun-25) | 18 (mar-21 → jun-25) |
-| Observaciones de entrenamiento | 357 | 1.889 |
-| Abandonos | 180 | 915 |
-| Anunciantes distintos | 145 | 243 |
-| Prueba (sep-25 y dic-25) | 251 observaciones · 139 abandonos | igual |
+| Cortes de entrenamiento | 4 (sep-24 → jun-25) | 19 (dic-20 → jun-25) |
+| Observaciones de entrenamiento | 477 | 1.992 |
+| Abandonos | 242 | 971 |
+| Anunciantes distintos | 156 | 260 |
+| Prueba (sep-25 y dic-25) | 251 observaciones · 130 abandonos | igual |
 
 ## Regenerar
 
