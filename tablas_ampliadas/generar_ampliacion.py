@@ -42,12 +42,13 @@ P_EF23 = float(os.environ.get("CAL_EF23", 1.0))  # anunciantes actuales sin comp
 # Se pueden sobrescribir con variables de entorno CAL_* solo para recalibrar; los valores por defecto generan los CSV publicados.
 CAL = dict(
     base_interlocutor=float(os.environ.get("CAL_BI", 0.015)),   # cambios de interlocutor al año, a cualquier anunciante
-    p_interlocutor=float(os.environ.get("CAL_PI", 0.30)),      # probabilidad de un cambio antes de cada episodio de abandono
-    base_reclamacion=0.04,                                     # reclamaciones al año (resueltas), a cualquier anunciante
-    p_reclamacion=float(os.environ.get("CAL_PR", 0.30)),       # reclamación sin resolver antes de una pérdida definitiva
+    p_interlocutor=float(os.environ.get("CAL_PI", 0.22)),      # probabilidad de un cambio antes de cada episodio de abandono
+    base_reclamacion=0.04,
+    p_base_sin_resolver=float(os.environ.get("CAL_PBR", 0.15)),  # de esas, sin resolver (solo anunciantes que no están en los originales)                                     # reclamaciones al año (resueltas), a cualquier anunciante
+    p_reclamacion=float(os.environ.get("CAL_PR", 0.20)),       # reclamación sin resolver antes de una pérdida definitiva
     p_ctr=float(os.environ.get("CAL_PC", 0.35)),               # CTR un 40 % más bajo en el año previo a un episodio
-    propuestas_mes=0.06,                                       # propuestas de ampliación no ganadas por anunciante y mes
-    propuestas_previas=float(os.environ.get("CAL_PP", 0.5)),   # propuestas perdidas de más en los meses previos a un episodio
+    propuestas_mes=0.05,                                       # propuestas de ampliación no ganadas por anunciante y mes
+    propuestas_previas=float(os.environ.get("CAL_PP", 0.8)),   # propuestas perdidas de más en los meses previos a un episodio
     ventana_interlocutor=int(os.environ.get("CAL_VI", 60)),    # días antes del corte en que se sitúa el cambio
 )
 
@@ -311,28 +312,26 @@ salientes_sin = inter[(inter.resultado == "Sin respuesta")][["tipo", "canal", "r
 interloc = inter[inter.tipo == "Cambio de interlocutor"][["tipo", "canal", "resultado"]].values
 reclam = inter[inter.tipo == "Reclamacion"][["canal"]].values
 TASA_MES = 1.23 * len(inter) / (inter.id_cliente.nunique() * 21)     # calibrado: ≈ 1,9 interacciones por cliente activo y mes, como en los datos originales
-# Episodios de abandono: cortes trimestrales en los que la etiqueta E2 de producción (evaluacion/src/etiqueta_e2.py) marca
-# abandono y el corte anterior no. Se calculan sobre las campañas ya generadas, con la población de producción.
-sys.path.insert(0, os.path.join(RAIZ, "evaluacion", "src"))
-from etiqueta_e2 import etiqueta_e2
+# Episodios de abandono: cortes trimestrales en los que la etiqueta del modelo (modelo_churn/etiqueta.py, copiada en
+# etiqueta_modelo_churn.py: población con campaña en los 12 meses anteriores, E2 con W de 210 días) marca abandono y el
+# corte anterior no. Se excluyen los anunciantes con menos de un año desde el alta. Se calculan sobre las campañas ya generadas.
+sys.path.insert(0, SAL)
+from etiqueta_modelo_churn import etiquetar
 fact_todo = pd.concat([camp[["id_cliente", "id_campana", "fecha_emision", "importe_eur"]],
-                       C[["id_cliente", "id_campana", "fecha_emision", "importe_eur"]]]).assign(fe=lambda d: d.fecha_emision)
-ini_todo = fact_todo.sort_values("fe").groupby("id_campana").agg(id_cliente=("id_cliente", "first"), fe=("fe", "min")).reset_index()
-episodios, previo = {}, {}
-# Población de modelo_churn/etiqueta.py: campaña en los 12 meses anteriores al corte y al menos un año desde el alta.
+                       C[["id_cliente", "id_campana", "fecha_emision", "importe_eur"]]])
 alta_de = pd.concat([cli.set_index("id_cliente").fecha_alta, pd.Series({n["id_cliente"]: n["alta"] for n in nuevos_cli})])
-for T in pd.date_range("2020-06-30", "2024-09-30", freq="QE"):
-    pob = fact_todo[(fact_todo.fe > T - pd.Timedelta(days=365)) & (fact_todo.fe <= T)].id_cliente.unique()
-    pob = np.array([c for c in pob if alta_de[c] <= T - pd.Timedelta(days=365)])
-    e = etiqueta_e2(fact_todo, ini_todo, T, 210, 0.5, pob)
-    ult_total = fact_todo.groupby("id_cliente").fe.max()
-    for idc, tipo in zip(e.id_cliente, e.tipo_e2):
-        y = tipo in ("perdida_total", "contraccion")
+clientes_todo = alta_de.rename("fecha_alta").rename_axis("id_cliente").reset_index()
+ult_total = fact_todo.groupby("id_cliente").fecha_emision.max()
+episodios, previo = {}, {}
+for T in pd.date_range("2020-12-31", "2024-09-30", freq="QE-DEC"):
+    e = etiquetar(fact_todo, clientes_todo, T)
+    e = e[~e.nuevo]
+    for idc, tipo, y in zip(e.id_cliente, e.tipo, e.abandono):
         if y and not previo.get(idc, False):
             definitiva = tipo == "perdida_total" and ult_total[idc] <= T       # no vuelve a comprar nunca
             episodios.setdefault(idc, []).append((T, definitiva))
-        previo[idc] = y
-    for idc in set(previo) - set(pob): previo[idc] = False
+        previo[idc] = bool(y)
+    for idc in set(previo) - set(e.id_cliente): previo[idc] = False
 
 # CTR más bajo en el año previo a una parte de los episodios (en los datos originales el CTR bajo acompaña al abandono)
 C = C.reset_index(drop=True)
@@ -364,7 +363,8 @@ for clave, p in perfil.items():
                             else salientes_sin[rng.integers(len(salientes_sin))], p["comercial"])
     años = max(0.1, (hasta - desde).days / 365.25)
     eventos = [("interlocutor", None)] * rng.poisson(CAL["base_interlocutor"] * años)
-    eventos += [("reclamacion", None)] * rng.poisson(CAL["base_reclamacion"] * años)
+    for _ in range(rng.poisson(CAL["base_reclamacion"] * años)):            # una parte queda sin resolver (no en los originales)
+        eventos.append(("reclamacion_sin_resolver" if not p["en_originales"] and rng.random() < CAL["p_base_sin_resolver"] else "reclamacion", None))
     for T, definitiva in episodios.get(clave, []):                          # antes de cada episodio de abandono (E2)
         if rng.random() < CAL["p_interlocutor"]:
             eventos.append(("interlocutor", T - pd.Timedelta(days=int(rng.integers(0, CAL["ventana_interlocutor"])))))
@@ -390,10 +390,13 @@ opo_ref = opo[opo.fecha_envio <= REF]
 bolsa = {k: g[["importe_propuesto_eur", "n_toques_seguimiento", "dias_hasta_cierre"]].values for k, g in opo_ref.groupby(["origen", "desenlace"])}
 no_gan_ampl = opo_ref[(opo_ref.origen == "Ampliacion de cartera") & (opo.desenlace != "Ganada")].desenlace.values
 no_gan_lead = opo_ref[(opo_ref.origen == "Lead nuevo") & (opo.desenlace != "Ganada")].desenlace.values
+P_GANADA = float(os.environ.get("CAL_PG", 0.84))   # campañas con propuesta ganada (originales: 0,87 en EF2024, 0,73 en EF2025)
 prods = prod.index.values; coms = com.id_comercial.values
+_g = opo_ref[opo_ref.desenlace == "Ganada"].merge(camp[["id_orden", "fecha_orden"]], on="id_orden")
+desfase_ganadas = (_g.fecha_cierre - _g.fecha_orden).dt.days.values
 filas_op = []
-def oportunidad(idc, id_lead, origen, desenlace, envio, id_orden, comercial, producto):
-    imp, toques, dias = bolsa[(origen, desenlace)][rng.integers(len(bolsa[(origen, desenlace)]))]
+def oportunidad(idc, id_lead, origen, desenlace, envio, id_orden, comercial, producto, fila=None):
+    imp, toques, dias = fila if fila is not None else bolsa[(origen, desenlace)][rng.integers(len(bolsa[(origen, desenlace)]))]
     cierre = envio + pd.Timedelta(days=int(dias))
     if cierre > HOY or envio < INICIO - pd.Timedelta(days=90): return
     if FIN_ATRAS < envio < pd.Timestamp("2026-09-23"): return
@@ -404,13 +407,13 @@ def oportunidad(idc, id_lead, origen, desenlace, envio, id_orden, comercial, pro
 primera_total = pd.concat([camp[["id_cliente", "fecha_emision"]], C[["id_cliente", "fecha_emision"]]]).groupby("id_cliente").fecha_emision.min()
 for k, g in C.groupby("id_campana"):
     o = g.sort_values("fecha_emision").iloc[0]
-    if rng.random() > 0.84: continue
+    if rng.random() > P_GANADA: continue
     es_primera = o.fecha_emision == primera_total[o.id_cliente]
     origen = "Lead nuevo" if es_primera else "Ampliacion de cartera"
-    dias = int(bolsa[(origen, "Ganada")][rng.integers(len(bolsa[(origen, "Ganada")]))][2])
-    cierre = o.fecha_orden + pd.Timedelta(days=int(rng.integers(-2, 48)))
-    oportunidad(o.id_cliente, nuevo_id("L") if es_primera else None, origen, "Ganada", cierre - pd.Timedelta(days=dias),
-                o.id_orden, o.comercial, o.id_producto)
+    fila = bolsa[(origen, "Ganada")][rng.integers(len(bolsa[(origen, "Ganada")]))]
+    cierre = o.fecha_orden + pd.Timedelta(days=int(rng.choice(desfase_ganadas)))   # cierre − orden, como en los originales
+    oportunidad(o.id_cliente, nuevo_id("L") if es_primera else None, origen, "Ganada", cierre - pd.Timedelta(days=int(fila[2])),
+                o.id_orden, o.comercial, o.id_producto, fila)
     if origen == "Lead nuevo":                                              # leads que no llegaron a ser clientes
         for _ in range(rng.poisson(8.06)):
             env = o.fecha_orden - pd.Timedelta(days=int(rng.integers(-200, 200)))
