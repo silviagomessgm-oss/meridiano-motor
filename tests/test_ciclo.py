@@ -16,7 +16,7 @@ def _plan(fecha):
     return pd.read_excel(os.path.join(RAIZ, "salidas", fecha, "propuestas_retencion.xlsx"), sheet_name=None)
 
 
-def test_ciclos_semanales_enfriamiento_y_vuelta_automatica_a_regla_A(tmp_path):
+def test_ciclos_semanales_enfriamiento_y_validacion_de_E2_como_indicador(tmp_path):
     for a in ARCHIVOS_HIST:
         if os.path.exists(os.path.join(HIST, a)): shutil.move(os.path.join(HIST, a), tmp_path / a)
     try:
@@ -35,9 +35,14 @@ def test_ciclos_semanales_enfriamiento_y_vuelta_automatica_a_regla_A(tmp_path):
                  "--acierto", "0.3", "--salida", devuelto)
         _run("ciclo_semanal.py", "--fecha_corte", "2026-09-28", "--plan_devuelto", devuelto)
         est = json.load(open(os.path.join(RAIZ, "salidas", "2026-09-28", "estado_etiqueta.json"), encoding="utf-8"))
-        assert est["casos"] >= 30 and est["etiqueta_vigente"] == "A"    # acuerdo bajo con ≥ 30 casos: vuelve sola a A
+        assert est["casos"] >= 30 and est["etiqueta_vigente"] == "A"    # acuerdo bajo con ≥ 30 casos: el indicador marca A
+        # …pero el modelo no cambia: siempre puntuar.py con E2 (decisión de la alumna, 27-nov-2026)
         sc = pd.read_csv(os.path.join(RAIZ, "salidas", "2026-09-28", "scores_modelo.csv"))
-        assert (sc.etiqueta_entrenamiento == "A").all()
+        assert list(sc.columns) == ["id_cliente", "prob_abandono"]
+        assert sc.id_cliente.is_unique and sc.prob_abandono.between(0, 1).all()
+        f = pd.read_csv(os.path.join(RAIZ, "tablas", "fact_campanas.csv"), parse_dates=["fecha_emision"])
+        activos = f[(f.fecha_emision > pd.Timestamp("2025-09-28")) & (f.fecha_emision <= pd.Timestamp("2026-09-28"))].id_cliente
+        assert set(sc.id_cliente) == set(activos)                     # una fila por anunciante con campaña en 12 meses
         assert os.path.exists(os.path.join(RAIZ, "salidas", "2026-09-28", "cuadro_de_mando.xlsx"))
         # Repetir un ciclo no duplica el histórico
         h = pd.read_csv(os.path.join(HIST, "propuestas_historico.csv"))

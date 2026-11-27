@@ -170,7 +170,7 @@ sus pesos se interpretan en conjunto, no uno a uno.
 
 ## 9. Cómo se mide en producción (grupo de control)
 
-1. **Cada semana** se actualizan los datos y se ejecuta `puntuar.py` con la fecha del día. La capa de selección elige las
+1. **Cada semana** n8n carga la hoja de datos en Supabase (W0) y el motor ejecuta `ciclo_semanal.py`, cuyo paso 3 llama a `puntuar.py` con la fecha de corte (el lunes anterior). Los anunciantes que el modelo no puntúa (con 366–540 días sin campaña, que las propuestas todavía consideran) reciben el riesgo de respaldo por señales. La capa de selección elige las
    12 cuentas para el equipo comercial y no repite una cuenta propuesta o en control en los últimos 90 días (decisión de
    la alumna; hoy en `ciclo_semanal.py`).
 2. **Grupo de control aleatorio.** De las cuentas que se habrían propuesto, una parte elegida al azar (con semilla

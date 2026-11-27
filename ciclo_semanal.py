@@ -4,8 +4,10 @@ Meridiano · Ciclo SEMANAL del churn de anunciantes (los martes por la mañana; 
 Decisión del equipo: el riesgo se calcula cada martes para que las propuestas no lleguen todas a la vez.
 La fecha de corte es el lunes anterior (datos cerrados). Cada semana:
   1. Comprueba las tablas (columnas, fechas e integridad).
-  2. Validación automática de E2 con las confirmaciones acumuladas de los comerciales (historico/).
-  3. Puntuaciones L2 con la etiqueta vigente (E2, o A si la validación automática no la confirma).
+  2. Validación automática de E2 con las confirmaciones acumuladas de los comerciales (historico/). Es un indicador
+     para el cuadro de mando: no cambia el modelo (decisión de la alumna, 27-nov-2026).
+  3. Puntuaciones con el modelo de abandono de modelo_churn/puntuar.py (regresión logística, etiqueta E2 siempre).
+     Los anunciantes que el modelo no puntúa (sin campaña en 12 meses) reciben en el paso 4 el riesgo de respaldo.
   4. Propuestas de retención: 12 acciones de mayor valor esperado (4 por comercial), sin repetir cuentas
      propuestas o en control en los últimos 90 días (historico/propuestas_historico.csv).
   5. Cuadro de mando en Excel.
@@ -90,7 +92,8 @@ def cuadro_de_mando(T, sal, estado):
     hist = os.path.join(HIST, "confirmaciones_historico.csv")
     n_conf = int(pd.read_csv(hist).estado_confirmado_comercial.notna().sum()) if os.path.exists(hist) else 0
     kpis = [("Fecha de corte", str(T.date())),
-            ("Etiqueta de abandono vigente", estado.get("etiqueta_vigente", "E2")),
+            ("Modelo de abandono", "Regresión logística · etiqueta E2 (modelo_churn/puntuar.py)"),
+            ("Resultado de la validación automática de E2 (indicador)", estado.get("etiqueta_vigente", "E2")),
             ("Estado de la validación automática", estado.get("estado", "Sin confirmaciones todavía: E2 vigente por decisión del equipo")),
             ("Confirmaciones de comerciales acumuladas", n_conf),
             (f"Churn E2 · corte {Tm.date()} (ventana cerrada) · anunciantes vivos", n),
@@ -130,13 +133,10 @@ def main():
                   open(estado_ruta, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         print("Sin confirmaciones todavía: E2 vigente por decisión del equipo")
     estado = json.load(open(estado_ruta, encoding="utf-8"))
-    paso(3, f"Puntuaciones L2 (etiqueta vigente: {estado['etiqueta_vigente']})")
-    prod = config_temporal(os.path.join(EV, "config", "produccion.json"), os.path.join(sal, "produccion_usada.json"), {"fecha_puntuacion": str(T.date())})
-    args = ["src/generar_scores.py", "--datos", TABLAS, "--produccion", prod, "--estado_etiqueta", estado_ruta, "--salida", sal]
-    interv = os.path.join(HIST, "intervenciones.csv")          # H4: cuentas en las que ya se actuó (fuera del entrenamiento)
-    if os.path.exists(interv):
-        args += ["--intervenciones", interv]
-    ejecutar(args, EV)
+    paso(3, "Puntuaciones del modelo de abandono (modelo_churn/puntuar.py, etiqueta E2)")
+    if estado.get("etiqueta_vigente", "E2") != "E2":
+        print(f"Nota: la validación automática indica «{estado['etiqueta_vigente']}»; el modelo usa siempre E2 (decisión de la alumna).")
+    ejecutar([os.path.join("modelo_churn", "puntuar.py"), "--datos", TABLAS, "--fecha", str(T.date()), "--salida", sal], RAIZ)
     paso(4, "Propuestas de retención")
     datos_pr = os.path.join(sal, "tablas_con_scores"); shutil.rmtree(datos_pr, ignore_errors=True); shutil.copytree(TABLAS, datos_pr)
     shutil.copy(os.path.join(sal, "scores_modelo.csv"), os.path.join(datos_pr, "scores_modelo.csv"))
