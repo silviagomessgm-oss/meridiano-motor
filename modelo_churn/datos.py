@@ -19,6 +19,7 @@ _TABLAS = {
     "campanas": ("fact_campanas", ["fecha_orden", "fecha_emision"]),
     "facturas": ("fact_facturacion", ["fecha_emision", "fecha_vencimiento", "fecha_cobro"]),
     "interacciones": ("fact_interacciones", ["fecha"]),
+    "oportunidades": ("oportunidades", ["fecha_envio", "fecha_cierre"]),
 }
 
 

@@ -48,6 +48,9 @@ Fechas de corte: 2024-09-30, 2024-12-31, 2025-03-31, 2025-06-30, 2025-09-30, 202
 | dias_sin_contacto            | 846 |          0 |   47.21    |   0      |   2      |    6      |   19       |   52.75  | 143         | 381         |        nan |                        nan |
 | facturas_vencidas_impagadas  | 846 |          0 |    0.04019 |   0      |   0      |    0      |    0       |    0     |   0         |   1         |        nan |                        nan |
 | retraso_medio_cobro_12m      | 797 |         49 |    9.62    |   0      |   1      |    4.429  |    7.75    |   12.29  |  18.8       |  95         |        nan |                        nan |
+| pedidos_firmados_pendientes  | 846 |          0 |    0.2518  |   0      |   0      |    0      |    0       |    0     |   1         |   3         |        nan |                        nan |
+| propuestas_abiertas          | 846 |          0 |    0.2707  |   0      |   0      |    0      |    0       |    0     |   1         |   3         |        nan |                        nan |
+| propuestas_perdidas_12m      | 846 |          0 |    0.8381  |   0      |   0      |    0      |    1       |    1     |   2         |   4         |        nan |                        nan |
 
 ## 4. % de abandono por tramos de cada variable (solo entrenamiento)
 
@@ -73,10 +76,8 @@ Fechas de corte: 2024-09-30, 2024-12-31, 2025-03-31, 2025-06-30, 2025-09-30, 202
 | tendencia                    | Q2 [-1 a -0.1446]            |   141 |         68.1 |
 | tendencia                    | Q3 [-0.1383 a 1]             |   140 |         35.7 |
 | tendencia                    | Q4 (alto) [1 a 1]            |   141 |         21.3 |
-| n_familias_12m               | Q1 (bajo) [1 a 1]            |   141 |         44   |
-| n_familias_12m               | Q2 [1 a 1]                   |   141 |         51.1 |
-| n_familias_12m               | Q3 [1 a 2]                   |   140 |         43.6 |
-| n_familias_12m               | Q4 (alto) [2 a 4]            |   141 |         55.3 |
+| n_familias_12m               | 1                            |   404 |         47   |
+| n_familias_12m               | 2 o más                      |   159 |         52.2 |
 | ctr_relativo                 | Q1 (bajo) [0.4114 a 0.7868]  |    98 |         58.2 |
 | ctr_relativo                 | Q2 [0.7884 a 0.937]          |    98 |         51   |
 | ctr_relativo                 | Q3 [0.938 a 1.126]           |    98 |         55.1 |
@@ -90,15 +91,22 @@ Fechas de corte: 2024-09-30, 2024-12-31, 2025-03-31, 2025-06-30, 2025-09-30, 202
 | dias_sin_contacto            | Q2 [6 a 18]                  |   141 |         36.2 |
 | dias_sin_contacto            | Q3 [18 a 52]                 |   140 |         50   |
 | dias_sin_contacto            | Q4 (alto) [52 a 381]         |   141 |         78   |
-| facturas_vencidas_impagadas  | Q1 (bajo) [0 a 0]            |   141 |         51.1 |
-| facturas_vencidas_impagadas  | Q2 [0 a 0]                   |   141 |         48.9 |
-| facturas_vencidas_impagadas  | Q3 [0 a 0]                   |   140 |         46.4 |
-| facturas_vencidas_impagadas  | Q4 (alto) [0 a 1]            |   141 |         47.5 |
+| facturas_vencidas_impagadas  | 0                            |   541 |         48.8 |
+| facturas_vencidas_impagadas  | 1                            |    22 |         40.9 |
 | retraso_medio_cobro_12m      | Q1 (bajo) [0 a 4.571]        |   135 |         37.8 |
 | retraso_medio_cobro_12m      | Q2 [4.625 a 8]               |   134 |         49.3 |
 | retraso_medio_cobro_12m      | Q3 [8 a 12.5]                |   134 |         53   |
 | retraso_medio_cobro_12m      | Q4 (alto) [12.5 a 95]        |   135 |         61.5 |
 | retraso_medio_cobro_12m      | sin dato                     |    25 |          8   |
+| pedidos_firmados_pendientes  | 0                            |   441 |         57.4 |
+| pedidos_firmados_pendientes  | 1                            |   115 |         15.7 |
+| pedidos_firmados_pendientes  | 2 o más                      |     7 |         28.6 |
+| propuestas_abiertas          | 0                            |   424 |         50.7 |
+| propuestas_abiertas          | 1                            |   124 |         41.9 |
+| propuestas_abiertas          | 2 o más                      |    15 |         40   |
+| propuestas_perdidas_12m      | 0                            |   252 |         45.6 |
+| propuestas_perdidas_12m      | 1                            |   213 |         46.9 |
+| propuestas_perdidas_12m      | 2 o más                      |    98 |         59.2 |
 
 ## 5. Sensibilidad de la etiqueta y la población
 

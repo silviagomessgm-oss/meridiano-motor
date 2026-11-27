@@ -19,11 +19,16 @@ def _solo_hasta(tablas, T):
     """Copia de las tablas tal como existirían si se extrajeran el día T."""
     f = tablas["facturas"][tablas["facturas"]["fecha_emision"] <= T].copy()
     f.loc[f["fecha_cobro"] > T, "fecha_cobro"] = pd.NaT
+    o = tablas["oportunidades"][tablas["oportunidades"]["fecha_envio"] <= T].copy()
+    abierta = o["fecha_cierre"] > T
+    o.loc[abierta, ["fecha_cierre", "desenlace"]] = [pd.NaT, None]
     return {
         "clientes": tablas["clientes"][tablas["clientes"]["fecha_alta"] <= T].copy(),
-        "campanas": tablas["campanas"][tablas["campanas"]["fecha_emision"] <= T].copy(),
+        # Un pedido firmado en T existe en T aunque la campaña se emita después.
+        "campanas": tablas["campanas"][tablas["campanas"]["fecha_orden"] <= T].copy(),
         "facturas": f,
         "interacciones": tablas["interacciones"][tablas["interacciones"]["fecha"] <= T].copy(),
+        "oportunidades": o,
     }
 
 
@@ -37,8 +42,8 @@ def _con_futuro(tablas, T, seed=0):
 
     camp = t["campanas"].sample(n, replace=True, random_state=seed).copy()
     camp["id_cliente"] = rng.choice(ids, n)
-    camp["fecha_emision"] = despues(n)
-    camp["fecha_orden"] = camp["fecha_emision"] - pd.Timedelta(days=10)
+    camp["fecha_orden"] = despues(n)
+    camp["fecha_emision"] = camp["fecha_orden"] + pd.Timedelta(days=10)
     camp["importe_eur"] *= 5
     camp["clics"] = camp["impresiones"]  # CTR del 100 %
     camp["id_orden"] = [f"FUT{i}" for i in range(n)]
@@ -60,6 +65,17 @@ def _con_futuro(tablas, T, seed=0):
                                    "tipo": tipo, "canal": "Entrante", "resultado": resultado,
                                    "comercial": "COM-01", "previa_al_alta": "No"}))
     t["interacciones"] = pd.concat([t["interacciones"], *inter], ignore_index=True)
+
+    opo = t["oportunidades"].sample(n, replace=True, random_state=seed).copy()
+    opo["id_cliente"] = rng.choice(ids, n)
+    opo["fecha_envio"] = despues(n)
+    opo["fecha_cierre"] = opo["fecha_envio"] + pd.Timedelta(days=20)
+    opo["desenlace"] = "Perdida"
+    opo["id_oportunidad"] = [f"FUT{i}" for i in range(n)]
+    o = t["oportunidades"]
+    # Propuestas abiertas en T: su desenlace futuro no puede verse en T.
+    o.loc[o["fecha_cierre"] > T, "desenlace"] = "Perdida"
+    t["oportunidades"] = pd.concat([o, opo], ignore_index=True)
 
     nuevo = t["clientes"].iloc[[0]].copy()
     nuevo["id_cliente"], nuevo["fecha_alta"] = "CFUT", T + pd.Timedelta(days=5)

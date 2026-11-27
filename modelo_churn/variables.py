@@ -18,7 +18,9 @@ VARIABLES = [
     "n_familias_12m", "ctr_relativo", "cambio_interlocutor_12m",
     "reclamacion_sin_resolver_12m", "dias_sin_contacto",
     "facturas_vencidas_impagadas", "retraso_medio_cobro_12m",
+    "pedidos_firmados_pendientes", "propuestas_abiertas", "propuestas_perdidas_12m",
 ]
+DESENLACES_PERDIDOS = {"Perdida", "Muerta en silencio"}
 
 
 def recortar_a(tablas, T):
@@ -28,11 +30,22 @@ def recortar_a(tablas, T):
     f = f[f["fecha_emision"] <= T].copy()
     # Un cobro posterior a T todavía no había ocurrido en T.
     f.loc[f["fecha_cobro"] > T, "fecha_cobro"] = pd.NaT
+    # Propuestas enviadas hasta T; si se cerraron después de T, en T seguían abiertas.
+    o = tablas["oportunidades"]
+    o = o[o["fecha_envio"] <= T].copy()
+    cerrada_despues = o["fecha_cierre"] > T
+    o.loc[cerrada_despues, "fecha_cierre"] = pd.NaT
+    o.loc[cerrada_despues, "desenlace"] = None
+    # Pedidos firmados hasta T: los emitidos son campañas; el resto, cartera pendiente.
+    c = tablas["campanas"]
+    firmados = c[c["fecha_orden"] <= T]
     return {
         "clientes": tablas["clientes"][tablas["clientes"]["fecha_alta"] <= T],
-        "campanas": tablas["campanas"][tablas["campanas"]["fecha_emision"] <= T],
+        "campanas": firmados[firmados["fecha_emision"] <= T],
+        "pedidos_pendientes": firmados[firmados["fecha_emision"] > T],
         "facturas": f,
         "interacciones": tablas["interacciones"][tablas["interacciones"]["fecha"] <= T],
+        "oportunidades": o,
     }
 
 
@@ -86,6 +99,13 @@ def calcular_variables(tablas, T):
     cobradas = en(fact.dropna(subset=["fecha_cobro"]), "fecha_cobro", hace12, T)
     retraso = (cobradas["fecha_cobro"] - cobradas["fecha_vencimiento"]).dt.days.clip(lower=0)
     out["retraso_medio_cobro_12m"] = retraso.groupby(cobradas["id_cliente"]).mean().reindex(ids)  # NaN = sin cobros
+
+    # Actividad de venta
+    out["pedidos_firmados_pendientes"] = _por_cliente(t["pedidos_pendientes"].groupby("id_cliente").size(), ids, 0)
+    opo = t["oportunidades"]
+    out["propuestas_abiertas"] = _por_cliente(opo[opo["fecha_cierre"].isna()].groupby("id_cliente").size(), ids, 0)
+    perdidas = en(opo[opo["desenlace"].isin(DESENLACES_PERDIDOS)], "fecha_cierre", hace12, T)
+    out["propuestas_perdidas_12m"] = _por_cliente(perdidas.groupby("id_cliente").size(), ids, 0)
 
     out = out[VARIABLES]
     out.insert(0, "fecha_corte", T)

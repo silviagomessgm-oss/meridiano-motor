@@ -58,6 +58,8 @@ def tabla_por_tramos(entreno):
         s = entreno[v]
         if v in BINARIAS:
             tramo = s.map({0: "no", 1: "sí"})
+        elif s.nunique() <= 6:  # recuentos con muchos ceros: agrupar por valor
+            tramo = s.clip(upper=2).map({0: "0", 1: "1", 2: "2 o más"})
         else:
             con_dato = s.dropna()
             q = pd.qcut(con_dato.rank(method="first"), 4, labels=["Q1 (bajo)", "Q2", "Q3", "Q4 (alto)"]).astype(str)
