@@ -106,7 +106,23 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
 - `diagnostico_correcto`: `Sí`, `No`.
 - `desenlace`: `ganada` → «Ganada», `perdida` → «Perdida», `descartada` → «Descartada». El motivo es obligatorio si no es «Ganada».
 - `tipo_riesgo`: `perdida_total` → «Pérdida total», `contraccion` → «Contracción».
-- `motivo_principal` y `accion_id`: sustituir `_` por espacios y poner la primera letra en mayúscula.
+- `motivo_principal` y `motivo_secundario` (texto visible; si llega un valor que no está en la tabla, sustituir `_` por espacios y poner la primera letra en mayúscula):
+
+  | Valor | Texto visible |
+  |---|---|
+  | `relacion_interlocutor` | Cambio o relación con el interlocutor |
+  | `servicio_reclamacion` | Reclamación sin resolver |
+  | `cobro_financiero` | Cobro o factura vencida |
+  | `perdida_contacto` | Sin contacto comercial reciente |
+  | `presupuesto_inversion` | Baja la inversión |
+  | `rendimiento_campanas` | Bajo rendimiento de las campañas |
+  | `temporada` | Su temporada, sin reservar |
+  | `sin_pedido_firmado` | Sin pedidos firmados pendientes |
+  | `patron_compra` | Compra menos y en menos productos |
+  | `propuestas_perdidas` | Propuestas perdidas recientes |
+  | `inactividad` | Inactividad |
+  | `desconocido` | Sin motivo claro |
+- `accion_id`: sustituir `_` por espacios y poner la primera letra en mayúscula.
 
 ### Pantallas
 
@@ -165,7 +181,7 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
 
 5. **Dirección** (solo rol `direccion`; ocultar el menú a los comerciales):
    - Selector de semana (`fecha_corte`) e indicadores de `kpis_ciclo` en tarjetas.
-   - Validación de la etiqueta de abandono (`estado_etiqueta`), como indicador: el modelo usa siempre E2. Si `etiqueta_vigente` es `A`, avisar: «Las confirmaciones de los comerciales no respaldan la etiqueta E2 (casos: `casos`, acuerdo: `acuerdo`). El modelo sigue usando E2: revisad la definición con el equipo».
+   - Validación de la etiqueta de abandono (`estado_etiqueta`), como indicador: el modelo usa siempre E2. Mostrar siempre el texto de `estado` con `casos` y `acuerdo` (en %). Si `estado` empieza por «E2 NO VALIDADA» (o, en semanas antiguas, `etiqueta_vigente` es `A`), avisar en ámbar: «Las confirmaciones de los comerciales no respaldan la etiqueta E2 (casos: `casos`, acuerdo: `acuerdo`). El modelo sigue usando E2: revisad la definición con el equipo».
    - **Resultado de las acciones (210 días)**, de `resumen_resultado_acciones`: tres tarjetas, «Con acción del comercial» (`accion`), «Propuestas sin acción» (`propuesta_sin_accion`) y «Grupo de control» (`control`), con cuentas, % de abandono y, en la primera, cuentas salvadas. Los grupos tienen riesgos distintos (el control solo se sortea en riesgo medio): no comparar sus porcentajes entre sí. El efecto se muestra desde `efecto_accion`: «Efecto de la acción (riesgo medio): `diferencia_puntos` puntos menos de abandono que el grupo de control» (si es negativo, «puntos más»; si es nulo, «Aún no hay cuentas de riesgo medio suficientes para medir el efecto»), con «Con pocas cuentas la diferencia puede deberse al azar». Si no hay filas: «Todavía no ha terminado ninguna ventana de 210 días». Debajo, la tabla de `resultado_acciones` con la empresa (`dim_clientes.razon_social`), `fecha_corte`, grupo, banda de riesgo, resultado, «Salvada» (sí/no) y lo que confirmó el comercial, con filtro por grupo.
    - Tabla por comercial con:
      - propuestas, aceptadas, rechazadas, cerradas y errores de envío;

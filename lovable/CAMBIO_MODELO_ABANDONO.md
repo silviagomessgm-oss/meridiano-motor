@@ -20,9 +20,10 @@ salva el equipo comercial. Haz estos cambios en el panel, manteniendo el estilo 
    No muestres `prob_abandono` como porcentaje (como hasta ahora).
 
 3. **Dirección · validación de la etiqueta:** sustituye el aviso actual de `estado_etiqueta`. El modelo usa siempre E2;
-   la validación es solo un indicador. Si `etiqueta_vigente` es `A`, muestra: «Las confirmaciones de los comerciales no
-   respaldan la etiqueta E2 (casos: {casos}, acuerdo: {acuerdo}). El modelo sigue usando E2: revisad la definición con
-   el equipo». Si es `E2`, no muestres ningún aviso.
+   la validación es solo un indicador. Muestra siempre el texto de `estado` con `casos` y `acuerdo` (en %). Si `estado`
+   empieza por «E2 NO VALIDADA» (o, en semanas antiguas, `etiqueta_vigente` es `A`), muestra en ámbar: «Las
+   confirmaciones de los comerciales no respaldan la etiqueta E2 (casos: {casos}, acuerdo: {acuerdo}). El modelo sigue
+   usando E2: revisad la definición con el equipo». Desde el 28-nov-2026 `etiqueta_vigente` es siempre `E2`.
 
 4. **Dirección · nuevo bloque «Resultado de las acciones (210 días)»**, debajo de los indicadores:
    - Tres tarjetas a partir de `resumen_resultado_acciones`: «Con acción del comercial» (`accion`), «Propuestas sin
