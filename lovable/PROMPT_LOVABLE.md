@@ -51,7 +51,7 @@ await supabase.rpc('registrar_consentimiento', { p_id_lead, p_medio: 'telefono' 
 | `aprobar` | `{}` | «Aceptar y enviar» si `canal = 'email'`; «Aprobar llamada» si `canal = 'llamada'` |
 | `rechazar` | `{ motivo }` | «Rechazar» (diálogo que pide el motivo) |
 | `registrar_respuesta` | `{ resumen }` | «Registrar respuesta del cliente» |
-| `cerrar` (etiqueta `riesgo`) | `{ estado_confirmado_comercial, motivo_confirmado, diagnostico_correcto, comentario_comercial }` | «Cerrar» |
+| `cerrar` (etiqueta `riesgo`) | `{ estado_confirmado_comercial, motivo_confirmado, diagnostico_correcto, desenlace, comentario_comercial }` | «Cerrar» |
 | `cerrar` (resto de etiquetas) | `{ desenlace, motivo_desenlace, comentario_comercial }` | «Cerrar» |
 | `reabrir` | `{ motivo }` | «Reabrir» (diálogo que pide el motivo) |
 
@@ -158,7 +158,7 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
      - `pendiente_aprobacion` o `error_envio`: «Aceptar y enviar» (o «Aprobar llamada») y «Rechazar». En `error_envio`, mostrar `error_envio` y el texto «Corrige si hace falta y vuelve a aceptar».
      - `enviando`: aviso «Enviando… se actualizará en unos segundos».
      - `en_seguimiento`: «Registrar respuesta del cliente» y «Cerrar». El formulario de cierre depende de la etiqueta:
-       - `riesgo`: los tres desplegables obligatorios y un comentario opcional;
+       - `riesgo`: los tres desplegables obligatorios, «Resultado de la acción» (`desenlace`: «Recuperada: ha firmado un pedido», «No recuperada», «Sin decisión del cliente») también obligatorio, y un comentario opcional;
        - resto: desenlace obligatorio, motivo obligatorio si no es «Ganada» y un comentario opcional.
      - `cerrada` o `rechazada`: resumen del cierre o del rechazo y botón «Reabrir», que pide el motivo.
      - Si un lead no tiene consentimiento, al aceptar el sistema devolverá un error explicativo. Muéstralo con un botón «Registrar consentimiento».
@@ -186,7 +186,8 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
    - Tabla por comercial con:
      - propuestas, aceptadas, rechazadas, cerradas y errores de envío;
      - % de «diagnóstico correcto = Sí»;
-     - facturación en riesgo total y recuperada (cerradas como `Activo` o `Pausa: volvió después`).
+     - facturación en riesgo total y recuperada (cerradas como «Recuperada»; en las cerradas antes del 28-nov-2026, como `Activo` o `Pausa: volvió después`).
+   - **Recuperación de cuentas en riesgo**, de `recuperacion_riesgo`: recuperadas declaradas, con pedido real en 60 días e importe, por comercial (ver `CAMBIO_RESULTADO_RIESGO.md`).
    - Lista de cuentas clave o que requieren dirección, con su estado.
    - Últimas 10 `ejecuciones` (fecha, origen y estado, con el detalle desplegable).
    - Dirección puede abrir y gestionar cualquier propuesta.
