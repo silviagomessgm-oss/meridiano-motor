@@ -5,7 +5,11 @@ const lista = (r.detalle_propuestas || []).filter(p => p.requiere_direccion === 
 if (!r.ok || !lista.length) return [];
 const cfg = $('Configuración').first().json;
 const MOTIVO = { relacion_interlocutor: 'cambio de interlocutor', servicio_reclamacion: 'reclamación sin resolver',
-                 cobro_financiero: 'incidencia de cobro' };
+                 cobro_financiero: 'incidencia de cobro', perdida_contacto: 'sin contacto comercial',
+                 presupuesto_inversion: 'baja la inversión', rendimiento_campanas: 'bajo rendimiento de campañas',
+                 sin_pedido_firmado: 'sin pedidos firmados', temporada: 'su temporada sin reservar',
+                 patron_compra: 'compra menos y en menos productos', propuestas_perdidas: 'propuestas perdidas',
+                 inactividad: 'inactividad' };
 const eur = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
 return [{ json: {
   para: cfg.correo_direccion,

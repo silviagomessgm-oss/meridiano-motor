@@ -81,7 +81,7 @@ Si un modelo L3 gana de forma robusta, sustituye a L2 en `config/produccion.json
 ## Estado actual (25-oct-2026): E2 en producción con validación automática
 
 - **E2 es la etiqueta de abandono de producción** por decisión del equipo. `generar_scores.py` entrena L2 con E2 (pérdida total o contracción).
-- **Validación automática** (`src/validacion_automatica.py`): compara E2 con el estado que confirman los comerciales cuando se cierra la ventana de 210 días de cada propuesta. Con al menos 30 casos y un acuerdo inferior al 70 %, escribe `estado_etiqueta.json` con la etiqueta A y la producción vuelve sola a la regla A.
+- **Validación automática** (`src/validacion_automatica.py`; **ya no la usa el ciclo semanal**: la sustituye `modelo_churn/validacion.py`, con la etiqueta del modelo y sin vuelta a la regla A — decisión 78 de `modelo_churn/registro_decisiones.md`): compara E2 con el estado que confirman los comerciales cuando se cierra la ventana de 210 días de cada propuesta. Con al menos 30 casos y un acuerdo inferior al 70 %, escribe `estado_etiqueta.json` con la etiqueta A y la producción vuelve sola a la regla A.
 
 ## Etiqueta E2 y su validación (25-oct-2026)
 

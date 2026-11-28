@@ -1,0 +1,6 @@
+# Versiones con las que se han obtenido los resultados del modelo de abandono
+pandas==3.0.5
+numpy==2.5.3
+scikit-learn==1.9.1
+tabulate==0.10.0
+pytest==9.1.1

@@ -1,5 +1,5 @@
 {
-  "_nota": "Parámetros del automatismo de propuestas de retención (SDD N01-N07, FORGEN v2.0). Los pesos del respaldo son PROVISIONALES: se sustituyen por las probabilidades del modelo de cálculo cuando esté validado (data/scores_modelo.csv). Con data/scores_modelo.csv (modelo L2 del repositorio de evaluación) se usa la regla de valor esperado.",
+  "_nota": "Parámetros del automatismo de propuestas de retención (SDD N01-N07, FORGEN v2.0). El riesgo, el motivo y las pruebas salen del modelo de abandono (modelo_churn: data/scores_modelo.csv y data/explicacion_modelo.csv) con la regla de valor esperado; la reclamación sin resolver y la factura vencida mandan sobre el motivo del modelo. Los pesos de respaldo_senales solo se usan para los anunciantes que el modelo no puntúa (sin campaña en 12 meses).",
   "fecha_corte": "2026-09-30",
   "horizonte_actividad_dias": 540,
   "capacidad_semanal_por_comercial": 4,

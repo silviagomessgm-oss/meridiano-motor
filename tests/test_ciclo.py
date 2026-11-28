@@ -16,7 +16,7 @@ def _plan(fecha):
     return pd.read_excel(os.path.join(RAIZ, "salidas", fecha, "propuestas_retencion.xlsx"), sheet_name=None)
 
 
-def test_ciclos_semanales_enfriamiento_y_vuelta_automatica_a_regla_A(tmp_path):
+def test_ciclos_semanales_enfriamiento_y_validacion_de_E2_como_indicador(tmp_path):
     for a in ARCHIVOS_HIST:
         if os.path.exists(os.path.join(HIST, a)): shutil.move(os.path.join(HIST, a), tmp_path / a)
     try:
@@ -35,10 +35,35 @@ def test_ciclos_semanales_enfriamiento_y_vuelta_automatica_a_regla_A(tmp_path):
                  "--acierto", "0.3", "--salida", devuelto)
         _run("ciclo_semanal.py", "--fecha_corte", "2026-09-28", "--plan_devuelto", devuelto)
         est = json.load(open(os.path.join(RAIZ, "salidas", "2026-09-28", "estado_etiqueta.json"), encoding="utf-8"))
-        assert est["casos"] >= 30 and est["etiqueta_vigente"] == "A"    # acuerdo bajo con ≥ 30 casos: vuelve sola a A
+        # acuerdo bajo con ≥ 30 casos: el indicador avisa de que E2 no queda validada, pero no cambia de etiqueta
+        assert est["casos"] >= 30 and est["validada"] is False and est["etiqueta_vigente"] == "E2"
+        # …pero el modelo no cambia: siempre puntuar.py con E2 (decisión de la alumna, 27-nov-2026)
         sc = pd.read_csv(os.path.join(RAIZ, "salidas", "2026-09-28", "scores_modelo.csv"))
-        assert (sc.etiqueta_entrenamiento == "A").all()
+        assert list(sc.columns) == ["id_cliente", "prob_abandono"]
+        assert sc.id_cliente.is_unique and sc.prob_abandono.between(0, 1).all()
+        f = pd.read_csv(os.path.join(RAIZ, "tablas", "fact_campanas.csv"), parse_dates=["fecha_emision"])
+        activos = f[(f.fecha_emision > pd.Timestamp("2025-09-28")) & (f.fecha_emision <= pd.Timestamp("2026-09-28"))].id_cliente
+        assert set(sc.id_cliente) == set(activos)                     # una fila por anunciante con campaña en 12 meses
         assert os.path.exists(os.path.join(RAIZ, "salidas", "2026-09-28", "cuadro_de_mando.xlsx"))
+        # Motivo y acción desde el modelo: cada cuenta puntuada lleva el motivo de la variable que más sube su riesgo
+        ex = pd.read_csv(os.path.join(RAIZ, "salidas", "2026-09-28", "explicacion_modelo.csv"))
+        assert set(ex.id_cliente) == set(sc.id_cliente)
+        p = _plan("2026-09-28")["Plan_por_comercial"]
+        assert set(p.fuente_motivo) <= {"modelo", "regla_negocio", "respaldo"} and (p.fuente_motivo != "respaldo").any()
+        m = p[p.fuente_motivo == "modelo"].merge(ex, on="id_cliente")
+        assert (m.motivo_principal == m.motivo_modelo).all()
+        hojas = pd.read_excel(os.path.join(RAIZ, "salidas", "2026-09-28", "cuadro_de_mando.xlsx"), sheet_name=None)
+        assert {"Churn E2 por tipo", "Motivos de las propuestas"} <= set(hojas)
+        # Resultado de las acciones: las semanas de diciembre ya han cerrado su ventana de 210 días
+        res = pd.read_csv(os.path.join(RAIZ, "salidas", "2026-09-28", "resultado_acciones.csv"))
+        assert set(res.fecha_corte) == set(semanas) and set(res.grupo) <= {"accion", "propuesta_sin_accion", "control"}
+        assert (res.salvada == ((res.grupo == "accion") & (res.abandono == 0))).all()
+        k = pd.read_excel(os.path.join(RAIZ, "salidas", "2026-09-28", "cuadro_de_mando.xlsx"), sheet_name="Resumen")
+        assert "   Abandono en el grupo de control" in set(k.Indicador)
+        assert "Efecto de la acción (banda media, comparable con el control)" in set(k.Indicador)
+        h = pd.read_csv(os.path.join(HIST, "propuestas_historico.csv"))
+        assert h.banda_riesgo.notna().all() and set(h[h.estado_plan == "control"].banda_riesgo) == {"media"}
+        assert json.load(open(os.path.join(RAIZ, "salidas", "2026-09-28", "modelo_usado.json")))["modelo"].startswith("E2")
         # Repetir un ciclo no duplica el histórico
         h = pd.read_csv(os.path.join(HIST, "propuestas_historico.csv"))
         assert not h.duplicated(["fecha_corte", "id_cliente"]).any()

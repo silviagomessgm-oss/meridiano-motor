@@ -32,6 +32,8 @@ Resultados en `salidas/<fecha_corte>/`: `propuestas_retencion.xlsx` (plan por co
 
 `simular_confirmaciones.py` **imita** las respuestas de los comerciales a partir de lo que ocurrió en las tablas, con un porcentaje de acierto configurable. **Solo sirve para demostrar que el circuito funciona.** El acuerdo que se obtiene viene dado por construcción (depende del acierto elegido) y **no valida E2**. Con tres semanas simuladas (36 confirmaciones): con acierto 0,8, el automatismo da E2 por validada (75,0 %); con 0,4, vuelve solo a la regla A (36,1 %). Ambos caminos están cubiertos por los tests.
 
+`demo/simulacro.py` prepara la presentación del modelo de abandono (`modelo_churn/`): ejecuta el ciclo semanal real durante 8 semanas pasadas, simula las decisiones de los comerciales y calcula el resultado de las acciones a 210 días. Sobre ese resultado aplica un **escenario supuesto**, rotulado como tal en el Excel, el SQL y el panel: la acción evita un 30 % de los abandonos. Genera `demo/salida/simulacro.xlsx`, `cargar_simulacro.sql` y `borrar_simulacro.sql`. Guiones: `demo/GUION_DEMO_EN_DIRECTO.md` y `demo/GUION_GRABACION.md`.
+
 ## Estructura
 
 ```

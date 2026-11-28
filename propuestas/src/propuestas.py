@@ -2,15 +2,22 @@
 Meridiano · Automatismo de propuestas de retención de anunciantes (FORGEN v2.0, nodos N01-N07).
 
   N01 foto a fecha de corte (solo datos <= T)   N02 variables por campaña y temporada esperada
-  N03 riesgo: scores del modelo externo si existen (data/scores_modelo.csv); si no, respaldo de señales
-  N04 motivo + ficha de cuenta                    N05 plan: matriz de acciones, capacidad, control, límites
+  N03 riesgo: probabilidad del modelo de abandono (modelo_churn/puntuar.py → data/scores_modelo.csv); las cuentas que el
+      modelo no puntúa (sin campaña en 12 meses) usan el respaldo de señales
+  N04 motivo + ficha de cuenta: con modelo, el motivo y las pruebas salen de las variables que más suben el riesgo de esa
+      cuenta en el modelo (data/explicacion_modelo.csv, modelo_churn/explicar.py); reclamación sin resolver y factura
+      vencida mandan como reglas de negocio. Con respaldo, de los puntos de señales.
+  N05 plan: matriz de acciones, capacidad, control, límites
   N06 materiales (plantilla; LLM opcional con validador de cifras)   N07 exportación para el CRM + log
 
 El sistema PROPONE; el comercial aprueba y envía. Nunca escribe al anunciante.
 """
-import argparse, hashlib, json, os, re, uuid
+import argparse, hashlib, json, os, re, sys, uuid
 from datetime import datetime
 import numpy as np, pandas as pd
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")))
+from modelo_churn.explicar import N_FACTORES, texto_evidencia  # noqa: E402
 
 TIPOS_CONTACTO = {"Llamada", "Email comercial", "Visita", "Videollamada"}
 RES_EFECTIVO = {"Contacto efectivo", "Interesado", "Pospone decision", "Seguimiento de campana"}
@@ -19,6 +26,11 @@ CONFIRMACION = ["estado_confirmado_comercial", "motivo_confirmado", "diagnostico
 OPCIONES_ESTADO = ["Perdido", "Redujo mucho", "Activo", "Pausa: volvió después", "No sé"]
 OPCIONES_MOTIVO = ["rendimiento_campanas", "relacion_interlocutor", "perdida_contacto", "servicio_reclamacion",
                    "presupuesto_inversion", "cobro_financiero", "temporada", "otro"]
+# Motivo que el comercial puede confirmar (lista cerrada del plan y de Supabase) para cada motivo del plan. Los motivos que
+# solo salen del modelo describen un síntoma, no una causa: se comparan con la causa comercial más cercana.
+MOTIVO_CONFIRMABLE = {m: m for m in OPCIONES_MOTIVO} | {
+    "sin_pedido_firmado": "presupuesto_inversion", "patron_compra": "presupuesto_inversion",
+    "propuestas_perdidas": "presupuesto_inversion", "inactividad": "perdida_contacto", "desconocido": "otro"}
 ORDEN_MOTIVOS = ["relacion_interlocutor", "servicio_reclamacion", "rendimiento_campanas",
                  "perdida_contacto", "presupuesto_inversion", "cobro_financiero", "inactividad"]
 
@@ -37,6 +49,8 @@ def cargar(datos):
              dc=rd("dim_comercial", []))
     sp = os.path.join(datos, "scores_modelo.csv")
     t["scores"] = pd.read_csv(sp)[["id_cliente", "prob_abandono"]] if os.path.exists(sp) else None
+    ep = os.path.join(datos, "explicacion_modelo.csv")
+    t["explicacion"] = pd.read_csv(ep, dtype={"id_cliente": str}) if os.path.exists(ep) else None
     return t
 
 
@@ -129,7 +143,12 @@ def variables(x, T, cfg):
 
 
 # ------------------------------------------------------------------ N03 · riesgo
-def riesgo(g, cfg, scores=None):
+MOTIVOS_SENAL_FUERTE = {"relacion_interlocutor", "servicio_reclamacion", "rendimiento_campanas"}
+
+
+def riesgo(g, cfg, scores=None, explicacion=None):
+    """Probabilidad, banda, prioridad y motivo de cada cuenta. Con `explicacion` (modelo_churn/explicar.py), el motivo y
+    las pruebas de las cuentas puntuadas salen del modelo; sin ella, o para las cuentas sin puntuar, del respaldo."""
     r = cfg["respaldo_senales"]; g = g.copy().reset_index(drop=True)
     pts = pd.DataFrame(index=g.index)
     pts["presupuesto_inversion"] = np.where(g.tendencia_6m < r["tendencia_6m_menor_que"], r["peso_tendencia"], 0)
@@ -176,10 +195,56 @@ def riesgo(g, cfg, scores=None):
         return (act[0] if act else "desconocido"), (act[1] if len(act) > 1 else None)
     mm = [motivos(i) for i in g.index]
     g["motivo_principal"] = [a for a, _ in mm]; g["motivo_secundario"] = [b for _, b in mm]
+    g["fuente_motivo"] = "respaldo"
+    if explicacion is not None and len(explicacion):
+        g = motivo_desde_modelo(g, explicacion, cfg)
     return g, pts
 
 
+def motivo_desde_modelo(g, explicacion, cfg):
+    """Cuentas puntuadas: el motivo es el de la variable que más sube su riesgo en el modelo. Las reglas de negocio que el
+    modelo no recoge (decisiones 22 y 23 de modelo_churn) mandan: reclamación sin resolver y factura vencida sin cobrar.
+    La pausa estacional y el tipo de riesgo se recalculan con las variables del modelo."""
+    e = explicacion.copy(); e["id_cliente"] = e.id_cliente.astype(str)
+    cols = [c for c in e.columns if c != "id_cliente"]
+    g = g.drop(columns=[c for c in cols if c in g.columns]).merge(e, on="id_cliente", how="left")
+    con = (g.fuente_riesgo == "modelo") & g.motivo_modelo.notna()
+    reclamacion = g.reclamaciones_sin_resolver > 0
+    vencida = g.facturas_vencidas_impagadas > 0
+    regla = np.where(reclamacion, "servicio_reclamacion", np.where(vencida, "cobro_financiero", None))
+    principal = np.where(pd.notna(regla), regla, g.motivo_modelo)
+    secundario = np.where(pd.notna(regla) & (g.motivo_modelo != regla), g.motivo_modelo, g.motivo_modelo_secundario)
+    g.loc[con, "motivo_principal"] = principal[con]
+    g.loc[con, "motivo_secundario"] = pd.Series(secundario, index=g.index)[con].where(lambda s: s != g.loc[con, "motivo_principal"])
+    g.loc[con, "fuente_motivo"] = np.where(pd.notna(regla[con]), "regla_negocio", "modelo")
+    # Pausa estacional: temporada cercana y ningún factor del modelo de relación o rendimiento, ni reclamación
+    fuerte = reclamacion | g.motivo_principal.isin(MOTIVOS_SENAL_FUERTE) | g.motivo_secundario.isin(MOTIVOS_SENAL_FUERTE)
+    cerca = g.dias_hasta_proxima_ventana <= cfg["ventana_estacional"]["dias_hasta_proxima_ventana_max"]
+    g.loc[con, "pausa_estacional_probable"] = (cerca & ~fuerte)[con]
+    # Tipo de riesgo con las variables del modelo (misma definición que la etiqueta E2)
+    g.loc[con, "recencia_tipo"] = g.loc[con, "var_recencia_dias"]; g.loc[con, "tendencia_tipo"] = g.loc[con, "var_tendencia"]
+    return g
+
+
+def evidencias_modelo(r):
+    """Pruebas de una cuenta puntuada: reglas de negocio y las variables que más suben su riesgo en el modelo (con la
+    misma definición que el modelo)."""
+    e = []
+    if r.reclamaciones_sin_resolver > 0: e.append(f"{r.reclamaciones_sin_resolver} reclamación(es) sin resolver")
+    if r.facturas_vencidas_impagadas > 0: e.append(f"{r.facturas_vencidas_impagadas} factura(s) vencida(s) sin cobrar")
+    vistas = set()
+    for k in range(1, N_FACTORES + 1):
+        var = r.get(f"factor_{k}")
+        if isinstance(var, str):
+            t = texto_evidencia(var, r.get(f"var_{var}")); vistas.add(var)
+            if t: e.append(t)
+    if "recencia_dias" not in vistas: e.append(texto_evidencia("recencia_dias", r.get("var_recencia_dias")))
+    return e        # la probabilidad va en su propia columna: no entra en los materiales ni en el texto para el LLM
+
+
 def evidencias(r):
+    if getattr(r, "fuente_motivo", "respaldo") != "respaldo" and isinstance(r.get("factor_1"), str):
+        return evidencias_modelo(r)
     e = []
     if r.tendencia_6m < -0.3: e.append(f"inversión 6 meses {eur(r.facturacion_6m)} frente a {eur(r.facturacion_6m_previos)} el semestre anterior ({pct(r.tendencia_6m)})")
     if pd.notna(r.ctr_relativo_12m) and r.ctr_relativo_12m < 0.8: e.append(f"CTR de sus campañas al {r.ctr_relativo_12m:.2f} del habitual en esos productos".replace(".", ","))
@@ -195,7 +260,10 @@ def evidencias(r):
 ACCION = {"relacion_interlocutor": "reunion_nuevo_interlocutor", "servicio_reclamacion": "resolucion_reclamacion",
           "rendimiento_campanas": "informe_resultados_y_optimizacion", "perdida_contacto": "llamada_reactivacion",
           "presupuesto_inversion": "reserva_anticipada_temporada", "cobro_financiero": "revision_condiciones_pago",
-          "inactividad": "llamada_reactivacion", "desconocido": "llamada_reactivacion"}
+          "inactividad": "llamada_reactivacion", "desconocido": "llamada_reactivacion",
+          # motivos que solo salen del modelo de abandono (modelo_churn/explicar.py)
+          "sin_pedido_firmado": "reserva_anticipada_temporada", "temporada": "reserva_anticipada_temporada",
+          "patron_compra": "informe_resultados_y_optimizacion", "propuestas_perdidas": "llamada_reactivacion"}
 
 
 def plan(g, cfg, p, f_hasta_T, T):
@@ -207,7 +275,9 @@ def plan(g, cfg, p, f_hasta_T, T):
     g["accion_id"] = g.motivo_principal.map(ACCION)
     # E2: contracción (sigue comprando pero invierte mucho menos) frente a pérdida total
     tr = cfg.get("tipo_riesgo", {"dias_compra_reciente": 120, "tendencia_contraccion_menor_que": -0.3})
-    g["tipo_riesgo"] = np.where((g.recencia_dias <= tr["dias_compra_reciente"]) & (g.tendencia_6m < tr["tendencia_contraccion_menor_que"]),
+    rec = g.recencia_tipo.fillna(g.recencia_dias) if "recencia_tipo" in g else g.recencia_dias
+    ten = g.tendencia_tipo.fillna(g.tendencia_6m) if "tendencia_tipo" in g else g.tendencia_6m
+    g["tipo_riesgo"] = np.where((rec <= tr["dias_compra_reciente"]) & (ten < tr["tendencia_contraccion_menor_que"]),
                                 "contraccion", "perdida_total")
     prioritarios = {"relacion_interlocutor", "servicio_reclamacion", "cobro_financiero"}
     g.loc[(g.tipo_riesgo == "contraccion") & ~g.motivo_principal.isin(prioritarios), "accion_id"] = "informe_resultados_y_optimizacion"
@@ -360,7 +430,7 @@ def ejecutar(datos, config, salida):
     T = pd.Timestamp(cfg["fecha_corte"]); t0 = datetime.now()
     t = cargar(datos); x = foto(t, T)
     g = variables(x, T, cfg)
-    g, _ = riesgo(g, cfg, t["scores"])
+    g, _ = riesgo(g, cfg, t["scores"], t.get("explicacion"))
     # Ciclo semanal: fuera del plan las cuentas propuestas o en control en los últimos dias_enfriamiento días
     rec_ruta = os.path.join(datos, "propuestas_recientes.csv")
     en_seguimiento = 0
@@ -374,7 +444,7 @@ def ejecutar(datos, config, salida):
     pl["comercial_nombre"] = pl.comercial_asignado.map(com.nombre)
     cols = ["comercial_asignado", "comercial_nombre", "orden_comercial", "estado_plan", "id_cliente", "razon_social", "categoria",
             "tipo_riesgo", "banda_riesgo", "fuente_riesgo", "prob_abandono", "valor_esperado_accion", "pausa_estacional_probable", "facturacion_en_riesgo", "valor_cuenta", "cuenta_clave", "requiere_direccion",
-            "motivo_principal", "motivo_secundario", "accion_id", "producto_sugerido", "producto_sugerido_nombre", "fecha_limite",
+            "motivo_principal", "motivo_secundario", "fuente_motivo", "accion_id", "producto_sugerido", "producto_sugerido_nombre", "fecha_limite",
             "grupo_experimental", "justificacion", "ficha_cuenta", "material_titulo", "material_cuerpo", "notas_internas",
             "fuente_material", "fecha_corte"]
     prop = pl[pl.estado_plan == "propuesto"][cols].sort_values(["comercial_asignado", "orden_comercial"]).copy()

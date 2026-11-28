@@ -65,6 +65,7 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
   - Identificación y prioridad: `id`, `fecha_corte`, `etiqueta`, `id_cliente`, `id_lead`, `comercial_asignado`, `comercial_nombre`, `orden_comercial`, `razon_social`, `categoria`.
   - Diagnóstico: `tipo_riesgo` (`perdida_total` | `contraccion`), `banda_riesgo`, `facturacion_en_riesgo` (€), `valor_cuenta` (€), `cuenta_clave`, `requiere_direccion`, `motivo_principal`, `motivo_secundario`, `accion_id`, `producto_sugerido_nombre`, `fecha_limite`, `justificacion`, `ficha_cuenta`.
   - Material y canal: `canal` (`email` | `llamada`), `id_contacto`, `asunto_email`, `material_titulo`, `material_cuerpo`, `material_editado`, `notas_internas`, `fuente_material` (`llm` o texto que empieza por `plantilla`).
+  - Modelo: `modelo` (texto con el modelo de abandono que generó la propuesta; vacío en las propuestas anteriores al cambio de modelo del 27-nov-2026).
   - Seguimiento: **`estado`** (ver abajo), `texto_aprobado`, `version_aprobada`, `aprobada_por`, `aprobada_en`, `motivo_rechazo`, `enviada_en`, `error_envio`, `ultima_respuesta_en`, `estado_confirmado_comercial`, `motivo_confirmado`, `diagnostico_correcto`, `desenlace`, `motivo_desenlace`, `comentario_comercial`, `fecha_confirmacion`.
 - **`estado`** (único estado que debe mostrar el panel):
 
@@ -82,12 +83,14 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
 - `material_versiones(id, propuesta_id, version, origen, autor, texto, creado_en)`: `origen` puede ser `plantilla`, `llm` o `comercial`.
 - `leads(id_lead, razon_social, categoria, provincia, origen, comercial_asignado, estado, consentimiento_comercial, consentimiento_fecha, consentimiento_medio, consentimiento_texto, creado_en)` y `eventos_lead`.
 - Datos de cada cliente: `dim_clientes`, `fact_campanas` (`fecha_emision`, `familia`, `importe_eur`, `impresiones`, `clics`, `leads_entregados`), `fact_interacciones` (`fecha`, `tipo`, `canal`, `resultado`) y `fact_facturacion` (`fecha_emision`, `importe_eur`, `estado`, `dias_retraso`).
-- Solo dirección: `kpis_ciclo(fecha_corte, indicador, valor)`, `estado_etiqueta(fecha_corte, etiqueta_vigente, estado, casos, acuerdo)` y `ejecuciones(fecha, origen, estado, detalle)`.
+- Solo dirección: `kpis_ciclo(fecha_corte, indicador, valor)`, `estado_etiqueta(fecha_corte, etiqueta_vigente, estado, casos, acuerdo)`, `ejecuciones(fecha, origen, estado, detalle)`, `resultado_acciones(fecha_corte, id_cliente, grupo, banda_riesgo, resultado, abandono, salvada, estado_confirmado_comercial, fecha_resultado)` y las vistas `resumen_resultado_acciones(grupo, cuentas, abandonos, pct_abandono, salvadas, desde, hasta)` y `efecto_accion(banda, cuentas_accion, pct_abandono_accion, cuentas_control, pct_abandono_control, diferencia_puntos)`.
 
 ### Listas cerradas
 
 - **Etiqueta:** `riesgo` → «Riesgo de abandono» (rojo) · `ampliacion` → «Ampliación» (azul) · `lead_nuevo` → «Lead nuevo» (violeta) · `seguimiento` → «Seguimiento» (gris).
 - `estado_confirmado_comercial`: `Perdido`, `Redujo mucho`, `Activo`, `Pausa: volvió después`, `No sé`.
+- `resultado_acciones.grupo`: `accion` → «Con acción del comercial» · `propuesta_sin_accion` → «Propuesta sin acción» · `control` → «Grupo de control».
+- `resultado_acciones.resultado`: `perdida_total` → «Pérdida total» · `contraccion` → «Contracción» · `activo` → «Siguió comprando» · `fuera_de_poblacion_volvio` → «Volvió a comprar» · `fuera_de_poblacion_sin_compra` → «Sin compras» · `salvada_escenario` → «Salvada (escenario supuesto)»; si hay alguna, aviso ámbar fijo sobre el bloque de resultados: «Simulacro para la presentación: datos ficticios con un escenario supuesto de efecto de la acción. No es un resultado».
 - `motivo_confirmado` (se muestra la etiqueta y se guarda el valor):
 
   | Valor | Etiqueta visible |
@@ -103,7 +106,23 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
 - `diagnostico_correcto`: `Sí`, `No`.
 - `desenlace`: `ganada` → «Ganada», `perdida` → «Perdida», `descartada` → «Descartada». El motivo es obligatorio si no es «Ganada».
 - `tipo_riesgo`: `perdida_total` → «Pérdida total», `contraccion` → «Contracción».
-- `motivo_principal` y `accion_id`: sustituir `_` por espacios y poner la primera letra en mayúscula.
+- `motivo_principal` y `motivo_secundario` (texto visible; si llega un valor que no está en la tabla, sustituir `_` por espacios y poner la primera letra en mayúscula):
+
+  | Valor | Texto visible |
+  |---|---|
+  | `relacion_interlocutor` | Cambio o relación con el interlocutor |
+  | `servicio_reclamacion` | Reclamación sin resolver |
+  | `cobro_financiero` | Cobro o factura vencida |
+  | `perdida_contacto` | Sin contacto comercial reciente |
+  | `presupuesto_inversion` | Baja la inversión |
+  | `rendimiento_campanas` | Bajo rendimiento de las campañas |
+  | `temporada` | Su temporada, sin reservar |
+  | `sin_pedido_firmado` | Sin pedidos firmados pendientes |
+  | `patron_compra` | Compra menos y en menos productos |
+  | `propuestas_perdidas` | Propuestas perdidas recientes |
+  | `inactividad` | Inactividad |
+  | `desconocido` | Sin motivo claro |
+- `accion_id`: sustituir `_` por espacios y poner la primera letra en mayúscula.
 
 ### Pantallas
 
@@ -121,6 +140,7 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
    - **Orden:** dentro de cada grupo, por `fecha_limite` y después por `orden_comercial`.
    - **Tarjeta:** etiqueta de color, `razon_social`, `categoria`, tipo de riesgo si existe, `facturacion_en_riesgo` en €, acción sugerida, canal (icono de correo o de teléfono), `fecha_limite` (en rojo si ya pasó y no está cerrada), distintivos «Cuenta clave» y «Requiere dirección», estado y la marca «Nueva» si `nueva_esta_semana`.
    - **No** mostrar `prob_abandono` como porcentaje.
+   - En las propuestas de `riesgo` con `modelo` vacío, distintivo gris «Modelo anterior» (se generaron antes del cambio de modelo y pueden no repetirse con el nuevo).
    - Si alguna propuesta está en «Enviando», refrescar la lista cada 10 segundos hasta que deje de estarlo.
 
 3. **Detalle de la propuesta**, en cuatro bloques:
@@ -161,7 +181,8 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
 
 5. **Dirección** (solo rol `direccion`; ocultar el menú a los comerciales):
    - Selector de semana (`fecha_corte`) e indicadores de `kpis_ciclo` en tarjetas.
-   - Estado de la etiqueta de abandono (`estado_etiqueta`). Si la vigente es `A`, avisar: «La validación automática no ha confirmado E2; el sistema mide con la regla A».
+   - Validación de la etiqueta de abandono (`estado_etiqueta`), como indicador: el modelo usa siempre E2. Mostrar siempre el texto de `estado` con `casos` y `acuerdo` (en %). Si `estado` empieza por «E2 NO VALIDADA» (o, en semanas antiguas, `etiqueta_vigente` es `A`), avisar en ámbar: «Las confirmaciones de los comerciales no respaldan la etiqueta E2 (casos: `casos`, acuerdo: `acuerdo`). El modelo sigue usando E2: revisad la definición con el equipo».
+   - **Resultado de las acciones (210 días)**, de `resumen_resultado_acciones`: tres tarjetas, «Con acción del comercial» (`accion`), «Propuestas sin acción» (`propuesta_sin_accion`) y «Grupo de control» (`control`), con cuentas, % de abandono y, en la primera, cuentas salvadas. Los grupos tienen riesgos distintos (el control solo se sortea en riesgo medio): no comparar sus porcentajes entre sí. El efecto se muestra desde `efecto_accion`: «Efecto de la acción (riesgo medio): `diferencia_puntos` puntos menos de abandono que el grupo de control» (si es negativo, «puntos más»; si es nulo, «Aún no hay cuentas de riesgo medio suficientes para medir el efecto»), con «Con pocas cuentas la diferencia puede deberse al azar». Si no hay filas: «Todavía no ha terminado ninguna ventana de 210 días». Debajo, la tabla de `resultado_acciones` con la empresa (`dim_clientes.razon_social`), `fecha_corte`, grupo, banda de riesgo, resultado, «Salvada» (sí/no) y lo que confirmó el comercial, con filtro por grupo.
    - Tabla por comercial con:
      - propuestas, aceptadas, rechazadas, cerradas y errores de envío;
      - % de «diagnóstico correcto = Sí»;

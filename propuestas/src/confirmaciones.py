@@ -9,6 +9,7 @@ Uso:
 """
 import argparse, os
 import pandas as pd
+from propuestas import MOTIVO_CONFIRMABLE
 
 ESTADO_A_CLASE = {"Perdido": "abandono", "Redujo mucho": "abandono", "Activo": "activo", "Pausa: volvió después": "activo"}
 
@@ -23,7 +24,8 @@ def resumen(df):
             "riesgo_confirmado_por_el_comercial": float((pred & conf).sum() / max(len(v), 1)),
             "pausas_detectadas": int((v.estado_confirmado_comercial == "Pausa: volvió después").sum()),
             "diagnostico_correcto": float((diag.diagnostico_correcto == "Sí").mean()) if len(diag) else None,
-            "motivo_coincide": float((mot.motivo_confirmado == mot.motivo_principal).mean()) if len(mot) else None}
+            "motivo_coincide": float((mot.motivo_confirmado == mot.motivo_principal.map(MOTIVO_CONFIRMABLE)
+                                       .fillna(mot.motivo_principal)).mean()) if len(mot) else None}
 
 
 def main():

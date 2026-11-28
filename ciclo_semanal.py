@@ -4,11 +4,16 @@ Meridiano · Ciclo SEMANAL del churn de anunciantes (los martes por la mañana; 
 Decisión del equipo: el riesgo se calcula cada martes para que las propuestas no lleguen todas a la vez.
 La fecha de corte es el lunes anterior (datos cerrados). Cada semana:
   1. Comprueba las tablas (columnas, fechas e integridad).
-  2. Validación automática de E2 con las confirmaciones acumuladas de los comerciales (historico/).
-  3. Puntuaciones L2 con la etiqueta vigente (E2, o A si la validación automática no la confirma).
+  2. Validación automática de E2 con las confirmaciones acumuladas de los comerciales (historico/), con la etiqueta de
+     modelo_churn (modelo_churn/validacion.py). Es un indicador para el cuadro de mando: no cambia el modelo
+     (decisión de la alumna, 27-nov-2026).
+  3. Puntuaciones con el modelo de abandono de modelo_churn/puntuar.py (regresión logística, etiqueta E2 siempre).
+     Los anunciantes que el modelo no puntúa (sin campaña en 12 meses) reciben en el paso 4 el riesgo de respaldo.
   4. Propuestas de retención: 12 acciones de mayor valor esperado (4 por comercial), sin repetir cuentas
      propuestas o en control en los últimos 90 días (historico/propuestas_historico.csv).
-  5. Cuadro de mando en Excel.
+  5. Resultado de las acciones: para las cuentas de ciclos anteriores con la ventana de 210 días cerrada, abandono con
+     acción, sin acción y en el grupo de control, y cuentas salvadas (modelo_churn/resultado_acciones.py).
+  6. Cuadro de mando en Excel. El churn se calcula con la etiqueta E2 de modelo_churn/etiqueta.py.
 Los resultados quedan en salidas/<fecha_corte>/.
 
 Uso:
@@ -18,9 +23,15 @@ Uso:
 import argparse, json, os, shutil, subprocess, sys
 import numpy as np, pandas as pd
 
+from modelo_churn.datos import cargar_tablas as cargar_tablas_modelo, vista_en
+from modelo_churn.etiqueta import HORIZONTE_DIAS, etiquetar
+from modelo_churn.puntuar import DESCRIPCION_MODELO
+from modelo_churn.resultado_acciones import (efecto as efecto_accion, leer_historico, resultados as resultados_acciones,
+                                             resumen as resumen_acciones, tabla_aprendizaje)
+
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 TABLAS = os.path.join(RAIZ, "tablas"); HIST = os.path.join(RAIZ, "historico")
-EV = os.path.join(RAIZ, "evaluacion"); PR = os.path.join(RAIZ, "propuestas")
+PR = os.path.join(RAIZ, "propuestas")
 COLUMNAS = {"dim_clientes": ["id_cliente", "categoria", "tamano", "fecha_alta", "comercial_asignado"],
             "dim_productos": ["id_producto", "familia", "es_producto_compromiso"],
             "dim_comercial": ["id_comercial", "nombre"],
@@ -67,46 +78,84 @@ def registrar_propuestas(T, sal, ruta):
     """Histórico de cuentas propuestas y en control por ciclo (para el enfriamiento). Repetir un ciclo lo sustituye."""
     plan = pd.read_excel(os.path.join(sal, "propuestas_retencion.xlsx"), sheet_name=None)
     nuevo = pd.concat([plan["Plan_por_comercial"].assign(estado_plan="propuesto"), plan["Grupo_control"].assign(estado_plan="control")])
-    nuevo = nuevo[["id_cliente", "estado_plan"]].assign(fecha_corte=T.date())
+    nuevo = nuevo[["id_cliente", "estado_plan", "banda_riesgo"]].assign(fecha_corte=T.date())
     if os.path.exists(ruta):
         viejo = pd.read_csv(ruta, dtype={"id_cliente": str}); viejo = viejo[viejo.fecha_corte != str(T.date())]
         nuevo = pd.concat([viejo, nuevo])
     nuevo.to_csv(ruta, index=False)
 
 
-def cuadro_de_mando(T, sal, estado):
-    sys.path.insert(0, os.path.join(EV, "src"))
-    from etiqueta_e2 import etiqueta_e2
-    from evaluar_umbral_abandono import inicios_de_campana
-    f = pd.read_csv(os.path.join(TABLAS, "fact_campanas.csv"), parse_dates=["fecha_emision"]); f["fe"] = f.fecha_emision
-    ini = inicios_de_campana(f)
-    Tm = T - pd.Timedelta(days=210)                          # último corte con ventana de 210 días cerrada
-    vivos = f[(f.fe > Tm - pd.Timedelta(days=365)) & (f.fe <= Tm)].id_cliente.unique()
-    e = etiqueta_e2(f, ini, Tm, 210, 0.5, vivos)
-    n = len(e); pt = (e.tipo_e2 == "perdida_total").sum(); ct = (e.tipo_e2 == "contraccion").sum()
-    fact_perdida = e.loc[e.tipo_e2 != "activo", "fact_W_anio_anterior"].sum() - e.loc[e.tipo_e2 == "contraccion", "fact_W"].sum()
+def kpis_acciones(res):
+    """Indicadores del resultado de las acciones (ventanas de 210 días cerradas)."""
+    if res.empty:
+        return [("Resultado de las acciones", "Sin ventanas de 210 días cerradas todavía")]
+    r = resumen_acciones(res).set_index("grupo")
+    txt = lambda g: (f"{int(r.at[g, 'abandonos'])} de {int(r.at[g, 'cuentas'])} ({r.at[g, 'pct_abandono']:.1f} %)"
+                     if r.at[g, "cuentas"] else "sin casos")
+    return [("Cuentas con resultado conocido (ventana de 210 días cerrada)", int(r["cuentas"].sum())),
+            ("   Abandono tras la acción del comercial", txt("accion")),
+            ("   Abandono en propuestas sin acción", txt("propuesta_sin_accion")),
+            ("   Abandono en el grupo de control", txt("control")),
+            ("   Cuentas salvadas (con acción y sin abandono)", int(r.at["accion", "salvadas"]))] + kpi_efecto(res)
+
+
+def kpi_efecto(res):
+    e = efecto_accion(res)
+    if e["diferencia_puntos"] is None:
+        valor = (f"sin casos suficientes (banda {e['banda']}: {e['cuentas_accion']} con acción, "
+                 f"{e['cuentas_control']} en control)")
+    else:
+        valor = (f"{e['diferencia_puntos']:+.1f} puntos menos de abandono con acción "
+                 f"({e['pct_abandono_accion']:.1f} % de {e['cuentas_accion']} frente a {e['pct_abandono_control']:.1f} % de "
+                 f"{e['cuentas_control']} en control)")
+    return [(f"Efecto de la acción (banda {e['banda']}, comparable con el control)", valor)]
+
+
+def churn_e2(tablas, T):
+    """Churn E2 en el último corte con la ventana de 210 días cerrada (Tm = T − 210 días), con la etiqueta del modelo."""
+    Tm = T - pd.Timedelta(days=HORIZONTE_DIAS)
+    t = vista_en(tablas, T)
+    return Tm, etiquetar(t["campanas"], t["clientes"], Tm)
+
+
+def cuadro_de_mando(T, sal, estado, res_acciones=None, tablas=None):
+    tablas = tablas if tablas is not None else cargar_tablas_modelo(TABLAS)
+    Tm, e = churn_e2(tablas, T)
+    n = len(e); pt = int((e.tipo == "perdida_total").sum()); ct = int((e.tipo == "contraccion").sum())
+    ns = int((e.tipo == "nuevo_sin_campana").sum())
+    fact_perdida = e.loc[e.tipo.isin(["perdida_total", "contraccion"]), "eur_wp"].sum() - e.loc[e.tipo == "contraccion", "eur_w"].sum()
     plan = pd.read_excel(os.path.join(sal, "propuestas_retencion.xlsx"), sheet_name=None)
     prop = plan["Plan_por_comercial"]; apl = plan["Aplazados"]; ctl = plan["Grupo_control"]
     hist = os.path.join(HIST, "confirmaciones_historico.csv")
     n_conf = int(pd.read_csv(hist).estado_confirmado_comercial.notna().sum()) if os.path.exists(hist) else 0
     kpis = [("Fecha de corte", str(T.date())),
-            ("Etiqueta de abandono vigente", estado.get("etiqueta_vigente", "E2")),
+            ("Modelo de abandono", "Regresión logística · etiqueta E2 (modelo_churn/puntuar.py)"),
+            ("Resultado de la validación automática de E2 (indicador)",
+             {True: "Validada", False: "No validada: revisar la definición"}.get(estado.get("validada"), "En curso")),
             ("Estado de la validación automática", estado.get("estado", "Sin confirmaciones todavía: E2 vigente por decisión del equipo")),
             ("Confirmaciones de comerciales acumuladas", n_conf),
             (f"Churn E2 · corte {Tm.date()} (ventana cerrada) · anunciantes vivos", n),
             ("   Pérdida total", f"{pt} ({pt / n:.1%})"), ("   Contracción", f"{ct} ({ct / n:.1%})"),
-            ("   Churn E2 total", f"{(pt + ct) / n:.1%}"),
+            ("   Nuevos sin segunda campaña", f"{ns} ({ns / n:.1%})"),
+            ("   Churn E2 total (lo que predice el modelo)", f"{e.abandono.mean():.1%}"),
             ("   Facturación perdida en la ventana frente al año anterior (€)", round(float(fact_perdida))),
             ("Propuestas de la semana", len(prop)), ("Aplazadas por capacidad", len(apl)), ("Grupo de control", len(ctl)),
             ("Plazas sin cubrir (sin más cuentas con valor neto positivo)",
              int(plan["Resumen"].get("plazas_sin_cubrir", pd.Series(dtype=float)).sum())),
             ("Facturación en riesgo de las propuestas (€)", round(float(prop.facturacion_en_riesgo.sum())))]
+    if res_acciones is not None:
+        kpis += kpis_acciones(res_acciones)
     por_com = prop.groupby("comercial_nombre").agg(propuestas=("id_cliente", "size"), facturacion_en_riesgo=("facturacion_en_riesgo", "sum"))
     por_tipo = pd.crosstab(prop.accion_id, prop.tipo_riesgo, margins=True)
     with pd.ExcelWriter(os.path.join(sal, "cuadro_de_mando.xlsx")) as xl:
         pd.DataFrame(kpis, columns=["Indicador", "Valor"]).to_excel(xl, sheet_name="Resumen", index=False)
         por_com.to_excel(xl, sheet_name="Por comercial"); por_tipo.to_excel(xl, sheet_name="Acciones y tipo de riesgo")
-        e.groupby(["tipo_e2", "motivo_e2"]).size().rename("anunciantes").to_frame().to_excel(xl, sheet_name="Churn E2 por motivo")
+        e.groupby("tipo").agg(anunciantes=("id_cliente", "size"), facturacion_anio_anterior=("eur_wp", "sum"),
+                              facturacion_ventana=("eur_w", "sum")).to_excel(xl, sheet_name="Churn E2 por tipo")
+        motivos = prop.groupby(["motivo_principal", "fuente_motivo", "accion_id"]).size().rename("propuestas")
+        motivos.to_frame().to_excel(xl, sheet_name="Motivos de las propuestas")
+        if res_acciones is not None:
+            resumen_acciones(res_acciones).to_excel(xl, sheet_name="Resultado de las acciones", index=False)
     print("\n".join(f"{k}: {v}" for k, v in kpis))
 
 
@@ -124,22 +173,26 @@ def main():
     paso(2, "Validación automática de la etiqueta E2")
     estado_ruta = os.path.join(sal, "estado_etiqueta.json")
     if os.path.exists(hist):
-        ejecutar(["src/validacion_automatica.py", "--datos", TABLAS, "--confirmaciones", hist, "--salida", sal], EV)
+        ejecutar(["-m", "modelo_churn.validacion", "--datos", TABLAS, "--confirmaciones", hist, "--fecha", str(T.date()),
+                  "--salida", sal], RAIZ)
     else:
-        json.dump({"etiqueta_vigente": "E2", "estado": "Sin confirmaciones todavía: E2 vigente por decisión del equipo", "casos": 0},
+        json.dump({"etiqueta_vigente": "E2", "validada": None, "estado": "Sin confirmaciones todavía: E2 vigente por decisión del equipo", "casos": 0},
                   open(estado_ruta, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         print("Sin confirmaciones todavía: E2 vigente por decisión del equipo")
     estado = json.load(open(estado_ruta, encoding="utf-8"))
-    paso(3, f"Puntuaciones L2 (etiqueta vigente: {estado['etiqueta_vigente']})")
-    prod = config_temporal(os.path.join(EV, "config", "produccion.json"), os.path.join(sal, "produccion_usada.json"), {"fecha_puntuacion": str(T.date())})
-    args = ["src/generar_scores.py", "--datos", TABLAS, "--produccion", prod, "--estado_etiqueta", estado_ruta, "--salida", sal]
-    interv = os.path.join(HIST, "intervenciones.csv")          # H4: cuentas en las que ya se actuó (fuera del entrenamiento)
+    paso(3, "Puntuaciones del modelo de abandono (modelo_churn/puntuar.py, etiqueta E2)")
+    if estado.get("validada") is False:
+        print("Nota: la validación automática no valida E2; el modelo usa siempre E2 (decisión de la alumna). Revisar con el equipo.")
+    args = [os.path.join("modelo_churn", "puntuar.py"), "--datos", TABLAS, "--fecha", str(T.date()), "--salida", sal]
+    interv = os.path.join(HIST, "intervenciones.csv")   # cuentas en las que ya se actuó: fuera del entrenamiento
     if os.path.exists(interv):
         args += ["--intervenciones", interv]
-    ejecutar(args, EV)
+    ejecutar(args, RAIZ)
+    json.dump({"modelo": DESCRIPCION_MODELO}, open(os.path.join(sal, "modelo_usado.json"), "w", encoding="utf-8"), ensure_ascii=False)
     paso(4, "Propuestas de retención")
     datos_pr = os.path.join(sal, "tablas_con_scores"); shutil.rmtree(datos_pr, ignore_errors=True); shutil.copytree(TABLAS, datos_pr)
-    shutil.copy(os.path.join(sal, "scores_modelo.csv"), os.path.join(datos_pr, "scores_modelo.csv"))
+    for f in ("scores_modelo.csv", "explicacion_modelo.csv"):   # probabilidad y motivo de cada cuenta, del modelo
+        shutil.copy(os.path.join(sal, f), os.path.join(datos_pr, f))
     cfg = config_temporal(os.path.join(PR, "config", "parametros.json"), os.path.join(sal, "parametros_usados.json"), {"fecha_corte": str(T.date())})
     ph = os.path.join(HIST, "propuestas_historico.csv")
     dias = json.load(open(cfg, encoding="utf-8")).get("dias_enfriamiento", 90)
@@ -161,9 +214,15 @@ def main():
     ejecutar(["src/propuestas.py", "--datos", datos_pr, "--config", cfg, "--salida", sal], PR)
     shutil.rmtree(datos_pr, ignore_errors=True)
     registrar_propuestas(T, sal, ph)
-    paso(5, "Cuadro de mando"); cuadro_de_mando(T, sal, estado)
+    paso(5, "Resultado de las acciones (ventanas de 210 días cerradas)")
+    tablas_m = cargar_tablas_modelo(TABLAS)
+    res = resultados_acciones(tablas_m, leer_historico(HIST), T)
+    res.to_csv(os.path.join(sal, "resultado_acciones.csv"), index=False)
+    tabla_aprendizaje(vista_en(tablas_m, T), res).to_csv(os.path.join(sal, "aprendizaje_acciones.csv"), index=False)
+    print(resumen_acciones(res).to_string(index=False) if len(res) else "Sin ventanas de 210 días cerradas todavía")
+    paso(6, "Cuadro de mando"); cuadro_de_mando(T, sal, estado, res, tablas_m)
     print(f"\nCiclo completado. Resultados en salidas/{T.date()}/: propuestas_retencion.xlsx (plan por comercial), "
-          "crm_tareas.csv, scores_modelo.csv, estado_etiqueta.json, cuadro_de_mando.xlsx")
+          "crm_tareas.csv, scores_modelo.csv, estado_etiqueta.json, resultado_acciones.csv, cuadro_de_mando.xlsx")
 
 
 if __name__ == "__main__":
