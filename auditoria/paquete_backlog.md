@@ -1,10 +1,11 @@
 # Meridiano · Paquete de auditoría del backlog y de la solución desplegada (paso 08 FORGEN)
 
-Versión: backlog-v5 · 22-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
+Versión: backlog-v6 · 28-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
 Caso ficticio de un trabajo fin de programa: datos, contactos y cifras son simulados. El diseño de los nodos N1–N9 está en
-`paquete_diseno.md` (paso 05, versión diseno-v3, ya auditado dos veces); aquí se revisa si el backlog lo cubre y si lo
+`paquete_diseno.md` (paso 05, versión diseno-v4; la v3 se auditó dos veces); aquí se revisa si el backlog lo cubre y si lo
 desplegado lo cumple. Cambios respecto a backlog-v1: historias nuevas o modificadas por las correcciones de las dos
-auditorías del diseño (marcadas «A1» o «A2») y de las dos primeras auditorías del backlog (secciones 6 y 7).
+auditorías del diseño (marcadas «A1» o «A2») y de las dos primeras auditorías del backlog (secciones 6 y 7). backlog-v6
+incorpora el modelo de abandono nuevo (`modelo_churn/`, marcadas «M»; sección 8).
 
 ## 1. Épicas
 
@@ -23,7 +24,10 @@ auditorías del diseño (marcadas «A1» o «A2») y de las dos primeras auditor
 | E1-H2 | Como comercial quiero recibir cada martes hasta 4 cuentas de más riesgo que compense trabajar (A1) | Hasta 4 por comercial, todas con valor neto positivo (también sin modelo); plazas sin cubrir informadas; sin repetir cuenta en 90 días; cada una con motivo, tipo de riesgo y facturación en riesgo | N2 | Alta | Desplegada (W1 + motor) |
 | E1-H3 | Como dirección quiero un grupo de control en las cuentas en riesgo | Sorteo estable por trimestre, 20 % de la banda media, nunca cuentas clave; las cuentas de control no reciben propuesta y se miden igual | N2 | Alta | Desplegada |
 | E1-H6 | Como dirección no quiero propuestas calculadas con datos viejos o rotos (A1) | W1 y W4 consultan `ultima_carga()`; si la última carga no terminó bien o tiene más de 8 días, no generan nada, avisan a dirección y datos y lo registran | N2, N3 | Alta | Desplegada |
-| E1-H7 | Como equipo quiero que el modelo no aprenda de cuentas en las que ya actuamos (A1) | El reentrenamiento excluye observaciones con propuesta aprobada o enviada en su ventana; la validación de la etiqueta informa del acuerdo por comercial | N2 | Media | Desplegada (motor) |
+| E1-H7 | Como equipo quiero que el modelo no aprenda de cuentas en las que ya actuamos (A1, M) | `puntuar.py --intervenciones` excluye las observaciones con propuesta aprobada o enviada entre 90 días antes del corte y el final de W (solo intervenciones registradas hasta la fecha); la validación de la etiqueta informa del acuerdo por comercial como indicador | N2 | Media | Desplegada (motor + modelo_churn) |
+| E1-H8 | Como comercial quiero que el riesgo lo calcule un modelo que acierte más que ordenar por días sin campaña (M) | Regresión logística de `modelo_churn` sobre E2; en la prueba (sep-25 y dic-25, datos originales) AUC 0,883 frente a 0,731; salida `id_cliente` y `prob_abandono` para todos los activos; sin fuga de datos posteriores a la fecha; idéntica en dos ejecuciones; rechaza fechas posteriores al último dato | N2 | Alta | Desplegada (motor) |
+| E1-H9 | Como dirección quiero saber qué modelo generó cada propuesta (M) | `propuestas.modelo` y `plan_vigente.modelo`; el cuadro de mando muestra el modelo usado | N2, N5 | Media | Desplegada (motor, Supabase) |
+| E4-H11 | Como dirección quiero saber si las acciones salvan cuentas (M) | Al cerrarse la ventana de 210 días, cada cuenta propuesta o de control queda en `resultado_acciones` con grupo, resultado E2 y si se salvó; `efecto_accion` compara acción y control solo en la banda media; solo dirección lo ve | N2, N9 | Media | Desplegada (motor, Supabase; bloque del panel aplicado por el equipo) |
 | E1-H4 | Como comercial quiero propuestas de ampliación y para leads nuevos cada lunes | 2 ampliaciones por comercial; todo lead nuevo con propuesta; volver a ejecutar no duplica | N3 | Alta | Desplegada (W4) |
 | E1-H5 | Como cliente no quiero recibir dos propuestas a la vez, ni una de «lead nuevo» si ya soy cliente | Una etiqueta por empresa; el ciclo del martes excluye las empresas con propuesta del lunes; 90 días de enfriamiento común; un lead que coincide con un cliente actual (dominio de correo no genérico o razón social normalizada) no recibe propuesta de lead: se marca descartado con el cliente y el evento «ya_es_cliente» | N2, N3 | Alta | Desplegada |
 | E2-H1 | Como comercial quiero la propuesta ya redactada | Texto de Claude con el contexto de la cuenta; tono de usted; máximo 200 palabras | N4 | Alta | Desplegada (W1, W4) |
@@ -59,7 +63,9 @@ Grupos de control (dos, con nombre propio): `control_riesgo` (E1-H3: cuentas en 
 E3-H7 depende de E3-H3 (el bloqueo vive en la base de datos y el enlace en el correo de W5).
 
 Historias de trabajo futuro (no construidas; declaradas en el diseño): caducidad de propuestas pendientes a 10 días
-laborables; KPI semanal de textos de IA aceptados; versión del modelo, probabilidad y variables guardadas en cada propuesta;
+laborables; KPI semanal de textos de IA aceptados; probabilidad y variables guardadas en cada propuesta (el modelo ya se guarda);
+modelo de qué cuentas se pueden salvar (con la tabla de aprendizaje de `resultado_acciones`); registrar propuestas abiertas
+en los datos;
 reparto y tope semanal de leads con detección de leads que ya son clientes; marcar filas borradas de la hoja como «no
 presentes» (W0).
 
@@ -68,14 +74,14 @@ presentes» (W0).
 | Pieza | Dónde | Cómo se accede |
 |---|---|---|
 | Flujos W0, W1, W2, W4, W5, W6 (programados o por webhook), W7 (manual) y W8 (página pública de baja) | n8n autoalojado en Docker en el equipo del equipo de proyecto (se empezó en n8n Cloud; se migró a local). Los cambios se guardan como borrador y se publican después de aplicar el SQL del que dependen | Usuario de n8n |
-| Motor de riesgo (Python, regresión logística) | GitHub Actions, repositorio `meridiano-motor` | Lanzado por W1 con token de GitHub |
-| Base de datos, reglas, permisos y trazabilidad | Supabase (Postgres): `schema.sql` y parches por cambio (`bajas.sql`, `envios.sql`, `controles.sql`, `seguimiento.sql`, `auditoria2.sql`), sin bloques `$$` para que el editor web no los corte | Panel con usuario; n8n y motor con clave de servicio |
+| Motor de riesgo (Python) con el modelo de abandono `modelo_churn` (regresión logística, scikit-learn 1.9.1) | GitHub Actions, repositorio `meridiano-motor` | Lanzado por W1 con token de GitHub |
+| Base de datos, reglas, permisos y trazabilidad | Supabase (Postgres): `schema.sql` y parches por cambio (`bajas.sql`, `envios.sql`, `controles.sql`, `seguimiento.sql`, `auditoria2.sql`, `backlog2.sql`, `modelo_churn.sql`), sin bloques `$$` para que el editor web no los corte | Panel con usuario; n8n y motor con clave de servicio |
 | Panel comercial, vista de dirección y formulario web | Lovable | Usuario por comercial y dirección; formulario público |
 | Redacción y auditoría | API de Claude | Credencial en n8n |
 | Envío | Gmail | Modo demo: todo al buzón de pruebas |
 
-Pruebas: 78 tests del sistema (nodos de código de n8n y funciones de Supabase en Postgres 16 local), 33 de evaluación y 21 del
-motor de propuestas. Cada parche SQL se prueba también ejecutado sentencia a sentencia y dos veces seguidas.
+Pruebas: 99 tests del sistema (nodos de código de n8n, funciones de Supabase en Postgres 16 local, ciclo semanal y simulacro),
+45 del modelo de abandono, 33 de evaluación y 21 del motor de propuestas. Cada parche SQL se prueba también ejecutado sentencia a sentencia y dos veces seguidas.
 Prueba de extremo a extremo hecha por el equipo: formulario → panel → aceptar → envío → seguimiento → cierre → alerta → correo del lunes.
 
 Incidencias resueltas durante el despliegue:
@@ -137,10 +143,13 @@ Contrato de encargado (art. 28 RGPD) necesario con cada uno en producción. **Re
 | E3-H7 · no se aprueba ni envía a excluidos | `test_baja_por_enlace_bloquea_aprobar_y_enviar`, `test_w5_no_envia_a_excluidos_ni_sin_enlace_de_baja` |
 | E3-H7 · baja en dos pasos | `test_w8_pagina_pide_confirmacion_y_muestra_resultado`, `test_w8_token_invalido_no_da_de_baja` |
 | E1-H2 · hasta 4, valor neto positivo | `test_capacidad_por_comercial`, `test_solo_se_propone_con_valor_neto_positivo`, `test_huecos_cuando_no_hay_cuentas_suficientes` |
-| E1-H2 / E1-H5 · sin repetir en 90 días | `test_ciclos_semanales_enfriamiento_y_vuelta_automatica_a_regla_` |
+| E1-H2 / E1-H5 · sin repetir en 90 días | `test_ciclos_semanales_enfriamiento_y_validacion_de_E2_como_indicador` |
 | E1-H3 · control nunca con cuentas clave | `test_control_solo_banda_media_y_nunca_cuentas_clave`, `test_asignacion_de_control_reproducible` |
 | E1-H6 · puerta de datos | `test_ultima_carga_apta_solo_si_w0_termino_bien_y_es_reciente`, `test_w1_puerta_de_datos` |
-| E1-H7 · sin cuentas intervenidas | `test_excluye_solo_observaciones_con_intervencion_en_su_ventana`, `test_acuerdo_por_comercial_y_aviso` |
+| E1-H7 · sin cuentas intervenidas | `test_exclusion_de_observaciones_intervenidas`, `test_puntuar_con_intervenciones`, `test_acuerdo_por_comercial_y_aviso` |
+| E1-H8 · sin fuga, contrato y reproducible | `test_variables_no_cambian_con_datos_posteriores`, `test_no_fuga_en_la_puntuacion`, `test_el_test_detecta_una_fuga`, `test_columnas_exactas`, `test_probabilidades_entre_0_y_1`, `test_una_fila_por_anunciante_activo`, `test_sin_clientes_duplicados`, `test_identico_al_ejecutarlo_dos_veces`, `test_fecha_posterior_al_ultimo_dato_falla` |
+| E1-H9 · modelo por propuesta | `test_propuesta_guarda_el_modelo_que_la_genero`, `test_plan_vigente_con_modelo_y_cada_comercial_ve_lo_suyo` |
+| E4-H11 · resultado de las acciones | `test_solo_ventanas_cerradas_y_grupos`, `test_resultado_coincide_con_la_etiqueta_E2`, `test_resultados_sin_datos_posteriores_a_la_fecha`, `test_efecto_solo_compara_la_misma_banda`, `test_tabla_de_aprendizaje_tiene_las_variables_en_la_fecha_de_corte`, `test_resultado_acciones_solo_direccion_y_coherente` |
 | E2-H2 · validador | `test_validador_descarta_y_conserva_plantilla`, `test_validador_rechaza_insinuar_el_riesgo` |
 | E2-H3 · avisos del texto | `test_avisos_del_texto_no_bloquean_y_quedan_registrados` |
 | E3-H1 · solo mi cartera (H6) | `test_permisos_cruzados_entre_comerciales`, `test_panel_solo_lee_y_actua_con_accion_panel` |
@@ -213,3 +222,22 @@ Tests añadidos a la tabla criterio → test:
 ### Regla de cierre del paso 08 (fijada antes de esta auditoría)
 Esta es la última pasada. Si no hay hallazgos altos, el paso se cierra. Si aparece alguno nuevo, se cierra igualmente y se
 declara como riesgo aceptado o trabajo futuro con su justificación; no habrá más pasadas.
+
+
+## 8. Cambios de backlog-v6 (modelo de abandono nuevo)
+
+El modelo de N2 se sustituye por el que construyó la alumna con Claude Code (`modelo_churn/`, informe en
+`modelo_churn/informe.md`, decisiones en `modelo_churn/registro_decisiones.md`). Historias nuevas E1-H8, E1-H9 y E4-H11;
+E1-H7 se mantiene con la exclusión hecha por el modelo nuevo. El acuerdo con los cierres del comercial deja de cambiar la
+etiqueta (ya no hay vuelta automática a la regla A): es un indicador.
+
+Despliegue en este orden: (1) `supabase/modelo_churn.sql` en Supabase (idempotente; añade `propuestas.modelo`,
+`asignaciones_ciclo.banda_riesgo`, recrea `plan_vigente` con el modelo y crea `resultado_acciones`, `resumen_resultado_acciones`
+y `efecto_accion`); (2) fusionar en `main` (el motor de GitHub Actions instala scikit-learn); (3) prompt del panel
+`lovable/CAMBIO_MODELO_ABANDONO.md`. Si se fusiona antes del SQL, el motor falla al subir las columnas nuevas y W9 avisa.
+
+Datos: la hoja de W0 y `tablas/` contienen los datos ampliados (ene-2020 → 27-nov-2026); los originales se conservan en
+`tablas_originales/` para la prueba del modelo. Riesgos aceptados: datos sintéticos en 15 de los 19 cortes de entrenamiento;
+las propuestas solo constan cerradas, lo que eleva algo la puntuación en la última fecha; el efecto de las acciones solo se
+puede medir cuando hay propuestas en la banda media.
+

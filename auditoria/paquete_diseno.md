@@ -1,13 +1,16 @@
 # Meridiano · Paquete de auditoría del diseño (paso 05 FORGEN)
 
-Versión: diseno-v3 · 22-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
-Cambios: diseno-v2 corrige la primera auditoría (H1–H12, sección 6); diseno-v3 corrige la segunda (sección 7).
+Versión: diseno-v4 · 28-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
+Cambios: diseno-v2 corrige la primera auditoría (H1–H12, sección 6); diseno-v3 corrige la segunda (sección 7); diseno-v4
+sustituye el modelo de riesgo de N2 por el construido por la alumna (`modelo_churn/`) y amplía los datos (sección 8).
 Caso ficticio de un trabajo fin de programa: datos, contactos y cifras son simulados.
 
 ## 1. Contexto y problema
 
 Meridiano es un medio digital para el público senior (mayores de 60 y sus familias). Los lectores no pagan: el negocio son
-267 anunciantes de 11 sectores, muy concentrados (el 20 % genera el 65 % de la facturación). Hay 3 comerciales y dirección.
+346 anunciantes de 11 sectores con historia desde enero de 2020 (unos 146 activos al año), muy concentrados (el 20 % genera
+el 65 % de la facturación). Hay 3 comerciales y dirección. Datos: 36 meses originales (oct-2023 → sep-2026) ampliados con
+datos sintéticos documentados hasta ene-2020 y hasta el 27-nov-2026 (`tablas_ampliadas/README.md`).
 
 Proceso actual (AS-IS) y sus tres fugas:
 1. **Detectar tarde:** el comercial revisa su cartera cuando puede; dirección se entera de una baja cuando el anunciante no renueva.
@@ -33,7 +36,7 @@ Cadencia semanal:
 - Cada día · envío al aceptar (N6), avisos de toque (N7), cierre y alertas (N8).
 - Siempre · baja de comunicaciones desde el enlace de cada correo (W8) o desde el panel.
 
-Stack: n8n (flujos W0, W1, W2, W4, W5, W6, W8; en la demo, autoalojado en Docker), motor Python en GitHub Actions, Claude (API), Supabase (Postgres con
+Stack: n8n (flujos W0, W1, W2, W4, W5, W6, W8; en la demo, autoalojado en Docker), motor Python en GitHub Actions con el modelo de abandono `modelo_churn` (scikit-learn), Claude (API), Supabase (Postgres con
 permisos por fila y trazabilidad), panel y formulario web en Lovable, Google Sheets como fuente, Gmail como canal.
 
 ## 3. Reglas transversales
@@ -93,12 +96,19 @@ permisos por fila y trazabilidad), panel y formulario web en Lovable, Google She
   `carga_ok` o `carga_con_avisos`, tiene más de 8 días o Supabase no responde, no se genera nada: aviso a dirección y al
   responsable de datos, registro `detenido_por_datos` y el panel conserva el plan anterior.
 - Entrada: tablas de Supabase con fecha de corte el lunes anterior. Salida: hasta 12 propuestas de riesgo, asignaciones y KPIs.
-- Modelo: regresión logística regularizada (L2) entrenada cada semana con los cortes cuyo resultado ya se conoce. Variables:
-  recencia, frecuencia y antigüedad más seis señales (tendencia de inversión, CTR, cambio de interlocutor, tiempo sin contacto,
-  reclamación, incidencia de factura). Reentrenamiento sin sesgo de intervención (H4): una observación (cliente, corte) no se
-  usa para entrenar si hubo una propuesta aprobada o enviada a ese cliente entre 90 días antes del corte y el final del
-  horizonte; las cuentas del grupo de control se conservan. Etiqueta E2: pérdida total (se salta su temporada o un año sin comprar) o contracción
-  (factura menos del 50 % que el año anterior).
+- Modelo (`modelo_churn/puntuar.py`, construido por la alumna con Claude Code): regresión logística con regularización L2
+  (scikit-learn), elegida entre cuatro opciones. Se entrena cada martes con todos los cortes trimestrales cuyo resultado ya
+  se conoce (población: anunciantes con campaña en los 12 meses anteriores al corte; sin anunciantes con menos de un año desde
+  el alta) y puntúa a todos los activos: `scores_modelo.csv` con `id_cliente` y `prob_abandono`. 14 variables calculadas solo
+  con datos hasta la fecha: días sin campaña, frecuencia y valor en 12 meses, compra en el mismo periodo del año anterior,
+  tendencia, antigüedad, familias de producto, CTR relativo, cambio de interlocutor, días sin contacto comercial, retraso
+  medio de cobro, pedidos firmados pendientes, propuestas abiertas y propuestas perdidas en 12 meses. Etiqueta E2 (siempre):
+  pérdida total (compró en W' = (T − 1 año, T − 1 año + 210 días] y no compra en W = (T, T + 210 días]) o contracción
+  (factura en W menos del 50 % que en W'). Reentrenamiento sin sesgo de intervención (H4): una observación (cliente, corte)
+  no se usa si hubo una propuesta aprobada o enviada a ese cliente entre 90 días antes del corte y el final de W (solo
+  intervenciones registradas hasta la fecha de puntuación); las cuentas del grupo de control se conservan. Los anunciantes
+  del universo de propuestas que el modelo no puntúa (sin campaña en 12 meses) reciben el riesgo de respaldo por señales.
+  Si el modelo falla, el ciclo se detiene, W1 recibe el error y el panel conserva el plan anterior.
 - Priorización: probabilidad × valor de la cuenta × recuperación esperada (20 %, supuesto) − coste por acción (120 €, supuesto).
   Solo se proponen cuentas con valor neto positivo, también en el modo de respaldo sin modelo (H9). **Hasta** 4 cuentas por
   comercial y semana: si no hay suficientes con valor neto positivo, las plazas quedan libres y el cuadro de mando informa de
@@ -108,12 +118,20 @@ permisos por fila y trazabilidad), panel y formulario web en Lovable, Google She
   facturación en riesgo); no espera al resumen del lunes.
 - Fuera: contactar al cliente; decidir la acción final; usar datos posteriores al corte.
 - Criterios: como máximo 4 por comercial, todas con valor neto positivo y sin repetir en 90 días; cada una con motivo, tipo de
-  riesgo y facturación en riesgo; si el acuerdo entre E2 y el estado confirmado por el comercial baja del 70 % con al menos
-  30 casos, vuelve a la regla simple A (210 días sin campaña).
-- Limitación declarada (H4): ese control depende del juicio del comercial al cerrar. Mitigación: estado elegido de una lista
-  cerrada, acuerdo calculado también por comercial y aviso si uno se aparta más de 20 puntos del resto (revisión con el equipo).
-- Evaluación previa: L2 superó a ordenar solo por valor en torno a un 5 %, de forma estable en 5 cortes; un modelo más
-  complejo (L3) no mejoró.
+  riesgo, facturación en riesgo y el modelo que la generó (`propuestas.modelo`); añadir datos posteriores a la fecha no cambia
+  ninguna variable ni la puntuación (tests de no fuga); misma puntuación en dos ejecuciones.
+- Validación con los cierres (H4): el acuerdo entre E2 y el estado confirmado por el comercial se calcula cada semana, también
+  por comercial (aviso si uno se aparta más de 20 puntos), y se muestra como **indicador** en el cuadro de mando y el panel.
+  Ya no cambia la etiqueta ni vuelve a la regla simple: el modelo aprobado usa siempre E2 (decisión de la alumna).
+- Resultado de las acciones: cada cuenta propuesta o del grupo de control, al cerrarse su ventana de 210 días, registra su
+  grupo (acción, propuesta sin acción, control), el resultado E2 y si se salvó (`resultado_acciones`, solo dirección). El
+  efecto se mide solo dentro de la banda media, la única con control (`efecto_accion`, con `banda_riesgo` en cada asignación).
+  Con las variables en la fecha de la propuesta se guarda una tabla de aprendizaje para un futuro modelo de qué cuentas se
+  pueden salvar.
+- Evaluación del modelo (informe en `modelo_churn/informe.md`): entrenamiento en 19 cortes (dic-2020 → jun-2025, 1.992
+  observaciones); prueba en sep-2025 y dic-2025 solo con datos originales (251 observaciones). AUC 0,883 (IC 95 %
+  0,842–0,920) frente a 0,731 ordenando por días sin campaña y 0,518 por valor; Brier 0,145; acierta las 12 cuentas de más
+  riesgo en las dos fechas. Un árbol de decisión quedó por debajo (AUC 0,861).
 
 ### N3 · Elegir leads y ampliaciones de la semana (W4 + función SQL `preparar_lunes`, reglas)
 - Puerta de datos (H7): la misma comprobación de `ultima_carga()` que N2, antes de preparar nada.
@@ -210,7 +228,12 @@ Tres pasos con criterio propio (H12): N9a balance (SQL), N9b comentario (IA + va
 ## 5. Riesgos que el equipo ya identificó
 
 - La tasa de recuperación (20 %) y el coste por acción son supuestos hasta que lo mida el grupo de control.
-- El modelo mejora poco (≈5 %) sobre ordenar por valor y depende de la señal de contacto.
+- Datos sintéticos: el modelo se valida en datos originales, pero 15 de sus 19 cortes de entrenamiento contienen datos
+  generados. La variable que más pesa es los días sin contacto comercial.
+- Las propuestas solo constan en los datos cuando se cierran: en la fecha más reciente casi ninguna figura como abierta y la
+  puntuación sale algo más alta (el 23-nov-2026, 56 % de cuentas por encima de 0,5 frente al 43 % un año antes).
+- El grupo de control solo existe en la banda media; si las cuentas propuestas son todas de banda alta, el efecto no se puede
+  medir esa semana.
 - Los mismos comerciales trabajan los dos grupos del piloto (posible contaminación).
 - El tratamiento del consentimiento de puerta fría y los plazos de conservación deben validarlos una asesoría legal
   (LSSI y RGPD).
@@ -245,10 +268,26 @@ Tres pasos con criterio propio (H12): N9a balance (SQL), N9b comentario (IA + va
 | «Escalar a dirección» tarda hasta 6 días (media) | Aviso a dirección el mismo día desde W1 | Implantado |
 | Propuestas pendientes sin caducidad (media) | Trabajo futuro: caducidad a 10 días laborables, con KPI y regeneración | Declarado |
 | Criterio del validador no verificable y sin tasa de descarte (media) | Trabajo futuro: lista versionada y KPI semanal «% de texto IA aceptado» | Declarado |
-| Versión del modelo y variables por propuesta (media) | Trabajo futuro: guardar ejecución, versión, probabilidad y variables por propuesta | Declarado |
+| Versión del modelo y variables por propuesta (media) | Cada propuesta guarda el modelo que la generó (diseno-v4); las variables de cada cuenta en la fecha de la propuesta quedan en la tabla de aprendizaje | Implantado en parte |
 | Control de riesgo con cuentas clave (media) | Aclarado: las cuentas clave nunca van al control | Documentado |
 | Asignación y tope de leads (media) | Trabajo futuro: reparto y tope semanal; detección de leads que ya son clientes | Declarado |
 | Remitente y respuestas (baja) | Remitente del dominio con *reply-to* del comercial | Documentado |
 | Timeout de Gmail como error reintentable (baja) | Solo 4xx es error; lo ambiguo queda sin confirmar y avisa | Implantado |
 | Encargados de tratamiento (baja) | Lista de encargados y permisos de la hoja | Documentado |
 | Validador sobre el texto del comercial (baja) | Avisos no bloqueantes y evento «aprobada_con_aviso» | Implantado |
+
+## 8. Cambios de diseno-v4 (modelo de abandono nuevo)
+
+| Cambio | Antes (diseno-v3) | Ahora | Dónde |
+|---|---|---|---|
+| Modelo de N2 | Logística L2 del motor de evaluación con 3 variables básicas y 6 señales | Logística L2 de `modelo_churn` (construida por la alumna), 14 variables, elegida entre 4 modelos | N2 |
+| Etiqueta | E2 con «un año sin comprar»; vuelta a la regla simple A si el acuerdo baja del 70 % | E2 solo dentro de W y siempre E2; el acuerdo es un indicador | N2 |
+| Datos | 36 meses | 83 meses (ampliación sintética documentada); prueba solo en datos originales | Contexto, N2 |
+| Evaluación | ≈ 5 % mejor que ordenar por valor | AUC 0,883 frente a 0,731 (días sin campaña) y 0,518 (valor) | N2 |
+| Trazabilidad | Sin modelo por propuesta | `propuestas.modelo` y `plan_vigente.modelo` | N2, N5 |
+| Medición | Grupo de control en banda media | Además: `resultado_acciones` a 210 días y `efecto_accion` en la banda media | N2, N9 |
+
+Tests: 99 del sistema (base de datos, n8n, ciclo y simulacro), 45 del modelo de abandono (no fuga de variables y de la
+puntuación, contrato de salida, reproducibilidad, exclusión de intervenidas, resultado de las acciones), 33 de evaluación y
+21 de propuestas. El parche `supabase/modelo_churn.sql` se prueba sentencia a sentencia y dos veces seguidas.
+
