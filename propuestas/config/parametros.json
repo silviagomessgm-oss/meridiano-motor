@@ -36,7 +36,7 @@
   "llm": {
     "usar": false,
     "modelo": "claude-sonnet-5-5",
-    "max_tokens": 700
+    "max_tokens": 1024
   },
   "valor_esperado": {
     "coste_accion_eur": 120,

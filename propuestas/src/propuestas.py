@@ -380,13 +380,16 @@ def material_llm(r, ev, cfg):
                 f"Producto sugerido: {r.producto_sugerido_nombre}. Próxima temporada: {r.proxima_ventana_mes}. Datos: " + "; ".join(ev))
     sistema = ("Preparas materiales para un comercial de Meridiano, medio para el público senior que vive de anunciantes. "
                "Reglas: usa solo cifras del contexto, tal cual; nunca menciones que el cliente está en riesgo; "
-               "no incluyas ninguna condición económica ni porcentaje; tono profesional y cercano, de usted; máximo 200 palabras. "
-               "Devuelve solo el texto del material.")
+               "no incluyas ninguna condición económica ni porcentaje; tono profesional y cercano, de usted; máximo 170 palabras. "
+               "Sin asunto, sin títulos y sin formato Markdown: empieza por el saludo y termina con la despedida completa. "
+               "Devuelve solo el cuerpo del material.")
     cli = anthropic.Anthropic()
     msg = cli.messages.create(model=cfg["llm"]["modelo"], max_tokens=cfg["llm"]["max_tokens"], system=sistema,
                               messages=[{"role": "user", "content": contexto}])
     texto = msg.content[0].text
     ok, inv = validar_llm(texto, contexto)
+    if msg.stop_reason == "max_tokens" or re.search(r"^\s*(\*\*)?\s*asunto\s*:|\*\*|^\s*#", texto, re.I | re.M):
+        ok, inv = False, inv + ["texto cortado o con asunto/Markdown"]
     return texto, ok, inv
 
 

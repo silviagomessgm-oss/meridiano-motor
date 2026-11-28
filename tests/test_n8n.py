@@ -466,3 +466,36 @@ def test_w4_puerta_de_datos():
             assert r["para"] == "d@m.com,x@m.com" and r["registro"]["estado"] == "detenido_por_datos" and casos[caso]["body"]["motivo"] in r["texto"]
     finally:
         for r in rutas.values(): os.remove(os.path.join(RAIZ, "n8n", "codigo", r))
+
+
+# ------------------------------------------------------------------ material de la IA cortado (W4 y W1)
+CORTADO = ("**Asunto:** Una propuesta para dar continuidad a su presencia en Meridiano\n\nEstimado Fernando:\n\n"
+           "Confío en que se encuentre bien. En los últimos 12 meses hemos emitido juntos 3 campañas.\n\nQuedo a su dis")
+
+
+def _ia(texto, parada="end_turn"):
+    return [{"content": [{"type": "text", "text": texto}], "stop_reason": parada}]
+
+
+def test_w4_descarta_material_cortado_o_con_asunto():
+    import tempfile
+    codigo, w = _codigo_desplegado("W4_preparacion_lunes.json", "Validador del lunes")
+    cuerpo = next(n for n in w["nodes"] if n["name"] == "Claude: redactar material")["parameters"]["jsonBody"]
+    assert "max_tokens: 1024" in cuerpo and "Sin asunto" in cuerpo
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, dir=os.path.join(RAIZ, "n8n", "codigo")) as f:
+        f.write(codigo); ruta = os.path.basename(f.name)
+    try:
+        p = [{"id": 1, "contexto_ia": "12 meses, 3 campañas", "material_cuerpo": "PLANTILLA", "etiqueta": "ampliacion"}]
+        mal = correr(ruta, {"input": _ia(CORTADO, "max_tokens"), "nodos": {"¿Hay propuestas?": p}})[0]
+        assert mal["material_cuerpo"] == "PLANTILLA" and "cortado" in mal["fuente_material"] and "asunto" in mal["fuente_material"]
+        ok = correr(ruta, {"input": _ia("Estimado Fernando:\n\nEn 12 meses, 3 campañas.\n\nUn cordial saludo."),
+                           "nodos": {"¿Hay propuestas?": p}})[0]
+        assert ok["valido"] and ok["fuente_material"] == "llm"
+    finally:
+        os.remove(os.path.join(RAIZ, "n8n", "codigo", ruta))
+
+
+def test_w1_descarta_material_cortado():
+    p = [{"fecha_corte": "2026-11-23", "id_cliente": "C1", "contexto_ia": "12 meses, 3 campañas", "material_cuerpo": "PLANTILLA"}]
+    r = correr("w1_validador.js", {"input": _ia(CORTADO.split("\n\n", 1)[1], "max_tokens"), "nodos": {"Separar propuestas": p}})[0]
+    assert r["material_cuerpo"] == "PLANTILLA" and "cortado" in r["fuente_material"]

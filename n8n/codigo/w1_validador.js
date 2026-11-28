@@ -1,7 +1,8 @@
 // Sensor computacional de Govern (equivalente a propuestas.validar_llm, con dos reglas más):
 //  1. toda cifra del borrador debe aparecer en el contexto enviado a la IA;
 //  2. ninguna condición económica (porcentajes, descuento, rebaja, gratis);
-//  3. no menciona ni insinúa el riesgo de abandono (lista ampliada tras la auditoría, H3);   4. máximo 200 palabras.
+//  3. no menciona ni insinúa el riesgo de abandono (lista ampliada tras la auditoría, H3);   4. máximo 200 palabras;
+//  5. texto completo (no cortado por max_tokens) y sin asunto ni formato Markdown (cuerpo listo para enviar).
 // Si falla cualquier regla o la IA no responde, se conserva la plantilla del motor y se anota el motivo.
 const propuestas = $('Separar propuestas').all();
 // H3: el cliente no debe saber que el sistema le considera en riesgo. Se rechaza tanto la mención directa como
@@ -19,6 +20,10 @@ return $input.all().map((it, i) => {
   const texto = Array.isArray(r.content)
     ? r.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim() : '';
   const motivos = [];
+  if (texto) {
+    if (r.stop_reason === 'max_tokens') motivos.push('texto cortado por el límite de longitud');
+    if (/^\s*(\*\*)?\s*asunto\s*:/im.test(texto) || /\*\*|^\s*#/m.test(texto)) motivos.push('incluye asunto o formato Markdown');
+  }
   if (!texto) motivos.push('IA no disponible' + (r.error ? ` (${String(r.error.message || r.error).slice(0, 80)})` : ''));
   else {
     const ctx = numeros(p.contexto_ia);

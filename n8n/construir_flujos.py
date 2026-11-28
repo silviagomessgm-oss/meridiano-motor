@@ -37,8 +37,9 @@ CRED = {"gh": {"githubApi": {"id": "github", "name": "GitHub account"}},
         "gs": {"googleSheetsOAuth2Api": {"id": "gsheets", "name": "Google Sheets Meridiano"}}}
 SISTEMA_IA = ("Preparas materiales para un comercial de Meridiano, medio para el público senior que vive de anunciantes. "
               "Reglas: usa solo cifras del contexto, tal cual; nunca menciones que el cliente está en riesgo; "
-              "no incluyas ninguna condición económica ni porcentaje; tono profesional y cercano, de usted; máximo 200 palabras. "
-              "Devuelve solo el texto del material.")
+              "no incluyas ninguna condición económica ni porcentaje; tono profesional y cercano, de usted; máximo 170 palabras. "
+              "Sin asunto, sin títulos y sin formato Markdown: empieza por el saludo y termina con la despedida completa. "
+              "Devuelve solo el cuerpo del material.")
 
 
 def nodo(nombre, tipo, version, pos, params, cred=None, **extra):
@@ -188,7 +189,7 @@ w1 = flujo("Meridiano · W1 Ciclo semanal de retención (martes)", [
     correo("Aviso a dirección: cuentas clave", [1260, -200], "={{ $json.para }}", "={{ $json.asunto }}", "={{ $json.texto }}"),
     http("Claude: redactar material", [880, 0], "POST", "https://api.anthropic.com/v1/messages", "ia",
          cabeceras={"anthropic-version": "2023-06-01"},
-         cuerpo="={{ JSON.stringify({ model: " + CFG + ".modelo_ia, max_tokens: 600, system: "
+         cuerpo="={{ JSON.stringify({ model: " + CFG + ".modelo_ia, max_tokens: 1024, system: "
                 + json.dumps(SISTEMA_IA, ensure_ascii=False) + ", messages: [{ role: 'user', content: $json.contexto_ia }] }) }}",
          opciones={"timeout": 60000, "batching": {"batch": {"batchSize": 1, "batchInterval": 1500}}},
          retryOnFail=True, maxTries=3, waitBetweenTries=5000, onError="continueRegularOutput"),
