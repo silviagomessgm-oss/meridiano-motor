@@ -27,7 +27,7 @@ decide → se envía → se sigue y se cierra → dirección mide y corrige → 
 
 | # | Qué enseñas | Dónde | Min |
 |---|---|---|---|
-| 1 | El problema | Diapositiva | 1 |
+| 1 | El proceso completo (y el problema que resuelve) | Diapositiva del proceso | 1,5 |
 | 2 | Los datos entran solos (W0) | Hoja + n8n | 2 |
 | 3 | El modelo elige las cuentas de la semana (W1 + motor) | n8n + GitHub Actions + buzón | 3 |
 | 4 | Lo que ve el comercial y lo que redacta la IA | Panel comercial | 3 |
@@ -36,12 +36,16 @@ decide → se envía → se sigue y se cierra → dirección mide y corrige → 
 | 7 | Baja de un contacto | Panel comercial | 1 |
 | 8 | El panel de dirección: el equipo, no los clientes | Panel dirección | 3 |
 | 9 | Trazabilidad | SQL Editor | 1 |
-| 10 | Viabilidad y limitaciones | Diapositiva | 1,5 |
+| 10 | Vuelta al proceso: viabilidad y limitaciones | Diapositiva del proceso | 1,5 |
 
-### 1 · El problema (1 min)
-Meridiano vive de sus anunciantes: un anunciante que se va es facturación perdida, y nadie lo ve hasta que no renueva.
-> «Hemos automatizado el ciclo comercial: detectar, proponer, aprobar, enviar, seguir y cerrar. El modelo prioriza, la
-> IA redacta y el comercial decide.»
+### 1 · El proceso completo (1,5 min) · diapositiva del proceso
+- Una frase de problema, de palabra: Meridiano vive de sus anunciantes; uno que se va es facturación perdida y nadie lo
+  ve hasta que no renueva.
+- Recorrer la diapositiva paso a paso y anunciar que la demo va a seguir ese mismo orden: datos (W0) → modelo (W1 +
+  motor) → IA redacta → comercial aprueba → envío (W5) → seguimiento y cierre → dirección.
+> «Lo que vais a ver es este proceso funcionando de verdad, en este orden. El modelo prioriza, la IA redacta y el
+> comercial decide.»
+- Consejo: en cada paso de la demo, decir en qué casilla de la diapositiva estamos («ahora estamos aquí: el envío»).
 
 ### 2 · Los datos entran solos · W0 (2 min)
 - La hoja de Google: 8 pestañas, ene-2020 al 27-nov-2026.
@@ -98,7 +102,8 @@ En este orden, de arriba abajo:
 Consulta en el SQL Editor (al final): cada paso de la demo con quién, cuándo y estado antes y después, incluidos
 `cerrar`, `corregir_importe` y `cerrada_por_baja`.
 
-### 10 · Viabilidad y limitaciones (1,5 min)
+### 10 · Vuelta al proceso: viabilidad y limitaciones (1,5 min) · diapositiva del proceso
+Volver a la diapositiva y cerrar señalando qué parte de cada paso está medida y cuál es supuesta:
 - **Medido:** el modelo sabe a quién llamar (AUC 0,883; 92 % de acierto en el 25 % de más riesgo).
 - **Supuesto:** cuántas cuentas salva una acción (20 % en el cálculo, 30 % en el simulacro). Lo medirá un piloto de dos
   trimestres con el grupo de control.
