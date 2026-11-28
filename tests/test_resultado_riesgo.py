@@ -24,8 +24,9 @@ def test_parche_idempotente_y_comprobacion(dbr):
 
 
 def test_cierre_de_riesgo_exige_resultado_coherente(dbr):
+    sin = {**CIERRE_RIESGO, "estado_confirmado_comercial": "Activo"}
     with pytest.raises(psycopg2.Error, match="Indica el resultado de la acción"):
-        accion(dbr, "CLI-2", "cerrar", "j@meridiano.com", CIERRE_RIESGO)                    # sin desenlace
+        accion(dbr, "CLI-2", "cerrar", "j@meridiano.com", sin)                              # activa y sin desenlace
     with pytest.raises(psycopg2.Error, match="no puede cerrarse como recuperada"):
         accion(dbr, "CLI-2", "cerrar", "j@meridiano.com", {**CIERRE_RIESGO, "desenlace": "ganada"})   # «Perdido» + ganada
     datos = {**CIERRE_RIESGO, "estado_confirmado_comercial": "Activo", "desenlace": "ganada"}
@@ -62,3 +63,9 @@ def test_parche_sentencia_a_sentencia(dbr):
     assert "$$" not in sqlparse.format(texto, strip_comments=True)
     for s in [s for s in sqlparse.split(texto) if sqlparse.format(s, strip_comments=True).strip()]:
         dbr.execute(s)
+
+
+def test_perdido_sin_resultado_se_completa_como_no_recuperada(dbr):
+    accion(dbr, "CLI-2", "cerrar", "j@meridiano.com", CIERRE_RIESGO)                        # «Perdido», el panel no envía desenlace
+    assert uno(dbr, "select estado, desenlace from propuestas where id_cliente='CLI-2'") == ("cerrada", "perdida")
+

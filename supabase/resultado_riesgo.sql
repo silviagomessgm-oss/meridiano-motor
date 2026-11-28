@@ -10,6 +10,7 @@
 --    · descartada → «Sin decisión del cliente»
 --  registrar_accion('cerrar') ya guarda `desenlace` y `motivo_desenlace` para cualquier etiqueta; aquí se exige en las de
 --  riesgo y se comprueba que sea coherente con el estado confirmado (una cuenta «Perdido» no puede estar «Recuperada»).
+--  Si la cuenta se cierra como «Perdido» o «Redujo mucho» sin resultado, se completa como «No recuperada».
 --  Las propuestas de riesgo cerradas antes de este cambio no se tocan.
 --
 --  Para medirlo, la vista `recuperacion_riesgo` compara lo que declara el comercial con lo que dicen los datos: pedidos del
@@ -20,6 +21,10 @@ create or replace function exigir_resultado_riesgo() returns trigger language pl
 as 'begin
   if new.estado_tarea = ''cerrada'' and old.estado_tarea is distinct from ''cerrada''
      and new.etiqueta = ''riesgo'' and new.estado_envio <> ''rechazada'' then
+    -- Una cuenta perdida o que ha reducido mucho es, por definición, «No recuperada»: se completa sola
+    if new.desenlace is null and new.estado_confirmado_comercial in (''Perdido'', ''Redujo mucho'') then
+      new.desenlace := ''perdida'';
+    end if;
     if new.desenlace is null then
       raise exception ''Indica el resultado de la acción: recuperada (ha firmado un pedido), no recuperada o sin decisión del cliente'';
     end if;
