@@ -25,6 +25,7 @@ Corrección del hallazgo **H2 (alta)** de la auditoría del diseño (W7, ejecuci
 | Datos | Plazo | Cómo se controla |
 |---|---|---|
 | Leads no convertidos | 24 meses desde su última actividad | Vista `conservacion_vencida`; dirección revisa y borra |
+| Clientes y contactos borrados de la hoja | Quedan ausentes en Supabase: no reciben propuestas ni correos desde la carga siguiente | `marcar_presencia_carga` (W0). Si fue una petición de supresión, se da además de baja el correo |
 | Contactos de cuentas que dejaron de ser clientes | 36 meses desde la última factura | Revisión anual de dirección |
 | Facturación | El que fije la normativa fiscal y mercantil | Fuera del alcance del sistema |
 | Lista de exclusión | Indefinido, aunque se borre el contacto: es lo que garantiza que no se le vuelve a escribir (interés legítimo en respetar la oposición, art. 6.1.f RGPD) | Solo correo, motivo, origen y fecha; no aparece en `conservacion_vencida` y no se puede borrar |

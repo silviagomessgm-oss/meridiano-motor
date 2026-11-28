@@ -92,7 +92,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Carga semanal: valida las pestañas de la hoja de datos y las prepara para Supabase, en orden de dependencias.\n// Cada pestaña es la tabla COMPLETA (fila 1 = cabeceras con los mismos nombres de columna). Las filas se actualizan por su\n// identificador: corregir una fila en la hoja la corrige en Supabase. Las filas no válidas no se cargan y se informan.\n// Si falta una pestaña o una columna, o una tabla tiene demasiados errores, NO se carga nada.\nconst MAX_RECHAZO = 0.05;            // más de un 5 % de filas rechazadas en una tabla → no se carga nada\nconst LOTE = 1000;\nconst T = {   // tipos: t texto · d fecha · i entero · n número · b sí/no\n  dim_comercial:      { pk: 'id_comercial', c: { id_comercial: 't', nombre: 't', correo: 't' } },\n  dim_productos:      { pk: 'id_producto', c: { id_producto: 't', nombre: 't', familia: 't', unidad_venta: 't', tarifa_base_eur: 'n', margen: 'n',\n                         capacidad_mensual: 'i', meses_disponible: 't', es_producto_entrada: 'b', es_producto_compromiso: 'b', capacidad_anual_eur: 'n' } },\n  dim_clientes:       { pk: 'id_cliente', c: { id_cliente: 't', razon_social: 't', categoria: 't', provincia: 't', tamano: 't', fecha_alta: 'd',\n                         antiguedad_meses: 'i', canal_captacion: 't', comercial_asignado: 't', cp_sede: 'i', tiene_web_propia: 'b', anio_fundacion: 'i' },\n                        fk: { comercial_asignado: 'dim_comercial' } },\n  fact_campanas:      { pk: 'id_orden', c: { id_orden: 't', id_cliente: 't', id_producto: 't', familia: 't', fecha_orden: 'd', fecha_emision: 'd',\n                         mes_emision: 't', tarifa_base_eur: 'n', descuento_pct: 'n', importe_eur: 'n', impresiones: 'i', clics: 'i',\n                         leads_entregados: 'i', comercial: 't', id_campana: 't' },\n                        fk: { id_cliente: 'dim_clientes', id_producto: 'dim_productos' }, obligatorias: ['id_cliente', 'fecha_emision', 'importe_eur'] },\n  fact_facturacion:   { pk: 'id_factura', c: { id_factura: 't', id_cliente: 't', id_orden: 't', importe_eur: 'n', fecha_emision: 'd',\n                         condiciones_pago_dias: 'i', fecha_vencimiento: 'd', fecha_cobro: 'd', dias_retraso: 'n', estado: 't' },\n                        fk: { id_cliente: 'dim_clientes', id_orden: 'fact_campanas' }, obligatorias: ['id_cliente', 'fecha_emision', 'importe_eur'] },\n  fact_interacciones: { pk: 'id_interaccion', c: { id_interaccion: 't', id_cliente: 't', fecha: 'd', tipo: 't', canal: 't', resultado: 't',\n                         comercial: 't', previa_al_alta: 't' }, fk: { id_cliente: 'dim_clientes' }, obligatorias: ['id_cliente', 'fecha'] },\n  oportunidades:      { pk: 'id_oportunidad', c: { id_oportunidad: 't', id_cliente: 't', id_lead: 't', origen: 't', id_producto_propuesto: 't',\n                         importe_propuesto_eur: 'n', fecha_envio: 'd', fecha_cierre: 'd', desenlace: 't', id_orden: 't',\n                         n_toques_seguimiento: 'i', dias_hasta_cierre: 'i', comercial: 't', correccion: 't' } },\n  contactos:          { pk: 'id_contacto', c: { id_contacto: 't', id_cliente: 't', nombre: 't', cargo: 't', email: 't', telefono: 't',\n                         principal: 'b', ficticio: 'b' }, fk: { id_cliente: 'dim_clientes' }, obligatorias: ['id_cliente', 'nombre'] },\n};\n\nconst vacio = v => v === null || v === undefined || String(v).trim() === '';\nfunction convertir(v, tipo) {\n  if (vacio(v)) return [null, null];\n  const s = String(v).trim();\n  if (tipo === 't') return [s, null];\n  if (tipo === 'b') {\n    const m = { true: true, verdadero: true, 'sí': true, si: true, '1': true, false: false, falso: false, no: false, '0': false };\n    return s.toLowerCase() in m ? [m[s.toLowerCase()], null] : [null, `\"${s}\" no es sí/no`];\n  }\n  if (tipo === 'n' || tipo === 'i') {\n    let t = s.replace(/\\s/g, '').replace(/€/g, '');\n    if (t.includes(',') && t.includes('.')) t = t.replace(/\\./g, '').replace(',', '.');   // 1.234,56\n    else if (t.includes(',')) t = t.replace(',', '.');                                        // 0,15\n    const x = typeof v === 'number' ? v : Number(t);\n    if (!Number.isFinite(x)) return [null, `\"${s}\" no es un número`];\n    if (tipo === 'i' && !Number.isInteger(x)) return [null, `\"${s}\" no es un número entero`];\n    return [x, null];\n  }\n  if (tipo === 'd') {\n    let m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/), a, me, d;\n    if (m) [a, me, d] = [m[1], m[2], m[3]];\n    else if ((m = s.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/))) [a, me, d] = [m[3], m[2].padStart(2, '0'), m[1].padStart(2, '0')];\n    else return [null, `\"${s}\" no es una fecha (AAAA-MM-DD o DD/MM/AAAA)`];\n    const f = new Date(`${a}-${me}-${d}T00:00:00Z`);\n    if (isNaN(f) || f.toISOString().slice(0, 10) !== `${a}-${me}-${d}`) return [null, `\"${s}\" no es una fecha válida`];\n    return [`${a}-${me}-${d}`, null];\n  }\n}\n\n// Pestañas leídas con una sola llamada de SOLO LECTURA a la API de Google Sheets (values:batchGet):\n// cada pestaña llega como una matriz; la fila 1 son las cabeceras.\nconst pestanas = {};\nfor (const vr of ($('Google Sheets: leer pestañas').first().json.valueRanges || [])) {\n  const nombre = String(vr.range || '').split('!')[0].replace(/^'|'$/g, '');\n  const [cab = [], ...resto] = vr.values || [];\n  pestanas[nombre] = resto.map(fila => Object.fromEntries(cab.map((c, k) => [String(c).trim(), fila[k] === undefined ? '' : fila[k]])));\n}\n\nconst salida = [], resumen = [], fatales = [], ids = {};\nfor (const [tabla, def] of Object.entries(T)) {\n  let filas = pestanas[tabla];\n  if (!filas) { fatales.push(`${tabla}: no está la pestaña en la hoja`); continue; }\n  filas = filas.filter(f => Object.values(f).some(v => !vacio(v)));\n  if (!filas.length) { fatales.push(`${tabla}: la pestaña está vacía`); continue; }\n  const faltan = Object.keys(def.c).filter(c => !(c in filas[0]));\n  if (faltan.length) { fatales.push(`${tabla}: faltan las columnas ${faltan.join(', ')}`); continue; }\n  const buenas = [], rechazadas = [], vistos = new Set();\n  filas.forEach((f, k) => {\n    const fila = {}, errores = [];\n    for (const [col, tipo] of Object.entries(def.c)) {\n      const [v, err] = convertir(f[col], tipo);\n      if (err) errores.push(`${col}: ${err}`); fila[col] = v;\n    }\n    for (const col of [def.pk, ...(def.obligatorias || [])]) if (fila[col] === null && !errores.some(e => e.startsWith(col))) errores.push(`${col}: vacío`);\n    if (fila[def.pk] !== null && vistos.has(fila[def.pk])) errores.push(`${def.pk} ${fila[def.pk]} repetido`);\n    if (fila.email && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(fila.email)) errores.push(`email: \"${fila.email}\" no es un correo válido`);\n    for (const [col, ref] of Object.entries(def.fk || {}))\n      if (fila[col] !== null && ids[ref] && !ids[ref].has(fila[col])) errores.push(`${col} ${fila[col]} no existe en ${ref}`);\n    if (errores.length) rechazadas.push({ fila: k + 2, id: fila[def.pk], motivo: errores.join('; ') });\n    else { vistos.add(fila[def.pk]); buenas.push(fila); }\n  });\n  ids[tabla] = vistos;\n  const tasa = rechazadas.length / filas.length;\n  if (tasa > MAX_RECHAZO) fatales.push(`${tabla}: ${rechazadas.length} de ${filas.length} filas con errores (${(tasa * 100).toFixed(1)} %)`);\n  resumen.push({ tabla, leidas: filas.length, validas: buenas.length, rechazadas: rechazadas.length, ejemplos_rechazo: rechazadas.slice(0, 20) });\n  for (let i = 0; i < buenas.length; i += LOTE)\n    salida.push({ json: { tabla, pk: def.pk, lote: i / LOTE + 1, filas: buenas.slice(i, i + LOTE) } });\n}\nif (fatales.length) return [{ json: { abortar: true, fatales, resumen } }];\nreturn salida.map((s, k) => ({ json: { ...s.json, abortar: false, ...(k === 0 ? { resumen } : {}) } }));\n"
+        "jsCode": "// Carga semanal: valida las pestañas de la hoja de datos y las prepara para Supabase, en orden de dependencias.\n// Cada pestaña es la tabla COMPLETA (fila 1 = cabeceras con los mismos nombres de columna). Las filas se actualizan por su\n// identificador: corregir una fila en la hoja la corrige en Supabase. Las filas no válidas no se cargan y se informan.\n// Si falta una pestaña o una columna, o una tabla tiene demasiados errores, NO se carga nada.\nconst MAX_RECHAZO = 0.05;            // más de un 5 % de filas rechazadas en una tabla → no se carga nada\nconst LOTE = 1000;\nconst T = {   // tipos: t texto · d fecha · i entero · n número · b sí/no\n  dim_comercial:      { pk: 'id_comercial', c: { id_comercial: 't', nombre: 't', correo: 't' } },\n  dim_productos:      { pk: 'id_producto', c: { id_producto: 't', nombre: 't', familia: 't', unidad_venta: 't', tarifa_base_eur: 'n', margen: 'n',\n                         capacidad_mensual: 'i', meses_disponible: 't', es_producto_entrada: 'b', es_producto_compromiso: 'b', capacidad_anual_eur: 'n' } },\n  dim_clientes:       { pk: 'id_cliente', c: { id_cliente: 't', razon_social: 't', categoria: 't', provincia: 't', tamano: 't', fecha_alta: 'd',\n                         antiguedad_meses: 'i', canal_captacion: 't', comercial_asignado: 't', cp_sede: 'i', tiene_web_propia: 'b', anio_fundacion: 'i' },\n                        fk: { comercial_asignado: 'dim_comercial' } },\n  fact_campanas:      { pk: 'id_orden', c: { id_orden: 't', id_cliente: 't', id_producto: 't', familia: 't', fecha_orden: 'd', fecha_emision: 'd',\n                         mes_emision: 't', tarifa_base_eur: 'n', descuento_pct: 'n', importe_eur: 'n', impresiones: 'i', clics: 'i',\n                         leads_entregados: 'i', comercial: 't', id_campana: 't' },\n                        fk: { id_cliente: 'dim_clientes', id_producto: 'dim_productos' }, obligatorias: ['id_cliente', 'fecha_emision', 'importe_eur'] },\n  fact_facturacion:   { pk: 'id_factura', c: { id_factura: 't', id_cliente: 't', id_orden: 't', importe_eur: 'n', fecha_emision: 'd',\n                         condiciones_pago_dias: 'i', fecha_vencimiento: 'd', fecha_cobro: 'd', dias_retraso: 'n', estado: 't' },\n                        fk: { id_cliente: 'dim_clientes', id_orden: 'fact_campanas' }, obligatorias: ['id_cliente', 'fecha_emision', 'importe_eur'] },\n  fact_interacciones: { pk: 'id_interaccion', c: { id_interaccion: 't', id_cliente: 't', fecha: 'd', tipo: 't', canal: 't', resultado: 't',\n                         comercial: 't', previa_al_alta: 't' }, fk: { id_cliente: 'dim_clientes' }, obligatorias: ['id_cliente', 'fecha'] },\n  oportunidades:      { pk: 'id_oportunidad', c: { id_oportunidad: 't', id_cliente: 't', id_lead: 't', origen: 't', id_producto_propuesto: 't',\n                         importe_propuesto_eur: 'n', fecha_envio: 'd', fecha_cierre: 'd', desenlace: 't', id_orden: 't',\n                         n_toques_seguimiento: 'i', dias_hasta_cierre: 'i', comercial: 't', correccion: 't' } },\n  contactos:          { pk: 'id_contacto', c: { id_contacto: 't', id_cliente: 't', nombre: 't', cargo: 't', email: 't', telefono: 't',\n                         principal: 'b', ficticio: 'b' }, fk: { id_cliente: 'dim_clientes' }, obligatorias: ['id_cliente', 'nombre'] },\n};\n\nconst vacio = v => v === null || v === undefined || String(v).trim() === '';\nfunction convertir(v, tipo) {\n  if (vacio(v)) return [null, null];\n  const s = String(v).trim();\n  if (tipo === 't') return [s, null];\n  if (tipo === 'b') {\n    const m = { true: true, verdadero: true, 'sí': true, si: true, '1': true, false: false, falso: false, no: false, '0': false };\n    return s.toLowerCase() in m ? [m[s.toLowerCase()], null] : [null, `\"${s}\" no es sí/no`];\n  }\n  if (tipo === 'n' || tipo === 'i') {\n    let t = s.replace(/\\s/g, '').replace(/€/g, '');\n    if (t.includes(',') && t.includes('.')) t = t.replace(/\\./g, '').replace(',', '.');   // 1.234,56\n    else if (t.includes(',')) t = t.replace(',', '.');                                        // 0,15\n    const x = typeof v === 'number' ? v : Number(t);\n    if (!Number.isFinite(x)) return [null, `\"${s}\" no es un número`];\n    if (tipo === 'i' && !Number.isInteger(x)) return [null, `\"${s}\" no es un número entero`];\n    return [x, null];\n  }\n  if (tipo === 'd') {\n    let m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/), a, me, d;\n    if (m) [a, me, d] = [m[1], m[2], m[3]];\n    else if ((m = s.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/))) [a, me, d] = [m[3], m[2].padStart(2, '0'), m[1].padStart(2, '0')];\n    else return [null, `\"${s}\" no es una fecha (AAAA-MM-DD o DD/MM/AAAA)`];\n    const f = new Date(`${a}-${me}-${d}T00:00:00Z`);\n    if (isNaN(f) || f.toISOString().slice(0, 10) !== `${a}-${me}-${d}`) return [null, `\"${s}\" no es una fecha válida`];\n    return [`${a}-${me}-${d}`, null];\n  }\n}\n\n// Pestañas leídas con una sola llamada de SOLO LECTURA a la API de Google Sheets (values:batchGet):\n// cada pestaña llega como una matriz; la fila 1 son las cabeceras.\nconst pestanas = {};\nfor (const vr of ($('Google Sheets: leer pestañas').first().json.valueRanges || [])) {\n  const nombre = String(vr.range || '').split('!')[0].replace(/^'|'$/g, '');\n  const [cab = [], ...resto] = vr.values || [];\n  pestanas[nombre] = resto.map(fila => Object.fromEntries(cab.map((c, k) => [String(c).trim(), fila[k] === undefined ? '' : fila[k]])));\n}\n\nconst salida = [], resumen = [], fatales = [], ids = {};\n// Identificadores que están en la hoja (también los de filas rechazadas: siguen existiendo). Tras una carga sin errores,\n// los clientes y contactos de Supabase que no estén aquí se marcan como ausentes (marcar_presencia_carga).\nconst presentes = { dim_clientes: [], contactos: [] };\nfor (const [tabla, def] of Object.entries(T)) {\n  let filas = pestanas[tabla];\n  if (!filas) { fatales.push(`${tabla}: no está la pestaña en la hoja`); continue; }\n  filas = filas.filter(f => Object.values(f).some(v => !vacio(v)));\n  if (!filas.length) { fatales.push(`${tabla}: la pestaña está vacía`); continue; }\n  const faltan = Object.keys(def.c).filter(c => !(c in filas[0]));\n  if (faltan.length) { fatales.push(`${tabla}: faltan las columnas ${faltan.join(', ')}`); continue; }\n  const buenas = [], rechazadas = [], vistos = new Set();\n  filas.forEach((f, k) => {\n    const fila = {}, errores = [];\n    for (const [col, tipo] of Object.entries(def.c)) {\n      const [v, err] = convertir(f[col], tipo);\n      if (err) errores.push(`${col}: ${err}`); fila[col] = v;\n    }\n    for (const col of [def.pk, ...(def.obligatorias || [])]) if (fila[col] === null && !errores.some(e => e.startsWith(col))) errores.push(`${col}: vacío`);\n    if (fila[def.pk] !== null && vistos.has(fila[def.pk])) errores.push(`${def.pk} ${fila[def.pk]} repetido`);\n    if (fila.email && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(fila.email)) errores.push(`email: \"${fila.email}\" no es un correo válido`);\n    for (const [col, ref] of Object.entries(def.fk || {}))\n      if (fila[col] !== null && ids[ref] && !ids[ref].has(fila[col])) errores.push(`${col} ${fila[col]} no existe en ${ref}`);\n    if (presentes[tabla] && fila[def.pk] !== null) presentes[tabla].push(fila[def.pk]);\n    if (errores.length) rechazadas.push({ fila: k + 2, id: fila[def.pk], motivo: errores.join('; ') });\n    else { vistos.add(fila[def.pk]); buenas.push(fila); }\n  });\n  ids[tabla] = vistos;\n  const tasa = rechazadas.length / filas.length;\n  if (tasa > MAX_RECHAZO) fatales.push(`${tabla}: ${rechazadas.length} de ${filas.length} filas con errores (${(tasa * 100).toFixed(1)} %)`);\n  resumen.push({ tabla, leidas: filas.length, validas: buenas.length, rechazadas: rechazadas.length, ejemplos_rechazo: rechazadas.slice(0, 20) });\n  for (let i = 0; i < buenas.length; i += LOTE)\n    salida.push({ json: { tabla, pk: def.pk, lote: i / LOTE + 1, filas: buenas.slice(i, i + LOTE) } });\n}\nif (fatales.length) return [{ json: { abortar: true, fatales, resumen } }];\nreturn salida.map((s, k) => ({ json: { ...s.json, abortar: false, ...(k === 0 ? { resumen, presentes } : {}) } }));\n"
       }
     },
     {
@@ -252,6 +252,72 @@
           "id": "gmail",
           "name": "Gmail account"
         }
+      }
+    },
+    {
+      "id": "8e05dd4b-384a-5813-99a2-6a47e977a266",
+      "name": "Presencia: solo si la carga fue completa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -250
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Filas borradas de la hoja: solo si la carga terminó sin errores de Supabase, se envían a marcar_presencia_carga() los\n// identificadores de clientes y contactos que hay en la hoja. Con errores no se marca nada (la hoja pudo cargarse a medias).\nconst r = $input.first().json;\nif (!r.registro || r.registro.estado === 'carga_con_errores') return [];\nconst p = $('Preparar tablas').first().json.presentes || {};\nreturn [{ json: { p_clientes: [...new Set(p.dim_clientes || [])], p_contactos: [...new Set(p.contactos || [])] } }];\n"
+      }
+    },
+    {
+      "id": "be629fee-c788-582b-91c5-97dc70234b2f",
+      "name": "Supabase: marcar filas borradas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        -250
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.supabase_url }}/rest/v1/rpc/marcar_presencia_carga",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "d68581da-5a9d-526c-8ce4-bc268ae0b515",
+      "name": "Presencia: aviso",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        -250
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Resultado de marcar_presencia_carga(): aviso al responsable de datos si hay ausentes nuevos, propuestas cerradas, si la\n// salvaguarda del 20 % detuvo el marcado o si Supabase no respondió. Si no ha cambiado nada, no hay aviso.\nconst r = $input.first().json || {};\nconst b = r.body || {};\nconst ok = r.statusCode >= 200 && r.statusCode < 300;\nconst asunto = 'Meridiano · carga semanal: clientes o contactos que ya no están en la hoja';\nif (!ok) return [{ json: { avisar: true, asunto: 'Meridiano · carga semanal: no se han podido marcar las filas borradas',\n  texto: `Supabase no ha respondido al marcar los clientes y contactos borrados de la hoja (${(b && b.message) || r.error?.message || 'sin respuesta'}). ` +\n    'Los datos se han cargado, pero lo borrado en la hoja puede seguir recibiendo propuestas hasta la próxima carga.' } }];\nif (b.ok === false) return [{ json: { avisar: true, asunto: 'Meridiano · carga semanal: filas borradas SIN marcar (revisar la hoja)',\n  texto: `${b.motivo}.\\n\\nEn la hoja faltan ${b.clientes_ausentes} clientes y ${b.contactos_ausentes} contactos que sí están en Supabase. ` +\n    'Si se han borrado a propósito, vuelva a lanzar la carga; si no, recupere la hoja antes de la próxima.' } }];\nconst nuevos = (b.clientes_nuevos_ausentes || 0) + (b.contactos_nuevos_ausentes || 0);\nif (!nuevos && !b.propuestas_cerradas && !b.clientes_que_vuelven && !b.contactos_que_vuelven) return [];\nreturn [{ json: { avisar: true, asunto, texto:\n  `Resultado de comparar la hoja con Supabase:\\n\\n` +\n  `- Clientes que ya no están en la hoja: ${b.clientes_ausentes} (${b.clientes_nuevos_ausentes} nuevos esta semana)\\n` +\n  `- Contactos que ya no están en la hoja: ${b.contactos_ausentes} (${b.contactos_nuevos_ausentes} nuevos esta semana)\\n` +\n  `- Vuelven a estar en la hoja: ${b.clientes_que_vuelven} clientes y ${b.contactos_que_vuelven} contactos\\n` +\n  `- Propuestas cerradas por este motivo: ${b.propuestas_cerradas}\\n\\n` +\n  'A un cliente o contacto ausente no se le puede aprobar ni enviar nada, ni se le preparan propuestas nuevas. ' +\n  'Si se borró por error, vuelva a añadirlo en la hoja: la próxima carga lo reactiva. Si fue una petición de supresión ' +\n  'de la persona, dé además de baja su correo en el panel para que nunca vuelva a recibir comunicaciones.' } }];\n"
       }
     },
     {
@@ -450,11 +516,49 @@
             "node": "Solo avisos",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Presencia: solo si la carga fue completa",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
     },
     "Solo avisos": {
+      "main": [
+        [
+          {
+            "node": "Aviso al responsable de datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Presencia: solo si la carga fue completa": {
+      "main": [
+        [
+          {
+            "node": "Supabase: marcar filas borradas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: marcar filas borradas": {
+      "main": [
+        [
+          {
+            "node": "Presencia: aviso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Presencia: aviso": {
       "main": [
         [
           {

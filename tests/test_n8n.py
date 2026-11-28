@@ -466,3 +466,57 @@ def test_w4_puerta_de_datos():
             assert r["para"] == "d@m.com,x@m.com" and r["registro"]["estado"] == "detenido_por_datos" and casos[caso]["body"]["motivo"] in r["texto"]
     finally:
         for r in rutas.values(): os.remove(os.path.join(RAIZ, "n8n", "codigo", r))
+
+
+def _hoja_valida():
+    """Una fila válida por pestaña, con un cliente C2 y un contacto CT2 rechazados (siguen estando en la hoja)."""
+    return _hoja({
+        "dim_comercial": [["id_comercial", "nombre", "correo"], ["COM-01", "M", "m@x.es"]],
+        "dim_productos": [["id_producto", "nombre", "familia", "unidad_venta", "tarifa_base_eur", "margen", "capacidad_mensual",
+                           "meses_disponible", "es_producto_entrada", "es_producto_compromiso", "capacidad_anual_eur"],
+                          ["P1", "Banner", "Digital", "mes", 100, 0.5, 10, "1-12", "sí", "no", 1000]],
+        "dim_clientes": [["id_cliente", "razon_social", "categoria", "provincia", "tamano", "fecha_alta", "antiguedad_meses",
+                          "canal_captacion", "comercial_asignado", "cp_sede", "tiene_web_propia", "anio_fundacion"],
+                         ["C1", "Sol", "Salud", "Madrid", "Pequeño", "2024-01-01", 30, "web", "COM-01", 28001, "sí", 2000]]
+                        + [[f"C{i}", "X", "Salud", "Madrid", "Pequeño", "2024-01-01", 30, "web", "COM-01", 28001, "sí", 2000] for i in range(3, 40)]
+                        + [["C2", "Mal", "Salud", "Madrid", "Pequeño", "fecha mala", 30, "web", "COM-01", 28001, "sí", 2000]],
+        "fact_campanas": [["id_orden", "id_cliente", "id_producto", "familia", "fecha_orden", "fecha_emision", "mes_emision",
+                           "tarifa_base_eur", "descuento_pct", "importe_eur", "impresiones", "clics", "leads_entregados", "comercial", "id_campana"],
+                          ["O1", "C1", "P1", "Digital", "2026-01-01", "2026-02-01", "2026-02", 100, 0, 100, 1000, 10, 0, "COM-01", "K1"]],
+        "fact_facturacion": [["id_factura", "id_cliente", "id_orden", "importe_eur", "fecha_emision", "condiciones_pago_dias",
+                              "fecha_vencimiento", "fecha_cobro", "dias_retraso", "estado"],
+                             ["F1", "C1", "O1", 100, "2026-02-05", 30, "2026-03-07", "2026-03-10", 3, "Cobrada"]],
+        "fact_interacciones": [["id_interaccion", "id_cliente", "fecha", "tipo", "canal", "resultado", "comercial", "previa_al_alta"],
+                               ["I1", "C1", "2026-02-01", "Llamada", "Teléfono", "Contactado", "COM-01", "No"]],
+        "oportunidades": [["id_oportunidad", "id_cliente", "id_lead", "origen", "id_producto_propuesto", "importe_propuesto_eur",
+                           "fecha_envio", "fecha_cierre", "desenlace", "id_orden", "n_toques_seguimiento", "dias_hasta_cierre", "comercial", "correccion"],
+                          ["OP1", "C1", "", "Ampliacion de cartera", "P1", 100, "2026-01-01", "2026-01-20", "Ganada", "O1", 1, 19, "COM-01", "—"]],
+        "contactos": [["id_contacto", "id_cliente", "nombre", "cargo", "email", "telefono", "principal", "ficticio"]]
+                     + [[f"CT{i}", "C1", "Ana", "Marketing", f"a{i}@sol.example", "600", "sí", "sí"] for i in [1] + list(range(3, 40))]
+                     + [["CT2", "C1", "Luis", "Marketing", "correo-malo", "600", "no", "sí"]],
+    })
+
+
+def test_w0_envia_a_marcar_los_presentes_incluidas_las_filas_rechazadas():
+    r = correr("w0_preparar_tablas.js", {"nodos": {"Google Sheets: leer pestañas": _hoja_valida()}})
+    assert r[0]["abortar"] is False
+    pres = r[0]["presentes"]
+    assert "C2" in pres["dim_clientes"] and "C1" in pres["dim_clientes"] and len(pres["dim_clientes"]) == 39
+    assert "CT2" in pres["contactos"] and len(pres["contactos"]) == 39
+    ok = correr("w0_presencia.js", {"input": [{"registro": {"estado": "carga_con_avisos"}}], "nodos": {"Preparar tablas": r}})
+    assert sorted(ok[0]["p_clientes"]) == sorted(pres["dim_clientes"]) and len(ok[0]["p_contactos"]) == 39
+    # Con errores de Supabase la carga pudo quedar a medias: no se marca nada
+    assert correr("w0_presencia.js", {"input": [{"registro": {"estado": "carga_con_errores"}}], "nodos": {"Preparar tablas": r}}) == []
+
+
+def test_w0_aviso_de_filas_borradas():
+    base = dict(ok=True, clientes_ausentes=2, contactos_ausentes=1, clientes_nuevos_ausentes=1, contactos_nuevos_ausentes=0,
+                clientes_que_vuelven=0, contactos_que_vuelven=0, propuestas_cerradas=1)
+    a = correr("w0_presencia_aviso.js", {"input": [{"statusCode": 200, "body": base}]})[0]
+    assert a["avisar"] and "Propuestas cerradas por este motivo: 1" in a["texto"] and "1 nuevos esta semana" in a["texto"]
+    sin_cambios = {**base, "clientes_nuevos_ausentes": 0, "propuestas_cerradas": 0}
+    assert correr("w0_presencia_aviso.js", {"input": [{"statusCode": 200, "body": sin_cambios}]}) == []
+    tope = correr("w0_presencia_aviso.js", {"input": [{"statusCode": 200, "body": {**base, "ok": False, "motivo": "Faltan en la hoja más del 20 %"}}]})[0]
+    assert "SIN marcar" in tope["asunto"] and "Faltan en la hoja más del 20 %" in tope["texto"]
+    caido = correr("w0_presencia_aviso.js", {"input": [{"statusCode": 503, "body": {"message": "timeout"}}]})[0]
+    assert "no se han podido marcar" in caido["asunto"] and "timeout" in caido["texto"]

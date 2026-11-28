@@ -66,6 +66,9 @@ for (const vr of ($('Google Sheets: leer pestañas').first().json.valueRanges ||
 }
 
 const salida = [], resumen = [], fatales = [], ids = {};
+// Identificadores que están en la hoja (también los de filas rechazadas: siguen existiendo). Tras una carga sin errores,
+// los clientes y contactos de Supabase que no estén aquí se marcan como ausentes (marcar_presencia_carga).
+const presentes = { dim_clientes: [], contactos: [] };
 for (const [tabla, def] of Object.entries(T)) {
   let filas = pestanas[tabla];
   if (!filas) { fatales.push(`${tabla}: no está la pestaña en la hoja`); continue; }
@@ -85,6 +88,7 @@ for (const [tabla, def] of Object.entries(T)) {
     if (fila.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fila.email)) errores.push(`email: "${fila.email}" no es un correo válido`);
     for (const [col, ref] of Object.entries(def.fk || {}))
       if (fila[col] !== null && ids[ref] && !ids[ref].has(fila[col])) errores.push(`${col} ${fila[col]} no existe en ${ref}`);
+    if (presentes[tabla] && fila[def.pk] !== null) presentes[tabla].push(fila[def.pk]);
     if (errores.length) rechazadas.push({ fila: k + 2, id: fila[def.pk], motivo: errores.join('; ') });
     else { vistos.add(fila[def.pk]); buenas.push(fila); }
   });
@@ -96,4 +100,4 @@ for (const [tabla, def] of Object.entries(T)) {
     salida.push({ json: { tabla, pk: def.pk, lote: i / LOTE + 1, filas: buenas.slice(i, i + LOTE) } });
 }
 if (fatales.length) return [{ json: { abortar: true, fatales, resumen } }];
-return salida.map((s, k) => ({ json: { ...s.json, abortar: false, ...(k === 0 ? { resumen } : {}) } }));
+return salida.map((s, k) => ({ json: { ...s.json, abortar: false, ...(k === 0 ? { resumen, presentes } : {}) } }));

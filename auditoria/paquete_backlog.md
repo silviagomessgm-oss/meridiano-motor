@@ -20,7 +20,7 @@ incorpora el modelo de abandono nuevo (`modelo_churn/`, marcadas «M»; sección
 
 | ID | Historia | Criterios de aceptación | Nodo | Prioridad | Estado |
 |---|---|---|---|---|---|
-| E1-H1 | Como responsable de datos quiero que la carga semanal sea automática | Lee las 8 pestañas en una llamada; se detiene si falta una pestaña o columna o una tabla supera el 5 % de errores; registra el resultado en `ejecuciones`; avisa de las filas rechazadas | N1 | Alta | Desplegada (W0) |
+| E1-H1 | Como responsable de datos quiero que la carga semanal sea automática | Lee las 8 pestañas en una llamada; se detiene si falta una pestaña o columna o una tabla supera el 5 % de errores; registra el resultado en `ejecuciones`; avisa de las filas rechazadas; los clientes y contactos borrados de la hoja quedan ausentes y no reciben propuestas ni correos (salvaguarda del 20 %) | N1 | Alta | Desplegada (W0, `ausencias.sql`) |
 | E1-H2 | Como comercial quiero recibir cada martes hasta 4 cuentas de más riesgo que compense trabajar (A1) | Hasta 4 por comercial, todas con valor neto positivo (también sin modelo); plazas sin cubrir informadas; sin repetir cuenta en 90 días; cada una con motivo, tipo de riesgo y facturación en riesgo | N2 | Alta | Desplegada (W1 + motor) |
 | E1-H3 | Como dirección quiero un grupo de control en las cuentas en riesgo | Sorteo estable por trimestre, 20 % de la banda media, nunca cuentas clave; las cuentas de control no reciben propuesta y se miden igual | N2 | Alta | Desplegada |
 | E1-H6 | Como dirección no quiero propuestas calculadas con datos viejos o rotos (A1) | W1 y W4 consultan `ultima_carga()`; si la última carga no terminó bien o tiene más de 8 días, no generan nada, avisan a dirección y datos y lo registran | N2, N3 | Alta | Desplegada |
@@ -66,8 +66,7 @@ Historias de trabajo futuro (no construidas; declaradas en el diseño): caducida
 laborables; KPI semanal de textos de IA aceptados; probabilidad y variables guardadas en cada propuesta (el modelo ya se guarda);
 modelo de qué cuentas se pueden salvar (con la tabla de aprendizaje de `resultado_acciones`); registrar propuestas abiertas
 en los datos;
-reparto y tope semanal de leads con detección de leads que ya son clientes; marcar filas borradas de la hoja como «no
-presentes» (W0).
+reparto y tope semanal de leads con detección de leads que ya son clientes.
 
 ## 3. Solución desplegada
 
@@ -207,7 +206,7 @@ E2-H4 aviso visual de los avisos del validador en el panel; versión del modelo,
 | Recuento de tests (media, parte de H8) | Un único recuento: 91 tests del sistema (base de datos y n8n), 33 de evaluación y 21 del motor de propuestas | Hecho |
 | Dependencias y prioridades (baja) | Dependencias técnicas separadas del orden de construcción; E3-H5 y E3-H6 pasan a Alta | Hecho |
 | Política de conservación y regla del piloto (baja) | En el repositorio: `auditoria/politica_correo.md` (plazos) y `config/piloto.json` del repositorio de evaluación (regla de decisión registrada el 8-nov-2026, antes del primer sorteo) | Enlazado |
-| Caducidad de pendientes · latido externo a n8n · resolver en el panel un envío sin confirmar · exportar todos los flujos y retirar el legado · filas ausentes de la hoja · coste mensual y rotación de credenciales | Trabajo futuro declarado. Mitigaciones actuales: dirección libera los envíos sin confirmar con `liberar_envio()`; W9 avisa de cualquier fallo mientras n8n está encendido; el legado no lo usa ningún flujo | Declarado |
+| Caducidad de pendientes · latido externo a n8n · resolver en el panel un envío sin confirmar · exportar todos los flujos y retirar el legado · filas ausentes de la hoja (resuelto después: `ausencias.sql`) · coste mensual y rotación de credenciales | Trabajo futuro declarado. Mitigaciones actuales: dirección libera los envíos sin confirmar con `liberar_envio()`; W9 avisa de cualquier fallo mientras n8n está encendido; el legado no lo usa ningún flujo | Declarado |
 
 Tests añadidos a la tabla criterio → test:
 | Criterio | Test |

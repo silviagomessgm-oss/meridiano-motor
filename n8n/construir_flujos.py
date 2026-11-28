@@ -142,6 +142,10 @@ w0_nodos += [
          cuerpo="={{ JSON.stringify($json.registro) }}"),
     code("Solo avisos", [X + 720, 100], "w0_solo_avisos.js"),
     correo("Aviso al responsable de datos", [X + 900, 100], "={{ " + CFG + ".correo_datos }}", "={{ $json.asunto }}", "={{ $json.texto }}"),
+    code("Presencia: solo si la carga fue completa", [X + 720, -250], "w0_presencia.js"),
+    http("Supabase: marcar filas borradas", [X + 900, -250], "POST", SB + "/rpc/marcar_presencia_carga", "sb",
+         cuerpo="={{ JSON.stringify($json) }}", opciones={"timeout": 120000}, completa=True),
+    code("Presencia: aviso", [X + 1080, -250], "w0_presencia_aviso.js"),
     code("Solo carga detenida", [X + 180, 250], "w0_solo_abortada.js"),
     code("Lectura fallida", [X, 400], "w0_lectura_fallida.js"),
     http("Supabase: registrar carga detenida", [X + 360, 250], "POST", SB + "/ejecuciones", "sb", cabeceras={"Prefer": "return=minimal"},
@@ -154,6 +158,9 @@ w0_con += [("Google Sheets: leer pestañas", "Preparar tablas"), ("Preparar tabl
            ("Solo cargables", "Supabase: cargar lote"), ("Supabase: cargar lote", "Resumen de la carga"),
            ("Resumen de la carga", "Supabase: registrar carga"), ("Resumen de la carga", "Solo avisos"),
            ("Solo avisos", "Aviso al responsable de datos"),
+           ("Resumen de la carga", "Presencia: solo si la carga fue completa"),
+           ("Presencia: solo si la carga fue completa", "Supabase: marcar filas borradas"),
+           ("Supabase: marcar filas borradas", "Presencia: aviso"), ("Presencia: aviso", "Aviso al responsable de datos"),
            ("Solo carga detenida", "Supabase: registrar carga detenida"), ("Solo carga detenida", "Aviso: carga detenida"),
            ("Lectura fallida", "Supabase: registrar carga detenida"), ("Lectura fallida", "Aviso: carga detenida")]
 w0 = flujo("Meridiano · W0 Carga semanal de datos (Google Sheets → Supabase)", w0_nodos, w0_con)

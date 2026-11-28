@@ -92,8 +92,18 @@ permisos por fila y trazabilidad), panel y formulario web en Lovable, Google She
 - Dentro: lectura en una sola llamada; validación de columnas, tipos, claves primarias repetidas, claves ajenas y formato de correo;
   carga por identificador en lotes de 1.000; aviso al responsable de datos con las filas rechazadas.
 - Fuera: corregir datos; cargar parcialmente una tabla con errores graves.
+- Filas borradas de la hoja: tras una carga sin errores de Supabase, W0 envía a `marcar_presencia_carga()` los
+  identificadores de clientes y contactos que hay en la hoja (también los de filas rechazadas, que siguen existiendo). Los
+  que faltan quedan ausentes (`presente_en_ultima_carga = false`, con fecha) y vuelven a estar activos si reaparecen. Sus
+  propuestas pendientes, con error o aprobadas sin enviar se cierran como rechazadas con el motivo «No está en la última
+  carga de datos» y el evento «descartada_por_carga». La base de datos impide aprobar, reservar o enviar a un ausente y
+  descarta (con registro en `ejecuciones`) las propuestas nuevas de W4 o del motor para él. Salvaguarda: si faltan más del
+  20 % de los clientes o de los contactos, o la lista llega vacía, no se marca nada y se avisa. Solo cuentan los contactos
+  de clientes; los de leads se dan de alta en el panel. Si el borrado es una petición de supresión, además se da de baja
+  el correo (lista de exclusión).
 - Criterios: si falta una pestaña o una columna, o una tabla supera el 5 % de filas rechazadas, no se carga nada; cada
-  ejecución deja su resultado en `ejecuciones`.
+  ejecución deja su resultado en `ejecuciones`; un cliente o contacto borrado de la hoja no recibe ninguna propuesta ni
+  correo desde la carga siguiente.
 
 ### N2 · Calcular el riesgo y elegir hasta 12 cuentas (W1 + motor, modelo predictivo)
 - Puerta de datos (H7): antes de lanzar el motor, W1 consulta `ultima_carga()`. Si la última carga de N1 no terminó en
@@ -244,8 +254,8 @@ Tres pasos con criterio propio (H12): N9a balance (SQL), N9b comentario (IA + va
 - Los mismos comerciales trabajan los dos grupos del piloto (posible contaminación).
 - El tratamiento del consentimiento de puerta fría y los plazos de conservación deben validarlos una asesoría legal
   (LSSI y RGPD).
-- Filas borradas en la hoja (H11, pendiente): W0 carga por identificador y no marca las filas que desaparecen de la hoja.
-  Riesgo aceptado para la demo; corrección prevista: marcar «no presente en la última carga» y excluirlas del motor.
+- Filas borradas de la hoja: corregido (diseno-v5, sección 9). El motor no rellena la plaza de una propuesta descartada
+  por ausencia: ese comercial recibe una cuenta menos esa semana.
 - Un envío cuya reserva no se confirma se resuelve a mano: confirmar si salió o liberar si no (preferimos no duplicar a
   reenviar solos).
 
@@ -305,5 +315,6 @@ puntuación, contrato de salida, reproducibilidad, exclusión de intervenidas, r
 |---|---|---|
 | H1 (alta) · envío que sí salió pero no consta | `confirmar_envio_manual(id, id_mensaje, fecha_real)`: solo dirección, exige el identificador del mensaje y una fecha entre la reserva y ahora; pasa a «En seguimiento» con la fecha real (arrancan los toques), evento trazado; después ya no se puede liberar ni reservar. Avisos de W5 y del resumen de W6 con las dos salidas | Implantado · `supabase/auditoria3.sql` · `test_confirmar_envio_manual_solo_direccion_y_arranca_el_seguimiento`, `test_confirmado_ya_no_se_libera_ni_se_reenvia` |
 | H2 (alta) · la baja desaparece con el contacto | Lista de exclusión por correo normalizado, indefinida, fuera de `conservacion_vencida` y protegida por trigger frente a modificación y borrado (salvo demo y reactivación expresa con consentimiento nuevo); base documentada en `politica_correo.md` | Implantado · `test_baja_sobrevive_al_borrado_del_contacto_y_bloquea_si_reaparece`, `test_exclusiones_no_se_modifican_ni_borran_salvo_las_de_la_demo` |
-| H3–H12 (medias y bajas) | Se deciden uno a uno con la alumna después de esta corrección | Pendiente de decisión |
+| Filas borradas de la hoja (alta en la auditoría de la v5; antes H11, riesgo aceptado) | W0 marca ausentes con `marcar_presencia_carga()` (salvaguarda del 20 %), cierra sus propuestas abiertas, la base de datos bloquea aprobar, reservar, enviar y crear propuestas para un ausente; aviso al responsable de datos | Implantado · `supabase/ausencias.sql` · `tests/test_ausencias.py` (8) y `test_w0_envia_a_marcar_los_presentes_incluidas_las_filas_rechazadas`, `test_w0_aviso_de_filas_borradas` |
+| Medias y bajas de las auditorías de la v4 y la v5 | Se deciden una a una con la alumna | Pendiente de decisión |
 
