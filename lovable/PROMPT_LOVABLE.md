@@ -130,7 +130,7 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
 
 2. **Mi panel** (pantalla principal).
    - **Datos:** lee `plan_vigente`.
-   - **Cabecera:** «Semana del dd/mm/aaaa» (la `fecha_corte` más reciente) y cuatro contadores (pendientes de aprobar, en seguimiento, cerradas esta semana y errores de envío).
+   - **Cabecera:** «Semana del dd/mm/aaaa» (la `fecha_corte` más reciente) y cinco contadores (pendientes de aprobar, en seguimiento, cerradas esta semana, ganadas —cerradas como «Ganada» o, en riesgo, «Recuperada»— y errores de envío).
    - **Filtros:** etiqueta, estado y, solo para dirección, comercial.
    - **Agrupación:**
      - **Pendientes de aprobar**: incluye también las de error de envío.
