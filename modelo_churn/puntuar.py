@@ -7,6 +7,11 @@ Genera <carpeta>/scores_modelo.csv con exactamente las columnas id_cliente, prob
 activo en la fecha (alguna campaña en los 12 meses anteriores), con la probabilidad de que abandone en los 210 días
 siguientes (etiqueta E2).
 
+Junto a él escribe <carpeta>/explicacion_modelo.csv (modelo_churn/explicar.py): para cada anunciante, las variables que
+más suben su riesgo, el motivo comercial que se deduce de ellas y los valores de las variables del modelo. El plan de
+propuestas lo usa para decidir el motivo, la acción y las pruebas que ve el comercial. No forma parte del contrato de
+scores_modelo.csv, que no cambia.
+
 Pasos:
   1. La fecha no puede ser posterior al último dato registrado.
   2. Solo se usan los datos tal como estaban en la fecha (nada posterior).
@@ -33,6 +38,7 @@ import pandas as pd  # noqa: E402
 
 from modelo_churn.datos import cargar_tablas, fin_de_datos, vista_en  # noqa: E402
 from modelo_churn.etiqueta import HORIZONTE_DIAS  # noqa: E402
+from modelo_churn.explicar import factores  # noqa: E402
 from modelo_churn.modelos import ajustar, elegir_hiperparametros  # noqa: E402
 from modelo_churn.panel import construir_panel  # noqa: E402
 from modelo_churn.variables import VARIABLES_MODELO, calcular_variables  # noqa: E402
@@ -41,6 +47,7 @@ MODELO = "c_logistica"            # decisión de la alumna en el punto de contro
 DESCRIPCION_MODELO = "E2 · regresión logística (modelo_churn)"   # se guarda con cada propuesta en Supabase
 COLUMNAS = ["id_cliente", "prob_abandono"]
 FICHERO = "scores_modelo.csv"
+FICHERO_EXPLICACION = "explicacion_modelo.csv"
 DECIMALES = 6
 DIAS_INTERVENCION_PREVIA = 90      # la misma ventana que usaba el sistema anterior
 
@@ -129,12 +136,13 @@ def main(argv=None):
     salida = Path(a.salida)
     salida.mkdir(parents=True, exist_ok=True)
     scores.to_csv(salida / FICHERO, index=False, float_format=f"%.{DECIMALES}f")
+    factores(info["_modelo"], info["_variables"]).to_csv(salida / FICHERO_EXPLICACION, index=False)
     for k, v in info.items():
         if not k.startswith("_"):
             print(f"{k}: {v}")
     if a.detalle:
         detalle(scores, info)
-    print(f"Escrito {salida / FICHERO}")
+    print(f"Escrito {salida / FICHERO} y {salida / FICHERO_EXPLICACION}")
 
 
 if __name__ == "__main__":

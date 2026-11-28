@@ -198,3 +198,50 @@ def test_huecos_cuando_no_hay_cuentas_suficientes():
     pl = pd.DataFrame({"comercial_asignado": ["COM-01"] * 4 + ["COM-02"], "estado_plan": ["propuesto"] * 4 + ["propuesto"]})
     h = P.huecos(pl, ["COM-01", "COM-02", "COM-03"], 4)
     assert h.plazas_sin_cubrir.to_dict() == {"COM-01": 0, "COM-02": 3, "COM-03": 4}
+
+
+# ---------------------------------------------------------------- motivo, acción y pruebas desde modelo_churn
+def _explicacion(ids, factor, motivo, secundario=None, **valores):
+    d = {"id_cliente": ids, "factor_1": factor, "contribucion_1": 1.0, "factor_2": None, "contribucion_2": np.nan,
+         "factor_3": None, "contribucion_3": np.nan, "motivo_modelo": motivo, "motivo_modelo_secundario": secundario,
+         "var_recencia_dias": 30.0, "var_tendencia": 0.0}
+    d.update(valores)
+    return pd.DataFrame(d)
+
+
+def test_motivo_y_pruebas_salen_del_modelo(salida):
+    _, g, x = salida
+    caso = _caso(g, cambio_interlocutor_12m=True, valor_cuenta=500000.0); caso["id_cliente"] = "MOD1"
+    gg, _ = P.riesgo(pd.concat([g, caso]), CFG, pd.DataFrame({"id_cliente": ["MOD1"], "prob_abandono": [0.9]}),
+                     _explicacion(["MOD1"], "dias_sin_contacto", "perdida_contacto", var_dias_sin_contacto=150.0))
+    r = gg.set_index("id_cliente").loc["MOD1"]
+    assert r.motivo_principal == "perdida_contacto" and r.fuente_motivo == "modelo"   # no los puntos de señales
+    assert "150 días sin contacto comercial con respuesta" in P.evidencias(r)
+    assert not any("%" in e for e in P.evidencias(r))         # la probabilidad no entra en los materiales
+    assert P.plan(gg, CFG, x["p"], x["f"], T).set_index("id_cliente").loc["MOD1"].accion_id == "llamada_reactivacion"
+
+
+def test_reclamacion_y_factura_vencida_mandan_sobre_el_modelo(salida):
+    _, g, _ = salida
+    a = _caso(g, reclamaciones_sin_resolver=1); a["id_cliente"] = "REC"
+    b = _caso(g, facturas_vencidas_impagadas=2); b["id_cliente"] = "VEN"
+    ex = _explicacion(["REC", "VEN"], "tendencia", "presupuesto_inversion", var_tendencia=-0.5)
+    gg, _ = P.riesgo(pd.concat([g, a, b]), CFG, pd.DataFrame({"id_cliente": ["REC", "VEN"], "prob_abandono": [0.9, 0.9]}), ex)
+    r = gg.set_index("id_cliente")
+    assert r.at["REC", "motivo_principal"] == "servicio_reclamacion" and r.at["REC", "fuente_motivo"] == "regla_negocio"
+    assert r.at["VEN", "motivo_principal"] == "cobro_financiero"
+    assert r.at["REC", "motivo_secundario"] == "presupuesto_inversion"
+    assert any("reclamación" in e for e in P.evidencias(r.loc["REC"]))
+
+
+def test_cuentas_sin_puntuar_siguen_con_el_respaldo(salida):
+    _, g, _ = salida
+    ex = _explicacion(list(g.id_cliente.iloc[:5]), "tendencia", "presupuesto_inversion")
+    gg, _ = P.riesgo(g, CFG, None, ex)            # sin puntuaciones: nada viene del modelo
+    assert (gg.fuente_motivo == "respaldo").all()
+
+
+def test_todos_los_motivos_del_modelo_tienen_accion_y_motivo_confirmable():
+    from modelo_churn.explicar import MOTIVO_DE_VARIABLE
+    for m in set(MOTIVO_DE_VARIABLE.values()) | {"desconocido"}:
+        assert m in P.ACCION and P.MOTIVO_CONFIRMABLE[m] in P.OPCIONES_MOTIVO
