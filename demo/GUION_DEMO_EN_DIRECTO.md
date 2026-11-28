@@ -1,91 +1,127 @@
-# Demostración en directo · Meridiano, retención de anunciantes
+# Demostración en directo · Meridiano, retención y venta a anunciantes (versión 28-nov-2026)
 
-Duración: 15–20 minutos. Todo es real salvo lo marcado como **[simulacro]**: los datos son ficticios (caso de estudio).
+Duración: 18–20 minutos. Todo es real salvo lo marcado como **[simulacro]**. Los datos son ficticios (caso de estudio) y,
+en modo demo, todos los correos llegan al buzón de pruebas.
 
-## Antes de la demostración (una vez)
+El orden sigue el recorrido de una semana comercial: **entran los datos → el modelo elige → la IA redacta → el comercial
+decide → se envía → se sigue y se cierra → dirección mide y corrige → todo queda trazado**.
 
-1. Supabase, SQL Editor: ejecutar `supabase/modelo_churn.sql` (si aún no se ha hecho) y después
-   `demo/salida/cargar_simulacro.sql` **[simulacro]**. El último `select` debe devolver tres grupos y una fila de efecto.
-2. Pull request fusionada en `main` (el motor de GitHub Actions usa `main`) y cambios de `lovable/CAMBIO_MODELO_ABANDONO.md`
-   aplicados en Lovable.
-3. n8n, flujo **W1**: en el nodo *Fecha de corte*, fijar `return [{ json: { fecha_corte: '2026-11-23' } }];` (los datos
-   llegan al 27-nov-2026; con una fecha fija la demo no depende del día real).
-4. Si ya se ensayó: `supabase/restaurar_demo.sql` para dejar las propuestas de la semana como recién publicadas.
-5. Abrir en pestañas: la hoja de Google, n8n (W0, W1 y W5), GitHub Actions del repositorio, el panel de Lovable con un
-   usuario **comercial** y otro de **dirección**, y el buzón demo de Gmail.
-6. Tener a mano `demo/salida/simulacro.xlsx` **[simulacro]**.
+## Antes de la demostración
 
-## 1. Los datos entran solos (W0) · 2 min
+**Una vez (si no está hecho):**
+1. Supabase, SQL Editor, en este orden: `resultado_riesgo.sql`, `importe_ganado.sql`, `panel_direccion.sql`,
+   `baja_cierra.sql` (cada uno devuelve sus `true`).
+2. Lovable: `CORRECCION_CIERRE_RIESGO.md`, `CAMBIO_CONTADOR_GANADAS.md`, `CAMBIO_PANEL_DIRECCION.md`,
+   `CAMBIO_IMPORTE_GANADO.md` y `CAMBIO_BAJA_CIERRA.md`.
+3. n8n, W1: fecha de corte fija `2026-11-23` y W1 publicado.
 
-- Enseñar la hoja de Google: 8 pestañas, datos de ene-2020 al 27-nov-2026.
-- En n8n, **W0 → Cargar ahora**. Termina en `carga_ok`: valida tipos, claves y referencias y carga en Supabase.
-- Opcional: añadir en la hoja una orden con un anunciante que no existe y volver a cargar. Esa fila se rechaza, llega un
-  correo con el motivo y el resto se carga.
+**Justo antes de grabar o presentar:**
+1. `supabase/limpiar_grabacion.sql` (la comprobación final devuelve seis ceros).
+2. `demo/salida/cargar_simulacro.sql` **[simulacro]**, para el bloque «Resultado de las acciones».
+3. Pestañas abiertas: la hoja de Google, n8n (W0, W1, W5), GitHub Actions, el panel con un usuario **comercial**, el
+   panel con **dirección** (otra ventana), el buzón demo y el SQL Editor con la consulta de trazabilidad.
+4. Elegir de antemano en el panel del comercial: una **ampliación** (para enviar y ganar) y otra propuesta pendiente con
+   contacto `.example` (para la baja).
 
-> «Cada lunes por la noche la hoja de datos se valida y se carga sola. Si algo está mal, avisa y no carga basura».
+## Recorrido
 
-## 2. El modelo elige las cuentas de la semana (W1 + motor) · 4 min
+| # | Qué enseñas | Dónde | Min |
+|---|---|---|---|
+| 1 | El problema | Diapositiva | 1 |
+| 2 | Los datos entran solos (W0) | Hoja + n8n | 2 |
+| 3 | El modelo elige las cuentas de la semana (W1 + motor) | n8n + GitHub Actions + buzón | 3 |
+| 4 | Lo que ve el comercial y lo que redacta la IA | Panel comercial | 3 |
+| 5 | Aprobar y enviar (W5) | Panel + buzón | 1,5 |
+| 6 | Seguimiento y cierre: ganada con importe y cuenta de riesgo | Panel comercial | 2,5 |
+| 7 | Baja de un contacto | Panel comercial | 1 |
+| 8 | El panel de dirección: el equipo, no los clientes | Panel dirección | 3 |
+| 9 | Trazabilidad | SQL Editor | 1 |
+| 10 | Viabilidad y limitaciones | Diapositiva | 1,5 |
 
-- En n8n, ejecutar **W1** a mano. Lanza el motor en GitHub Actions; enseñar el registro de la ejecución:
-  - *Paso 3 · Puntuaciones del modelo de abandono*: el modelo se reentrena con todas las semanas con resultado conocido y
-    puntúa a cada anunciante activo con su probabilidad de abandonar en 210 días.
-  - *Paso 4 · Propuestas*: cómo se eligen las cuentas.
-- **Cómo se seleccionan las cuentas** (explicarlo con el cuadro de mando o con la hoja «3 Plan semana demo» del simulacro):
-  1. Probabilidad de abandono del modelo × valor de la cuenta → valor esperado de actuar.
-  2. Solo se actúa si ese valor supera el coste de la acción.
-  3. Las 12 de más valor, 4 por comercial.
-  4. Un 20 % de las cuentas de riesgo medio va al **grupo de control**: no reciben acción y sirven para medir si actuar
-     funciona.
-  5. Una cuenta propuesta o en control no se repite en 90 días.
-- Llegan los correos de la semana al buzón demo.
+### 1 · El problema (1 min)
+Meridiano vive de sus anunciantes: un anunciante que se va es facturación perdida, y nadie lo ve hasta que no renueva.
+> «Hemos automatizado el ciclo comercial: detectar, proponer, aprobar, enviar, seguir y cerrar. El modelo prioriza, la
+> IA redacta y el comercial decide.»
 
-> «El modelo no sustituye al comercial: le dice a qué 4 cuentas dedicar la semana y por qué».
+### 2 · Los datos entran solos · W0 (2 min)
+- La hoja de Google: 8 pestañas, ene-2020 al 27-nov-2026.
+- n8n, **W0 → ejecutar**. Termina en `carga_ok`: valida tipos, claves y referencias y carga en Supabase.
+- Opcional: una fila con un anunciante inexistente se rechaza y llega un correo al responsable de datos con el motivo.
+> «Si una fila está mal, avisa y no carga basura. Y si alguien borra clientes de la hoja, no se le escribe a nadie que
+> ya no está.»
 
-## 3. Lo que ve el comercial (Lovable) · 5 min
+### 3 · El modelo elige las cuentas · W1 + motor (3 min)
+- n8n, ejecutar **W1** (fecha de corte 23-nov-2026). Lanza el motor en GitHub Actions; en el registro:
+  *puntuaciones del modelo* y *propuestas*.
+- Cómo se eligen: probabilidad de abandono × valor de la cuenta = valor esperado; solo si supera el coste de la acción;
+  las 12 de más valor, 4 por comercial; un 20 % del riesgo medio va al **grupo de control**; ninguna se repite en 90 días.
+- Claude redacta el material de cada propuesta y un validador lo revisa.
+- Buzón demo: llegan los correos de la semana (y el de escalado a dirección si hay cuentas clave).
+> «El modelo no sustituye al comercial: le dice a qué cuatro cuentas dedicar la semana y por qué.» Cifra medida: AUC 0,883
+> frente a 0,731 de la mejor regla sencilla.
 
-Con el usuario **comercial**:
+### 4 · Lo que ve el comercial (3 min) · usuario comercial
+- Cabecera con contadores (pendientes, en seguimiento, cerradas, **ganadas**, errores) y las propuestas agrupadas.
+- Abrir una de **riesgo**: «Por qué está aquí» (motivo, tipo de riesgo, facturación en riesgo), ficha y contacto.
+- Material redactado por Claude: corregir una frase → **Guardar** → «Ver versiones» (IA y corrección con su autor).
+> «La IA solo redacta: si el texto trae una cifra que no está en los datos, un descuento o habla de abandono, se descarta.»
 
-- Sus 4 propuestas nuevas: empresa, tipo de riesgo, facturación en riesgo, acción sugerida y fecha límite. En el detalle,
-  «Modelo: E2 · regresión logística (modelo_churn)». Las propuestas de semanas anteriores llevan «Modelo anterior».
-- Abrir una propuesta: ficha de la cuenta, motivo, material preparado. Corregir el texto y **aprobar** → W5 envía el correo
-  (en modo demo llega al buzón de pruebas indicando el destinatario real).
-- Cerrar otra propuesta con los tres desplegables (estado, motivo, diagnóstico). Enseñar el historial.
+### 5 · Aprobar y enviar · W5 (1,5 min)
+- La **ampliación** elegida → **Aceptar y enviar** → «Enviando» → «En seguimiento».
+- Buzón demo: llega `[DEMO → …example]` con el texto aprobado, idéntico al del panel.
+> «Nada sale sin aprobación y se envía exactamente lo aprobado.»
 
-> «Cada aprobación queda registrada: el sistema sabe en qué cuentas se ha actuado».
+### 6 · Seguimiento y cierre (2,5 min)
+- En la ampliación: **Registrar respuesta** («Acepta el presupuesto»). **Cerrar → Ganada**: el importe ganado aparece
+  relleno con el de la propuesta; cambiarlo (p. ej. un pedido algo mayor) y cerrar.
+- El contador «Ganadas» sube y la propuesta muestra «Importe ganado … indicado por el comercial».
+- En la propuesta de riesgo: **Aprobar llamada** → **Cerrar** con estado «Activo», motivo, diagnóstico y resultado
+  «Recuperada» (también pide el importe).
+> «El cierre alimenta dos cosas: el diagnóstico mide si el modelo acierta, y el importe dice cuánto vende el equipo.»
 
-## 4. Lo que ve dirección y cómo aprende el sistema · 5 min
+### 7 · Baja de un contacto (1 min)
+- En la propuesta elegida para la baja: **Dar de baja** (lo pidió por teléfono).
+- La empresa pasa a «Cerradas o rechazadas» con el distintivo «Baja de comunicaciones».
+> «Una baja cierra todo lo abierto de ese contacto y el sistema no le vuelve a proponer nada: no se pierde tiempo ni se
+> incumple la normativa.»
 
-Con el usuario de **dirección**:
+### 8 · El panel de dirección (3 min) · usuario dirección
+En este orden, de arriba abajo:
+1. **Resumen del equipo**: publicadas, aprobadas, días hasta decidir, ganadas, **facturación aprobada y ganada**.
+2. **Qué mejorar**: avisos con reglas fijas (capacidad, medición, ritmo, seguimiento…). Leer uno en voz alta.
+3. **Embudo** y **Por comercial**: dónde se queda cada uno; la ganada del paso 6 ya suma.
+4. **Motor y medición** → «Resultado de las acciones (210 días)» **[simulacro]**, con el aviso ámbar: acción frente a
+   grupo de control. Decir que el efecto es supuesto (30 %) y que lo medirá el piloto.
+> «Dirección no ve clientes: ve cómo trabaja el equipo y qué conviene cambiar.»
 
-- Indicadores de la semana. Entre ellos, «Modelo de abandono» y la validación de la etiqueta E2 como indicador.
-- Bloque **«Resultado de las acciones (210 días)»** **[simulacro]**, con el aviso ámbar de simulacro:
-  - Tres grupos: con acción del comercial, propuestas sin acción y grupo de control.
-  - Cuentas **salvadas**: hubo acción y no abandonaron.
-  - **Efecto de la acción** en la banda de riesgo media, la única que tiene grupo de control.
-- Explicar el simulacro con `demo/salida/simulacro.xlsx`:
-  - Hoja «2 Acciones comerciales»: 8 semanas pasadas, 71 propuestas aprobadas y 20 rechazadas (decisiones simuladas).
-  - Hoja «6 Efecto (banda media)»: en el **escenario supuesto** (la acción evita el 30 % de los abandonos), 20,0 % de
-    abandono con acción frente a 46,2 % en el control (13 cuentas): 26,2 puntos.
-  - Sin el supuesto también sale una diferencia (33,3 % frente a 46,2 %: 12,8 puntos), y **no es un efecto**: las acciones son simuladas y no
-    cambian los datos. Es azar con solo 13 cuentas en el control. Por eso el panel avisa de que con pocas cuentas la
-    diferencia puede deberse al azar.
-- **Cómo aprende el modelo**: al reentrenar deja fuera las cuentas en las que se actuó (en el simulacro, 207
-  observaciones), para no aprender que una cuenta salvada no estaba en riesgo. Y cada semana guarda los resultados con
-  los datos de cada cuenta: con casos suficientes, se podrá entrenar un modelo de qué cuentas se pueden salvar.
+### 9 · Trazabilidad (1 min)
+Consulta en el SQL Editor (al final): cada paso de la demo con quién, cuándo y estado antes y después, incluidos
+`cerrar`, `corregir_importe` y `cerrada_por_baja`.
 
-> «A los 210 días sabremos si actuar sirve, comparando con cuentas iguales que no recibieron acción».
+### 10 · Viabilidad y limitaciones (1,5 min)
+- **Medido:** el modelo sabe a quién llamar (AUC 0,883; 92 % de acierto en el 25 % de más riesgo).
+- **Supuesto:** cuántas cuentas salva una acción (20 % en el cálculo, 30 % en el simulacro). Lo medirá un piloto de dos
+  trimestres con el grupo de control.
+- **Limitaciones:** datos ficticios, pocos anunciantes, y hoy el grupo de control solo existe en riesgo medio (si las 12
+  propuestas son de riesgo alto, la semana no tiene control).
+> «El modelo ya sabe dónde mirar. El piloto dirá si actuar compensa, y el sistema está preparado para medirlo.»
+
+## Lo que no se debe decir
+- Que el sistema «salva» un porcentaje de cuentas: es el simulacro con efecto supuesto.
+- Que la facturación ganada del panel es un resultado: son los cierres de la demostración.
+
+## Consulta de trazabilidad
+
+```sql
+select coalesce(p.razon_social, p.id_lead) as empresa, e.accion, e.usuario, e.estado_antes, e.estado_despues,
+       to_char(e.creado_en, 'DD/MM HH24:MI') as cuando
+from eventos_propuesta e join propuestas p on p.id = e.propuesta_id
+where e.usuario not in ('motor', 'n8n · lunes')
+order by e.creado_en desc
+limit 15;
+```
 
 ## Al terminar
-
-1. Supabase: `demo/salida/borrar_simulacro.sql` **[simulacro]** (el último `select` debe devolver 0).
-2. Supabase: `supabase/restaurar_demo.sql` si se quiere repetir la demo.
-3. n8n, W1: devolver el nodo *Fecha de corte* a su código original (calcula el lunes anterior).
-
-## Si algo falla
-
-| Síntoma | Qué hacer |
-|---|---|
-| W1 termina en error en GitHub Actions | Revisar que `supabase/modelo_churn.sql` está ejecutado (el motor sube columnas nuevas) |
-| El bloque de resultados sale vacío | Ejecutar `demo/salida/cargar_simulacro.sql` con un usuario de dirección |
-| No aparece «Modelo: …» en las propuestas nuevas | Comprobar que la pull request está fusionada y que W1 ha corrido después |
-| La fecha de corte da error «posterior al último dato» | Usar una fecha de corte ≤ 27-nov-2026 o cargar datos más recientes |
+1. `demo/salida/borrar_simulacro.sql` **[simulacro]** (el último `select` devuelve 0).
+2. Para repetir: `supabase/limpiar_grabacion.sql` y volver a ejecutar W1.
+3. Cuando todo esté cerrado: auditoría final con W7.
