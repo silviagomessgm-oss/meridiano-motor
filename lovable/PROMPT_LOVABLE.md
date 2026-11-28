@@ -32,7 +32,7 @@ La aplicación **nunca** hace `insert`, `update`, `upsert` ni `delete` sobre nin
 // Acciones sobre una propuesta
 const { data, error } = await supabase.rpc('accion_panel', {
   p_propuesta_id: propuesta.id,
-  p_accion: 'guardar_material' | 'aprobar' | 'rechazar' | 'registrar_respuesta' | 'cerrar' | 'reabrir',
+  p_accion: 'guardar_material' | 'aprobar' | 'rechazar' | 'registrar_respuesta' | 'cerrar' | 'reabrir' | 'corregir_importe',
   p_datos: { ... }   // según la acción (tabla de abajo)
 });
 // data = la propuesta actualizada (JSON). Si hay error, mostrar error.message (viene en español) y no dar la acción por hecha.
@@ -51,8 +51,9 @@ await supabase.rpc('registrar_consentimiento', { p_id_lead, p_medio: 'telefono' 
 | `aprobar` | `{}` | «Aceptar y enviar» si `canal = 'email'`; «Aprobar llamada» si `canal = 'llamada'` |
 | `rechazar` | `{ motivo }` | «Rechazar» (diálogo que pide el motivo) |
 | `registrar_respuesta` | `{ resumen }` | «Registrar respuesta del cliente» |
-| `cerrar` (etiqueta `riesgo`) | `{ estado_confirmado_comercial, motivo_confirmado, diagnostico_correcto, desenlace, comentario_comercial }` | «Cerrar» |
-| `cerrar` (resto de etiquetas) | `{ desenlace, motivo_desenlace, comentario_comercial }` | «Cerrar» |
+| `cerrar` (etiqueta `riesgo`) | `{ estado_confirmado_comercial, motivo_confirmado, diagnostico_correcto, desenlace, comentario_comercial, importe_ganado_eur? }` | «Cerrar» |
+| `cerrar` (resto de etiquetas) | `{ desenlace, motivo_desenlace, comentario_comercial, importe_ganado_eur? }` | «Cerrar» |
+| `corregir_importe` (solo ganadas) | `{ importe_ganado_eur }` | «Cambiar importe» |
 | `reabrir` | `{ motivo }` | «Reabrir» (diálogo que pide el motivo) |
 
 Después de cada llamada correcta, sustituye la propuesta en pantalla por `data` y recarga su historial.
@@ -66,7 +67,7 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
   - Diagnóstico: `tipo_riesgo` (`perdida_total` | `contraccion`), `banda_riesgo`, `facturacion_en_riesgo` (€), `valor_cuenta` (€), `cuenta_clave`, `requiere_direccion`, `motivo_principal`, `motivo_secundario`, `accion_id`, `producto_sugerido_nombre`, `fecha_limite`, `justificacion`, `ficha_cuenta`.
   - Material y canal: `canal` (`email` | `llamada`), `id_contacto`, `asunto_email`, `material_titulo`, `material_cuerpo`, `material_editado`, `notas_internas`, `fuente_material` (`llm` o texto que empieza por `plantilla`).
   - Modelo: `modelo` (texto con el modelo de abandono que generó la propuesta; vacío en las propuestas anteriores al cambio de modelo del 27-nov-2026).
-  - Seguimiento: **`estado`** (ver abajo), `texto_aprobado`, `version_aprobada`, `aprobada_por`, `aprobada_en`, `motivo_rechazo`, `enviada_en`, `error_envio`, `ultima_respuesta_en`, `estado_confirmado_comercial`, `motivo_confirmado`, `diagnostico_correcto`, `desenlace`, `motivo_desenlace`, `comentario_comercial`, `fecha_confirmacion`.
+  - Seguimiento: **`estado`** (ver abajo), `texto_aprobado`, `version_aprobada`, `aprobada_por`, `aprobada_en`, `motivo_rechazo`, `enviada_en`, `error_envio`, `ultima_respuesta_en`, `estado_confirmado_comercial`, `motivo_confirmado`, `diagnostico_correcto`, `desenlace`, `motivo_desenlace`, `importe_ganado_eur`, `importe_ganado_origen`, `comentario_comercial`, `fecha_confirmacion`.
 - **`estado`** (único estado que debe mostrar el panel):
 
   | Valor | Etiqueta visible | Color |
@@ -105,6 +106,7 @@ Después de cada llamada correcta, sustituye la propuesta en pantalla por `data`
   | `otro` | Otro |
 - `diagnostico_correcto`: `Sí`, `No`.
 - `desenlace`: `ganada` → «Ganada», `perdida` → «Perdida», `descartada` → «Descartada». El motivo es obligatorio si no es «Ganada».
+- `importe_ganado_eur`: al ganar, «Importe ganado (€)», precargado con `rpc('importe_estimado_propuesta', { p_propuesta_id })` y editable (ver `CAMBIO_IMPORTE_GANADO.md`).
 - `tipo_riesgo`: `perdida_total` → «Pérdida total», `contraccion` → «Contracción».
 - `motivo_principal` y `motivo_secundario` (texto visible; si llega un valor que no está en la tabla, sustituir `_` por espacios y poner la primera letra en mayúscula):
 

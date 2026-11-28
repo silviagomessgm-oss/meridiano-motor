@@ -1,7 +1,7 @@
 -- =====================================================================================================================
 -- Panel de dirección centrado en el EQUIPO (28-nov-2026)
 -- Dirección no ve clientes: ve cómo trabaja el equipo, cómo va la venta y qué conviene mejorar.
--- Se aplica DESPUÉS de modelo_churn.sql y resultado_riesgo.sql. Se puede ejecutar varias veces.
+-- Se aplica DESPUÉS de modelo_churn.sql, resultado_riesgo.sql e importe_ganado.sql. Se puede ejecutar varias veces.
 -- Sin bloques $$, sin variables locales y sin cadenas vacías: el editor de Supabase parte el texto por los «;».
 --
 --   equipo_semana          · por semana, comercial y tipo de propuesta: embudo (publicadas → aprobadas → enviadas →
@@ -33,7 +33,11 @@ create or replace view equipo_semana with (security_invoker = true) as
          count(*) filter (where p.diagnostico_correcto is not null)                       as diagnostico_respondido,
          coalesce(sum(p.facturacion_en_riesgo), 0)                                        as facturacion_en_riesgo,
          coalesce(sum(p.facturacion_en_riesgo) filter (where p.estado = 'cerrada' and p.desenlace = 'ganada'), 0) as facturacion_recuperada,
-         coalesce(sum(p.importe_propuesto_eur) filter (where p.estado = 'cerrada' and p.desenlace = 'ganada'), 0) as importe_ganado_propuesto
+         coalesce(sum(p.importe_propuesto_eur) filter (where p.estado = 'cerrada' and p.desenlace = 'ganada'), 0) as importe_ganado_propuesto,
+         -- Facturación: lo aprobado (importe estimado de las propuestas aprobadas) y lo ganado (lo que declara el comercial)
+         coalesce(round(sum(importe_estimado(p)) filter (where p.aprobada_en is not null)), 0)                    as importe_aprobado,
+         coalesce(sum(p.importe_ganado_eur) filter (where p.estado = 'cerrada' and p.desenlace = 'ganada'), 0)   as importe_ganado,
+         count(*) filter (where p.estado = 'cerrada' and p.desenlace = 'ganada' and p.importe_ganado_origen = 'comercial') as ganadas_importe_cambiado
   from propuestas p
   group by p.fecha_corte, p.comercial_asignado, p.comercial_nombre, p.etiqueta;
 comment on view equipo_semana is 'Embudo y rendimiento por semana, comercial y tipo de propuesta (sin clientes).';

@@ -10,7 +10,7 @@ SQL = os.path.join(RAIZ, "supabase", "panel_direccion.sql")
 
 @pytest.fixture
 def dbd(db):
-    for f in ["modelo_churn.sql", "resultado_riesgo.sql", "panel_direccion.sql"]:
+    for f in ["modelo_churn.sql", "resultado_riesgo.sql", "importe_ganado.sql", "panel_direccion.sql"]:
         db.execute(open(os.path.join(RAIZ, "supabase", f)).read())
     yield db
 
@@ -21,6 +21,7 @@ def test_parche_idempotente_y_comprobacion(dbd):
 
 
 def test_embudo_por_comercial_sin_clientes(dbd):
+    dbd.execute("update propuestas set facturacion_en_riesgo = 5000 where id_cliente = 'CLI-2'")   # importe estimado al ganar
     accion(dbd, "CLI-2", "aprobar", "j@meridiano.com")                                        # llamada → seguimiento
     accion(dbd, "CLI-2", "cerrar", "j@meridiano.com", {**CIERRE_RIESGO, "estado_confirmado_comercial": "Activo", "desenlace": "ganada"})
     cols = [c.name for c in (dbd.execute("select * from equipo_semana limit 0") or dbd.description)]
