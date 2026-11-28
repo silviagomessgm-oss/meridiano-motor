@@ -352,7 +352,7 @@ def test_w5_respuesta_ambigua_no_se_registra_y_avisa():
     a = correr("w5_sin_confirmar.js", {"nodos": {"Solo reservados": env, "Enviar al contacto": gm,
                                                  "Configuración": [{"correo_direccion": "d@m.com"}]}})[0]
     assert a["para"] == "d@m.com" and "2 envíos sin confirmar" in a["asunto"] and "Propuesta 8" in a["texto"] and "Propuesta 9" in a["texto"]
-    assert "Propuesta 10" not in a["texto"] and "liberar_envio" in a["texto"]
+    assert "Propuesta 10" not in a["texto"] and "liberar_envio" in a["texto"] and "confirmar_envio_manual" in a["texto"]
     assert correr("w5_sin_confirmar.js", {"nodos": {"Solo reservados": env[:1], "Enviar al contacto": gm[:1],
                                                     "Configuración": [{}]}}) == []
 

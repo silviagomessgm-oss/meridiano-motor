@@ -17,7 +17,8 @@ Corrección del hallazgo **H2 (alta)** de la auditoría del diseño (W7, ejecuci
 - Tabla `exclusiones`: solo el correo normalizado, el motivo (`enlace_baja`, `solicitud_contacto`, `oposicion`, `rebote_permanente`), el origen, quién la registró y cuándo.
 - El bloqueo está **en la base de datos** (trigger `propuestas_bloquear_excluidos`): da igual quién lo intente (panel, n8n o consola), una propuesta por correo a un contacto excluido no se puede aprobar ni marcar como enviada. Por llamada sí se puede, porque la baja es del canal correo.
 - Además, W5 lee `contacto_excluido` en `envios_pendientes` y no llega a llamar a Gmail.
-- Ni el panel ni n8n pueden modificar ni borrar una baja. La reactivación solo la hace dirección desde el editor SQL, con un consentimiento nuevo registrado.
+- Nadie puede modificar ni borrar una baja (trigger `exclusiones_proteger`, también para la consola). La reactivación solo la hace dirección desde el editor SQL, con un consentimiento nuevo registrado, indicando expresamente el correo (`meridiano.reactivar`). Las bajas ficticias de la demo (`.example`) se pueden borrar al restaurarla.
+- **La baja sobrevive al contacto** (auditoría del diseño v4, H2): la lista va por correo electrónico normalizado y no por ficha. Si se borra el contacto por plazo de conservación y el mismo correo vuelve a entrar (otro cliente, un excliente que vuelve, mayúsculas o espacios distintos), sigue bloqueado.
 
 ## 3. Plazo de conservación (supuesto de diseño)
 
@@ -26,13 +27,14 @@ Corrección del hallazgo **H2 (alta)** de la auditoría del diseño (W7, ejecuci
 | Leads no convertidos | 24 meses desde su última actividad | Vista `conservacion_vencida`; dirección revisa y borra |
 | Contactos de cuentas que dejaron de ser clientes | 36 meses desde la última factura | Revisión anual de dirección |
 | Facturación | El que fije la normativa fiscal y mercantil | Fuera del alcance del sistema |
-| Lista de exclusión | Mientras exista el contacto, para garantizar que no se le vuelve a escribir | Solo el correo y el motivo |
+| Lista de exclusión | Indefinido, aunque se borre el contacto: es lo que garantiza que no se le vuelve a escribir (interés legítimo en respetar la oposición, art. 6.1.f RGPD) | Solo correo, motivo, origen y fecha; no aparece en `conservacion_vencida` y no se puede borrar |
 | Propuestas, eventos y auditorías | Mientras dure el caso; son la evidencia del proceso | Tablas inmutables o con traza |
 
 El borrado no se automatiza: una reclamación abierta necesita la evidencia. La vista solo señala lo vencido.
 
 ## 4. Pruebas
 
+- `tests/test_auditoria3.py`: la baja sobrevive al borrado del contacto y bloquea si el correo reaparece; no se modifica ni se borra salvo la demo y la reactivación expresa.
 - `tests/test_supabase.py`: baja por enlace (con bloqueo al aprobar y al enviar, y con posibilidad de rechazar), token desconocido, mayúsculas y espacios en el correo, canal llamada no afectado, baja desde el panel solo en la propia cartera, y sin permiso de borrado.
 - `tests/test_n8n.py`: correo HTML con la marca y el enlace de baja, texto escapado, bloqueo de excluidos y de correos sin enlace, página de baja en dos pasos y token inválido.
 

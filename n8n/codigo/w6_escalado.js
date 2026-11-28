@@ -33,7 +33,7 @@ else {
   }
 }
 if (dudosos && dudosos.length) {
-  lineas.push('', 'ENVÍOS SIN CONFIRMAR (Gmail no confirmó ni rechazó; comprobar Enviados y liberar con liberar_envio)');
+  lineas.push('', 'ENVÍOS SIN CONFIRMAR (Gmail no confirmó ni rechazó; comprobar Enviados: si salió, confirmar_envio_manual; si no, liberar_envio)');
   for (const d of dudosos) lineas.push(`  - Propuesta ${d.id} · ${d.razon_social} · reservada el ${fecha(d.envio_reservado_en)}`);
 }
 if (conAviso && conAviso.length) {

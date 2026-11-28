@@ -1,8 +1,9 @@
 # Meridiano · Paquete de auditoría del diseño (paso 05 FORGEN)
 
-Versión: diseno-v4 · 28-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
+Versión: diseno-v5 · 28-nov-2026 · Generado con Claude Opus (Claude Code). Para revisión por un modelo distinto y más capaz.
 Cambios: diseno-v2 corrige la primera auditoría (H1–H12, sección 6); diseno-v3 corrige la segunda (sección 7); diseno-v4
-sustituye el modelo de riesgo de N2 por el construido por la alumna (`modelo_churn/`) y amplía los datos (sección 8).
+sustituye el modelo de riesgo de N2 por el construido por la alumna (`modelo_churn/`) y amplía los datos (sección 8);
+diseno-v5 corrige los dos hallazgos altos de la auditoría de la v4 (sección 9).
 Caso ficticio de un trabajo fin de programa: datos, contactos y cifras son simulados.
 
 ## 1. Contexto y problema
@@ -54,8 +55,11 @@ permisos por fila y trazabilidad), panel y formulario web en Lovable, Google She
   de baja a nadie). Lista de exclusión `exclusiones` (solo correo y motivo; sin modificar ni borrar desde el panel ni n8n).
   La base de datos impide aprobar o marcar como enviado un correo a un contacto excluido (trigger), y W5 no envía ningún
   correo sin enlace de baja. Plazos de conservación (supuestos de diseño): leads no convertidos, 24 meses desde su última
-  actividad; contactos de excliente, 36 meses; lista de exclusión, mientras exista el contacto. Vista `conservacion_vencida`;
-  el borrado lo decide dirección.
+  actividad; contactos de excliente, 36 meses; lista de exclusión, **indefinida y por correo electrónico, aunque se borre el
+  contacto** (si el correo reaparece en otra ficha sigue bloqueado; base: interés legítimo en respetar la oposición, art. 6.1.f
+  RGPD; solo correo, motivo, origen y fecha). Nadie la modifica ni la borra (trigger); la reactivación solo la hace
+  dirección con un consentimiento nuevo e indicando el correo. Vista `conservacion_vencida` (no incluye la lista de
+  exclusión); el borrado lo decide dirección.
 - **Base de cada envío (2.ª auditoría):** riesgo y ampliación se dirigen a clientes y exclientes con relación contractual
   previa, sobre productos de la misma oferta publicitaria que contrataron, con oposición en cada correo (art. 21.2 LSSI). Los
   exclientes solo entran si facturaron en los últimos 18 meses (horizonte de actividad del motor). Lead del formulario:
@@ -180,13 +184,16 @@ Dos pasos con responsabilidad y criterio propios (H12): N4a redacta (IA), N4b va
 - Idempotencia (H1): W5 lee solo las aprobadas sin reservar y las reserva con `reservar_envios()` en una sola sentencia; solo
   envía las que ha reservado esa ejecución, así que dos ejecuciones simultáneas no envían dos veces. La base de datos no
   deja marcar «enviada» sin reserva y, al volver a aprobar, limpia la reserva anterior. Una reserva sin resultado no se
-  reintenta sola (como mucho un envío): aparece en `envios_sin_confirmar` y dirección la libera con `liberar_envio()` tras
-  comprobar en Gmail que el correo no salió.
+  reintenta sola (como mucho un envío): aparece en `envios_sin_confirmar` y dirección la resuelve tras mirar la carpeta
+  Enviados de Gmail: si el correo **salió**, `confirmar_envio_manual(id, id_mensaje, fecha_real)` (solo dirección; exige el
+  identificador del mensaje y una fecha entre la reserva y ahora) la pasa a «En seguimiento» con la fecha real, desde la que
+  corren los toques de N7, y deja el evento «confirmar_envio_manual»; si **no salió**, `liberar_envio()` la deja lista para
+  W5. Una propuesta confirmada ya no se puede liberar ni reservar.
 - Correo en HTML con la identidad de la marca y pie de baja (H2); no se envía a excluidos ni sin enlace de baja. Los bloqueos
   se registran como error con su motivo.
 - Respuesta de Gmail: solo un rechazo explícito (4xx) pasa a «Error de envío» reintentable. Un timeout, un error de red, un
-  5xx o una respuesta vacía no se registran: la reserva queda en `envios_sin_confirmar`, se avisa a dirección en el momento y
-  figura en el resumen del lunes hasta que se libera.
+  5xx o una respuesta vacía no se registran: la reserva queda en `envios_sin_confirmar`, se avisa a dirección en el momento
+  (con las dos instrucciones, confirmar o liberar) y figura en el resumen del lunes hasta que se resuelve.
 - Criterios: se envía exactamente el texto aprobado y como mucho una vez por aprobación; correcto → «En seguimiento» con
   identificador del mensaje; fallo → «Error de envío», visible en el panel y reintentable.
 
@@ -239,7 +246,8 @@ Tres pasos con criterio propio (H12): N9a balance (SQL), N9b comentario (IA + va
   (LSSI y RGPD).
 - Filas borradas en la hoja (H11, pendiente): W0 carga por identificador y no marca las filas que desaparecen de la hoja.
   Riesgo aceptado para la demo; corrección prevista: marcar «no presente en la última carga» y excluirlas del motor.
-- Un envío cuya reserva no se confirma se libera a mano (preferimos no duplicar a reenviar solos).
+- Un envío cuya reserva no se confirma se resuelve a mano: confirmar si salió o liberar si no (preferimos no duplicar a
+  reenviar solos).
 
 ## 6. Correcciones respecto a diseno-v1 (primera auditoría: aprobado con cambios, 2 altas, 7 medias, 3 bajas)
 
@@ -290,4 +298,12 @@ Tres pasos con criterio propio (H12): N9a balance (SQL), N9b comentario (IA + va
 Tests: 99 del sistema (base de datos, n8n, ciclo y simulacro), 45 del modelo de abandono (no fuga de variables y de la
 puntuación, contrato de salida, reproducibilidad, exclusión de intervenidas, resultado de las acciones), 33 de evaluación y
 21 de propuestas. El parche `supabase/modelo_churn.sql` se prueba sentencia a sentencia y dos veces seguidas.
+
+## 9. Correcciones respecto a diseno-v4 (auditoría del 28-nov-2026: aprobado con cambios, 2 altas, 7 medias, 3 bajas)
+
+| Hallazgo | Corrección | Estado |
+|---|---|---|
+| H1 (alta) · envío que sí salió pero no consta | `confirmar_envio_manual(id, id_mensaje, fecha_real)`: solo dirección, exige el identificador del mensaje y una fecha entre la reserva y ahora; pasa a «En seguimiento» con la fecha real (arrancan los toques), evento trazado; después ya no se puede liberar ni reservar. Avisos de W5 y del resumen de W6 con las dos salidas | Implantado · `supabase/auditoria3.sql` · `test_confirmar_envio_manual_solo_direccion_y_arranca_el_seguimiento`, `test_confirmado_ya_no_se_libera_ni_se_reenvia` |
+| H2 (alta) · la baja desaparece con el contacto | Lista de exclusión por correo normalizado, indefinida, fuera de `conservacion_vencida` y protegida por trigger frente a modificación y borrado (salvo demo y reactivación expresa con consentimiento nuevo); base documentada en `politica_correo.md` | Implantado · `test_baja_sobrevive_al_borrado_del_contacto_y_bloquea_si_reaparece`, `test_exclusiones_no_se_modifican_ni_borran_salvo_las_de_la_demo` |
+| H3–H12 (medias y bajas) | Se deciden uno a uno con la alumna después de esta corrección | Pendiente de decisión |
 
